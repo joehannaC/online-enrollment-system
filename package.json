@@ -1,0 +1,28 @@
+{
+  "name": "online-enrollment-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail -n frontend,auth,enrollment,grade \"npm run dev -w @enrollment/frontend\" \"npm run dev -w @enrollment/auth-service\" \"npm run dev -w @enrollment/enrollment-service\" \"npm run dev -w @enrollment/grade-service\"",
+    "dev:frontend": "npm run dev -w @enrollment/frontend",
+    "dev:auth": "npm run dev -w @enrollment/auth-service",
+    "dev:enrollment": "npm run dev -w @enrollment/enrollment-service",
+    "dev:grade": "npm run dev -w @enrollment/grade-service",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "mongo:up": "docker compose up -d",
+    "mongo:down": "docker compose down",
+    "mongo:reset": "docker compose down -v",
+    "mongo:status": "docker compose ps",
+    "mongo:logs": "docker compose logs -f mongo1 mongo2 mongo3",
+    "mongo:shell": "docker exec -it enrollment-mongo1 mongosh --port 27117",
+    "mongo:replica-status": "docker exec enrollment-mongo1 mongosh --port 27117 --quiet --eval \"rs.status().members.map(m => ({name: m.name, state: m.stateStr}))\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package enrollment.enrollment.v1;
+
+service EnrollmentService {
+  rpc GetSection(GetSectionRequest)
+      returns (GetSectionResponse);
+
+  rpc VerifyStudentEnrollment(VerifyStudentEnrollmentRequest)
+      returns (VerifyStudentEnrollmentResponse);
+
+  rpc VerifyFacultyAssignment(VerifyFacultyAssignmentRequest)
+      returns (VerifyFacultyAssignmentResponse);
+}
+
+message GetSectionRequest {
+  string section_id = 1;
+}
+
+message GetSectionResponse {
+  string section_id = 1;
+  string course_id = 2;
+  string faculty_id = 3;
+  string status = 4;
+  int32 capacity = 5;
+  int32 enrolled_count = 6;
+}
+
+message VerifyStudentEnrollmentRequest {
+  string student_id = 1;
+  string section_id = 2;
+}
+
+message VerifyStudentEnrollmentResponse {
+  bool enrolled = 1;
+}
+
+message VerifyFacultyAssignmentRequest {
+  string faculty_id = 1;
+  string section_id = 2;
+}
+
+message VerifyFacultyAssignmentResponse {
+  bool assigned = 1;
+}

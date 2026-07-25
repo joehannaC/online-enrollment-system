@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package enrollment.grade.v1;
+
+service GradeService {
+  rpc GetStudentGrades(GetStudentGradesRequest)
+      returns (GetStudentGradesResponse);
+}
+
+message GetStudentGradesRequest {
+  string student_id = 1;
+}
+
+message GradeRecord {
+  string grade_id = 1;
+  string student_id = 2;
+  string section_id = 3;
+  double grade = 4;
+}
+
+message GetStudentGradesResponse {
+  repeated GradeRecord grades = 1;
+}

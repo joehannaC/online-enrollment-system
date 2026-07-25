@@ -1,0 +1,150 @@
+services:
+  mongo1:
+    image: mongo:8
+    container_name: enrollment-mongo1
+    hostname: mongo1
+    command:
+      - mongod
+      - --replSet
+      - enrollment-rs
+      - --bind_ip_all
+      - --port
+      - "27117"
+    ports:
+      - "27117:27117"
+    volumes:
+      - mongo1-data:/data/db
+    networks:
+      - enrollment-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--host",
+          "localhost",
+          "--port",
+          "27117",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mongo2:
+    image: mongo:8
+    container_name: enrollment-mongo2
+    hostname: mongo2
+    command:
+      - mongod
+      - --replSet
+      - enrollment-rs
+      - --bind_ip_all
+      - --port
+      - "27118"
+    ports:
+      - "27118:27118"
+    volumes:
+      - mongo2-data:/data/db
+    networks:
+      - enrollment-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--host",
+          "localhost",
+          "--port",
+          "27118",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mongo3:
+    image: mongo:8
+    container_name: enrollment-mongo3
+    hostname: mongo3
+    command:
+      - mongod
+      - --replSet
+      - enrollment-rs
+      - --bind_ip_all
+      - --port
+      - "27119"
+    ports:
+      - "27119:27119"
+    volumes:
+      - mongo3-data:/data/db
+    networks:
+      - enrollment-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--host",
+          "localhost",
+          "--port",
+          "27119",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mongo-init:
+    image: mongo:8
+    container_name: enrollment-mongo-init
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    volumes:
+      - ./database/replica-set/init-replica.js:/scripts/init-replica.js:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        mongosh \
+          --host mongo1 \
+          --port 27117 \
+          /scripts/init-replica.js
+
+        echo "Waiting for replica set primary..."
+
+        until mongosh \
+          --host mongo1 \
+          --port 27117 \
+          --quiet \
+          --eval "db.hello().isWritablePrimary" | grep true; do
+          sleep 2
+        done
+
+        echo "Replica set is ready."
+    networks:
+      - enrollment-network
+    restart: "no"
+
+networks:
+  enrollment-network:
+    name: enrollment-network
+
+volumes:
+  mongo1-data:
+  mongo2-data:
+  mongo3-data:

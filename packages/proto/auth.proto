@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package enrollment.auth.v1;
+
+service AuthService {
+  rpc ValidateToken(ValidateTokenRequest)
+      returns (ValidateTokenResponse);
+
+  rpc GetUser(GetUserRequest)
+      returns (GetUserResponse);
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string role = 3;
+  string student_id = 4;
+  string faculty_id = 5;
+  string error = 6;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+  string email = 2;
+  string role = 3;
+  string student_id = 4;
+  string faculty_id = 5;
+}
