@@ -20,7 +20,7 @@
     "mongo:status": "docker compose ps",
     "mongo:logs": "docker compose logs -f mongo1 mongo2 mongo3",
     "mongo:shell": "docker exec -it enrollment-mongo1 mongosh --port 27117",
-    "mongo:replica-status": "docker exec enrollment-mongo1 mongosh --port 27117 --quiet --eval \"rs.status().members.map(m => ({name: m.name, state: m.stateStr}))\""
+    "mongo:replica-status": "docker exec enrollment-mongo1 mongosh --port 27117 --quiet --eval \"rs.status().members.map(m => ({ name: m.name, state: m.stateStr }))\""
   },
   "devDependencies": {
     "concurrently": "^9.2.4"

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package enrollment.health.v1;
+
+service HealthService {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  string status = 1;
+  string service = 2;
+  string transport = 3;
+  string database_status = 4;
+  string timestamp = 5;
+}
