@@ -11,6 +11,7 @@ import {
   getDatabaseStatus,
   isDatabaseConnected,
 } from "./config/database.js";
+import { authRoutes } from "./routes/authRoutes.js";
 
 export const app = express();
 
@@ -40,6 +41,8 @@ app.get("/health", (_request: Request, response: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.use("/api/auth", authRoutes);
 
 app.use(
   (

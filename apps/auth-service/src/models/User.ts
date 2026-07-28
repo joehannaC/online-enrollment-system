@@ -1,13 +1,15 @@
-import {
+import mongoose, {
     Schema,
-    model,
-    models,
     type HydratedDocument,
     type Model,
 } from "mongoose";
 
 export type UserRole = "STUDENT" | "FACULTY";
-export type AccountStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+
+export type AccountStatus =
+    | "ACTIVE"
+    | "INACTIVE"
+    | "SUSPENDED";
 
 export interface IUser {
     email: string;
@@ -54,19 +56,21 @@ const userSchema = new Schema<IUser>(
             type: String,
             enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
             default: "ACTIVE",
-            },
+        },
 
-            lastLoginAt: {
+        lastLoginAt: {
             type: Date,
-            },
         },
-        {
-            timestamps: true,
-            collection: "users",
-        },
+    },
+    {
+        timestamps: true,
+        collection: "users",
+    },
 );
 
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ username: 1 }, { unique: true });
 
-export const User: Model<IUser> = models.User || model<IUser>("User", userSchema);
+export const User: Model<IUser> =
+    (mongoose.models.User as Model<IUser> | undefined) ??
+    mongoose.model<IUser>("User", userSchema);
