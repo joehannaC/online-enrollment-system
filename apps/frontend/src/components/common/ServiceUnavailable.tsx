@@ -50,7 +50,7 @@ export default function ServiceUnavailable({
                 "relative overflow-hidden bg-[#01301E]",
                 fullScreen
                     ? "min-h-screen"
-                    : "min-h-[420px] rounded-2xl",
+                    : "min-h-[680px] rounded-2xl",
             ].join(" ")}
         >
             <div

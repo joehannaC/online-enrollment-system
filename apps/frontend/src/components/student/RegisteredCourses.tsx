@@ -82,26 +82,7 @@ export default function RegisteredCourses({
                 className: "text-center",
                 headerClassName: "text-center",
             },
-            {
-                key: "status",
-                header: "Status",
-                render: (course) => (
-                    <StatusBadge
-                        variant={
-                            course.enrollmentStatus ===
-                            "ENROLLED"
-                                ? "success"
-                                : "warning"
-                        }
-                    >
-                        {
-                            course.enrollmentStatus
-                        }
-                    </StatusBadge>
-                ),
-                className: "text-center",
-                headerClassName: "text-center",
-            },
+            
         ];
 
     return (
