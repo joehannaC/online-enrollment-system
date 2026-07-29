@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 
+import {
+    AppSidebar,
+    MobileNavigation,
+} from "@/components/layout";
+
 interface FacultyLayoutProps {
     children: ReactNode;
 }
@@ -8,8 +13,15 @@ export default function FacultyLayout({
     children,
 }: FacultyLayoutProps) {
     return (
-        <div className="min-h-screen bg-neutral-100">
+        <>
+            <AppSidebar
+                role="FACULTY"
+                initials="AR"
+            />
+
             {children}
-        </div>
+
+            <MobileNavigation role="FACULTY" />
+        </>
     );
 }

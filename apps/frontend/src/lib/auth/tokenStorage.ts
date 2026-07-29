@@ -1,59 +1,81 @@
-import type { AuthUser } from "@/types/auth.types";
+import type { AuthUser } from "@/types";
 
-const ACCESS_TOKEN_KEY = "enrollment_access_token";
-const AUTH_USER_KEY = "enrollment_auth_user";
+const ACCESS_TOKEN_KEY =
+    "online-enrollment-access-token";
 
-function isBrowser(): boolean {
-    return typeof window !== "undefined";
-}
+const AUTH_USER_KEY =
+    "online-enrollment-auth-user";
 
 export function saveAuthSession(
     accessToken: string,
     user: AuthUser,
 ): void {
-    if (!isBrowser()) {
+    if (typeof window === "undefined") {
         return;
     }
 
-    sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    sessionStorage.setItem(
+        ACCESS_TOKEN_KEY,
+        accessToken,
+    );
+
     sessionStorage.setItem(
         AUTH_USER_KEY,
         JSON.stringify(user),
     );
 }
 
-export function getAccessToken(): string | null {
-    if (!isBrowser()) {
+export function getAccessToken():
+    | string
+    | null {
+    if (typeof window === "undefined") {
         return null;
     }
 
-    return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+    return sessionStorage.getItem(
+        ACCESS_TOKEN_KEY,
+    );
 }
 
-export function getStoredUser(): AuthUser | null {
-    if (!isBrowser()) {
+export function getStoredAuthUser():
+    | AuthUser
+    | null {
+    if (typeof window === "undefined") {
         return null;
     }
 
-    const storedUser = sessionStorage.getItem(AUTH_USER_KEY);
+    const storedUser =
+        sessionStorage.getItem(
+            AUTH_USER_KEY,
+        );
 
     if (!storedUser) {
         return null;
     }
 
     try {
-        return JSON.parse(storedUser) as AuthUser;
+        return JSON.parse(
+            storedUser,
+        ) as AuthUser;
     } catch {
-        clearAuthSession();
+        sessionStorage.removeItem(
+            AUTH_USER_KEY,
+        );
+
         return null;
     }
 }
 
 export function clearAuthSession(): void {
-    if (!isBrowser()) {
+    if (typeof window === "undefined") {
         return;
     }
 
-    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-    sessionStorage.removeItem(AUTH_USER_KEY);
+    sessionStorage.removeItem(
+        ACCESS_TOKEN_KEY,
+    );
+
+    sessionStorage.removeItem(
+        AUTH_USER_KEY,
+    );
 }

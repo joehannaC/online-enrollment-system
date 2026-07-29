@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 
+import {
+    AppSidebar,
+    MobileNavigation,
+} from "../../components/layout/";
+
 interface StudentLayoutProps {
     children: ReactNode;
 }
@@ -8,8 +13,15 @@ export default function StudentLayout({
     children,
 }: StudentLayoutProps) {
     return (
-        <div className="min-h-screen bg-neutral-100">
+        <>
+            <AppSidebar
+                role="STUDENT"
+                initials="JD"
+            />
+
             {children}
-        </div>
+
+            <MobileNavigation role="STUDENT" />
+        </>
     );
 }
