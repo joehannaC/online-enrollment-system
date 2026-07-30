@@ -16,30 +16,57 @@ import {
     ApiRequestError,
     login,
 } from "@/lib/api/authApi";
-import { saveAuthSession } from "@/lib/auth/tokenStorage";
+import {
+    saveAuthSession,
+} from "@/lib/auth/tokenStorage";
 
 export default function LoginPage() {
     const router = useRouter();
 
-    const [usernameOrEmail, setUsernameOrEmail] =
-        useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] =
-        useState(false);
+    const [
+        usernameOrEmail,
+        setUsernameOrEmail,
+    ] = useState("");
 
-    const [errorMessage, setErrorMessage] =
-        useState("");
-    const [isSubmitting, setIsSubmitting] =
-        useState(false);
+    const [
+        password,
+        setPassword,
+    ] = useState("");
+
+    const [
+        showPassword,
+        setShowPassword,
+    ] = useState(false);
+
+    const [
+        errorMessage,
+        setErrorMessage,
+    ] = useState("");
+
+    const [
+        isSubmitting,
+        setIsSubmitting,
+    ] = useState(false);
 
     async function handleSubmit(
         event: FormEvent<HTMLFormElement>,
     ): Promise<void> {
         event.preventDefault();
+        event.stopPropagation();
+
+        if (isSubmitting) {
+            return;
+        }
 
         setErrorMessage("");
 
-        if (!usernameOrEmail.trim() || !password) {
+        const normalizedUsernameOrEmail =
+            usernameOrEmail.trim();
+
+        if (
+            !normalizedUsernameOrEmail ||
+            !password
+        ) {
             setErrorMessage(
                 "Enter your username/email and password.",
             );
@@ -52,7 +79,7 @@ export default function LoginPage() {
         try {
             const result = await login({
                 usernameOrEmail:
-                    usernameOrEmail.trim(),
+                    normalizedUsernameOrEmail,
                 password,
             });
 
@@ -61,23 +88,39 @@ export default function LoginPage() {
                 result.user,
             );
 
-            if (result.user.role === "STUDENT") {
+            if (
+                result.user.role ===
+                "STUDENT"
+            ) {
                 router.replace(
                     "/student/dashboard",
+                );
+
+                router.refresh();
+
+                return;
+            }
+
+            router.replace(
+                "/faculty/dashboard",
+            );
+
+            router.refresh();
+        } catch (error) {
+            if (
+                error instanceof
+                ApiRequestError
+            ) {
+                setErrorMessage(
+                    error.message,
                 );
 
                 return;
             }
 
-            router.replace("/faculty/dashboard");
-        } catch (error) {
-            if (error instanceof ApiRequestError) {
-                setErrorMessage(error.message);
-            } else {
-                setErrorMessage(
-                    "An unexpected error occurred. Please try again.",
-                );
-            }
+            setErrorMessage(
+                "An unexpected error occurred. Please try again.",
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -86,7 +129,8 @@ export default function LoginPage() {
     return (
         <main
             className="
-                relative min-h-screen overflow-hidden
+                relative min-h-screen
+                overflow-hidden
                 bg-[#35822E]
                 bg-[url('/Login-bg.png')]
                 bg-cover
@@ -94,7 +138,6 @@ export default function LoginPage() {
                 bg-no-repeat
             "
         >
-            {/* Dark overlay for better text readability */}
             <div
                 aria-hidden="true"
                 className="
@@ -108,8 +151,10 @@ export default function LoginPage() {
 
             <div
                 className="
-                    relative z-10 flex min-h-screen
-                    items-center justify-center
+                    relative z-10
+                    flex min-h-screen
+                    items-center
+                    justify-center
                     px-5 py-10
                     sm:px-8
                     lg:justify-end
@@ -137,7 +182,8 @@ export default function LoginPage() {
                     <div className="mb-8">
                         <p
                             className="
-                                mb-2 text-sm
+                                mb-2
+                                text-sm
                                 font-medium
                                 uppercase
                                 tracking-[0.18em]
@@ -164,7 +210,8 @@ export default function LoginPage() {
 
                         <p
                             className="
-                                mt-2 text-sm
+                                mt-2
+                                text-sm
                                 text-neutral-600
                                 lg:text-white/85
                             "
@@ -175,15 +222,22 @@ export default function LoginPage() {
                     </div>
 
                     <form
+                        noValidate
+                        aria-busy={
+                            isSubmitting
+                        }
                         className="space-y-5"
-                        onSubmit={handleSubmit}
+                        onSubmit={
+                            handleSubmit
+                        }
                     >
                         <div>
                             <label
                                 htmlFor="usernameOrEmail"
                                 className="
                                     mb-2 block
-                                    text-sm font-medium
+                                    text-sm
+                                    font-medium
                                     text-neutral-800
                                     lg:text-white
                                 "
@@ -195,8 +249,8 @@ export default function LoginPage() {
                                 <UserRound
                                     aria-hidden="true"
                                     className="
-                                        absolute left-3
-                                        top-1/2
+                                        absolute
+                                        left-3 top-1/2
                                         h-5 w-5
                                         -translate-y-1/2
                                         text-neutral-500
@@ -211,15 +265,27 @@ export default function LoginPage() {
                                     value={
                                         usernameOrEmail
                                     }
-                                    onChange={(event) =>
+                                    onChange={(
+                                        event,
+                                    ) => {
                                         setUsernameOrEmail(
-                                            event.target
+                                            event
+                                                .target
                                                 .value,
-                                        )
-                                    }
+                                        );
+
+                                        if (
+                                            errorMessage
+                                        ) {
+                                            setErrorMessage(
+                                                "",
+                                            );
+                                        }
+                                    }}
                                     disabled={
                                         isSubmitting
                                     }
+                                    required
                                     placeholder="Enter username or email"
                                     className="
                                         h-12 w-full
@@ -247,7 +313,8 @@ export default function LoginPage() {
                                 htmlFor="password"
                                 className="
                                     mb-2 block
-                                    text-sm font-medium
+                                    text-sm
+                                    font-medium
                                     text-neutral-800
                                     lg:text-white
                                 "
@@ -259,8 +326,8 @@ export default function LoginPage() {
                                 <LockKeyhole
                                     aria-hidden="true"
                                     className="
-                                        absolute left-3
-                                        top-1/2
+                                        absolute
+                                        left-3 top-1/2
                                         h-5 w-5
                                         -translate-y-1/2
                                         text-neutral-500
@@ -276,16 +343,30 @@ export default function LoginPage() {
                                             : "password"
                                     }
                                     autoComplete="current-password"
-                                    value={password}
-                                    onChange={(event) =>
-                                        setPassword(
-                                            event.target
-                                                .value,
-                                        )
+                                    value={
+                                        password
                                     }
+                                    onChange={(
+                                        event,
+                                    ) => {
+                                        setPassword(
+                                            event
+                                                .target
+                                                .value,
+                                        );
+
+                                        if (
+                                            errorMessage
+                                        ) {
+                                            setErrorMessage(
+                                                "",
+                                            );
+                                        }
+                                    }}
                                     disabled={
                                         isSubmitting
                                     }
+                                    required
                                     placeholder="Enter password"
                                     className="
                                         h-12 w-full
@@ -308,20 +389,28 @@ export default function LoginPage() {
 
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setShowPassword(
-                                            (current) =>
-                                                !current,
-                                        )
+                                    disabled={
+                                        isSubmitting
                                     }
+                                    onClick={() => {
+                                        setShowPassword(
+                                            (
+                                                current,
+                                            ) =>
+                                                !current,
+                                        );
+                                    }}
                                     aria-label={
                                         showPassword
                                             ? "Hide password"
                                             : "Show password"
                                     }
+                                    aria-pressed={
+                                        showPassword
+                                    }
                                     className="
-                                        absolute right-3
-                                        top-1/2
+                                        absolute
+                                        right-3 top-1/2
                                         -translate-y-1/2
                                         rounded-md
                                         p-1
@@ -329,6 +418,11 @@ export default function LoginPage() {
                                         transition
                                         hover:bg-neutral-100
                                         hover:text-neutral-900
+                                        focus-visible:outline-none
+                                        focus-visible:ring-2
+                                        focus-visible:ring-[#35822E]
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-60
                                     "
                                 >
                                     {showPassword ? (
@@ -349,6 +443,7 @@ export default function LoginPage() {
                         {errorMessage ? (
                             <div
                                 role="alert"
+                                aria-live="polite"
                                 className="
                                     rounded-lg
                                     border
@@ -365,10 +460,12 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={
+                                isSubmitting
+                            }
                             className="
-                                mt-8
-                                flex h-12 w-full
+                                mt-8 flex
+                                h-12 w-full
                                 items-center
                                 justify-center
                                 rounded-lg
@@ -379,13 +476,11 @@ export default function LoginPage() {
                                 shadow-sm
                                 transition
                                 hover:bg-neutral-100
-                                focus:outline-none
-                                focus:ring-4
-                                focus:ring-white/30
+                                focus-visible:outline-none
+                                focus-visible:ring-4
+                                focus-visible:ring-white/30
                                 disabled:cursor-not-allowed
                                 disabled:opacity-70
-                                lg:border
-                                lg:border-white/30
                             "
                         >
                             {isSubmitting
@@ -393,68 +488,6 @@ export default function LoginPage() {
                                 : "Sign in"}
                         </button>
                     </form>
-
-                    {/*<div className="my-6 flex items-center gap-3">
-                        <div
-                            className="
-                                h-px flex-1
-                                bg-neutral-300
-                                lg:bg-white/60
-                            "
-                        />
-
-                        <span
-                            className="
-                                text-sm
-                                text-neutral-500
-                                lg:text-white/80
-                            "
-                        >
-                            Or
-                        </span>
-
-                        <div
-                            className="
-                                h-px flex-1
-                                bg-neutral-300
-                                lg:bg-white/60
-                            "
-                        />
-                    </div>*/}
-
-                    {/*<button
-                        type="button"
-                        disabled
-                        title="Google login will be added later"
-                        className="
-                            flex h-12 w-full
-                            cursor-not-allowed
-                            items-center
-                            justify-center
-                            gap-3
-                            rounded-lg
-                            border
-                            border-neutral-300
-                            bg-white
-                            px-4
-                            font-medium
-                            text-neutral-500
-                            opacity-75
-                        "
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="
-                                text-lg
-                                font-bold
-                                text-[#4285F4]
-                            "
-                        >
-                            G
-                        </span>
-
-                        Continue with Google
-                    </button>*/}
 
                     <p
                         className="
