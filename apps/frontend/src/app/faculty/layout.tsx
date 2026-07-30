@@ -14,10 +14,7 @@ export default function FacultyLayout({
 }: FacultyLayoutProps) {
     return (
         <>
-            <AppSidebar
-                role="FACULTY"
-                initials="AR"
-            />
+            <AppSidebar role="FACULTY" />
 
             {children}
 

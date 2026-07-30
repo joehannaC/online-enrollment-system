@@ -125,7 +125,9 @@ export default function SubjectCard({
                             href={`/faculty/grade-entry/${subject.sectionId}`}
                         >
                             <Button size="sm">
-                                View Class
+                                {isComplete
+                                    ? "Review"
+                                    : "Input Grades"}
                             </Button>
                         </Link>
                     </div>
