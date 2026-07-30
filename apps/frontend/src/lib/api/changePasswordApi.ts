@@ -9,11 +9,6 @@ import {
     getAccessToken,
 } from "@/lib/auth/tokenStorage";
 
-const authServiceUrl =
-    process.env
-        .NEXT_PUBLIC_AUTH_SERVICE_URL ??
-    "http://localhost:4100";
-
 export class ChangePasswordApiError extends Error {
     constructor(
         public readonly code: string,
@@ -25,6 +20,7 @@ export class ChangePasswordApiError extends Error {
         >,
     ) {
         super(message);
+
         this.name =
             "ChangePasswordApiError";
     }
@@ -33,37 +29,67 @@ export class ChangePasswordApiError extends Error {
 export async function changePassword(
     input: ChangePasswordRequest,
 ): Promise<ChangePasswordResponse> {
-    const token = getAccessToken();
+    const token =
+        getAccessToken();
 
     if (!token) {
         throw new ChangePasswordApiError(
             "AUTH_TOKEN_MISSING",
-            "Your session could not be found.",
+            "Your login session could not be found.",
             401,
         );
     }
 
-    const response = await fetch(
-        `${authServiceUrl}/api/auth/change-password`,
-        {
-            method: "PATCH",
+    let response: Response;
 
-            headers: {
-                Accept:
-                    "application/json",
-                "Content-Type":
-                    "application/json",
-                Authorization:
-                    `Bearer ${token}`,
+    try {
+        response = await fetch(
+            "/api/auth/change-password",
+            {
+                method: "PATCH",
+
+                headers: {
+                    Accept:
+                        "application/json",
+
+                    "Content-Type":
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+
+                body: JSON.stringify(
+                    input,
+                ),
+
+                cache: "no-store",
             },
+        );
+    } catch {
+        throw new ChangePasswordApiError(
+            "AUTH_SERVICE_UNAVAILABLE",
+            "The Authentication Service is unavailable.",
+            503,
+        );
+    }
 
-            body: JSON.stringify(input),
-        },
-    );
-
-    const body = (await response.json()) as
+    let body:
         | ApiResponse<ChangePasswordResponse>
         | ApiErrorResponse;
+
+    try {
+        body =
+            (await response.json()) as
+                | ApiResponse<ChangePasswordResponse>
+                | ApiErrorResponse;
+    } catch {
+        throw new ChangePasswordApiError(
+            "INVALID_SERVICE_RESPONSE",
+            "The Authentication Service returned an invalid response.",
+            response.status || 502,
+        );
+    }
 
     if (
         !response.ok ||

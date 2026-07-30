@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail -n frontend,auth,enrollment,grade \"npm run dev -w @enrollment/frontend\" \"npm run dev -w @enrollment/auth-service\" \"npm run dev -w @enrollment/enrollment-service\" \"npm run dev -w @enrollment/grade-service\"",
+    "dev": "concurrently --kill-others-on-fail -n frontend,auth,enrollment,grade,profile \"npm run dev -w @enrollment/frontend\" \"npm run dev -w @enrollment/auth-service\" \"npm run dev -w @enrollment/enrollment-service\" \"npm run dev -w @enrollment/grade-service\" \"npm run dev -w @enrollment/profile-service\"",
     "dev:frontend": "npm run dev -w @enrollment/frontend",
     "dev:auth": "npm run dev -w @enrollment/auth-service",
     "dev:enrollment": "npm run dev -w @enrollment/enrollment-service",
@@ -22,7 +22,10 @@
     "mongo:shell": "docker exec -it enrollment-mongo1 mongosh --port 27117",
     "mongo:replica-status": "docker exec enrollment-mongo1 mongosh --port 27117 --quiet --eval \"rs.status().members.map(m => ({ name: m.name, state: m.stateStr }))\"",
     "seed": "tsx database/seeds/seed.ts",
-    "seed:reset": "tsx database/seeds/seed.ts --reset"
+    "seed:reset": "tsx database/seeds/seed.ts --reset",
+    "dev:profile": "npm run dev -w @enrollment/profile-service",
+    "build:profile": "npm run build -w @enrollment/profile-service",
+    "dev:services": "concurrently \"npm run dev:auth\" \"npm run dev:enrollment\" \"npm run dev:grade\" \"npm run dev:profile\""
   },
   "devDependencies": {
     "bcryptjs": "^3.0.3",

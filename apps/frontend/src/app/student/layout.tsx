@@ -14,10 +14,7 @@ export default function StudentLayout({
 }: StudentLayoutProps) {
     return (
         <>
-            <AppSidebar
-                role="STUDENT"
-                initials="JD"
-            />
+            <AppSidebar role="STUDENT" />
 
             {children}
 

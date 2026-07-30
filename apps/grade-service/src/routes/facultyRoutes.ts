@@ -8,10 +8,13 @@ import {
 
 const facultyRouter = Router();
 
-facultyRouter.get(
-    "/dashboard",
+facultyRouter.use(
     authenticate,
     requireFaculty,
+);
+
+facultyRouter.get(
+    "/dashboard",
     getFacultyDashboardController,
 );
 

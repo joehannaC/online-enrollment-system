@@ -5,14 +5,23 @@ import {
     ClipboardList,
     GraduationCap,
     LayoutDashboard,
+    LogOut,
     NotebookTabs,
     SquareUserRound,
     type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import {
+    usePathname,
+    useRouter,
+} from "next/navigation";
 
-import type { UserRole } from "@/types";
+import {
+    clearAuthSession,
+} from "@/lib/auth/tokenStorage";
+import type {
+    UserRole,
+} from "@/types";
 
 interface MobileNavigationItem {
     label: string;
@@ -84,11 +93,19 @@ export default function MobileNavigation({
     role,
 }: MobileNavigationProps) {
     const pathname = usePathname();
+    const router = useRouter();
 
     const items =
         role === "STUDENT"
             ? studentItems
             : facultyItems;
+
+    function handleSignOut(): void {
+        clearAuthSession();
+
+        router.replace("/login");
+        router.refresh();
+    }
 
     return (
         <nav
@@ -96,13 +113,14 @@ export default function MobileNavigation({
             className="
                 fixed inset-x-0 bottom-0 z-50
                 border-t border-neutral-200
-                bg-white/95 px-2
+                bg-white/95 px-1
                 pb-[env(safe-area-inset-bottom)]
                 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]
-                backdrop-blur lg:hidden
+                backdrop-blur
+                lg:hidden
             "
         >
-            <div className="grid grid-cols-5">
+            <div className="grid grid-cols-6">
                 {items.map((item) => {
                     const Icon = item.icon;
 
@@ -122,8 +140,8 @@ export default function MobileNavigation({
                                     : undefined
                             }
                             className={[
-                                "relative flex min-h-[68px] flex-col items-center justify-center gap-1",
-                                "px-1 text-[10px] font-medium transition",
+                                "relative flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1",
+                                "px-0.5 text-[9px] font-medium transition",
                                 isActive
                                     ? "text-[#35822E]"
                                     : "text-neutral-500 hover:text-[#35822E]",
@@ -134,7 +152,8 @@ export default function MobileNavigation({
                                     aria-hidden="true"
                                     className="
                                         absolute top-0
-                                        h-1 w-8 rounded-b-full
+                                        h-1 w-7
+                                        rounded-b-full
                                         bg-[#35822E]
                                     "
                                 />
@@ -144,16 +163,48 @@ export default function MobileNavigation({
                                 aria-hidden="true"
                                 className="h-5 w-5"
                                 strokeWidth={
-                                    isActive ? 2.2 : 1.8
+                                    isActive
+                                        ? 2.2
+                                        : 1.8
                                 }
                             />
 
-                            <span className="max-w-full truncate">
+                            <span className="w-full truncate text-center">
                                 {item.label}
                             </span>
                         </Link>
                     );
                 })}
+
+                <button
+                    type="button"
+                    onClick={handleSignOut}
+                    aria-label="Sign out"
+                    className="
+                        relative flex min-h-[68px]
+                        min-w-0 flex-col
+                        items-center justify-center
+                        gap-1 px-0.5
+                        text-[9px] font-medium
+                        text-neutral-500
+                        transition
+                        hover:text-red-600
+                        focus-visible:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-inset
+                        focus-visible:ring-red-500
+                    "
+                >
+                    <LogOut
+                        aria-hidden="true"
+                        className="h-5 w-5"
+                        strokeWidth={1.8}
+                    />
+
+                    <span className="w-full truncate text-center">
+                        Sign out
+                    </span>
+                </button>
             </div>
         </nav>
     );

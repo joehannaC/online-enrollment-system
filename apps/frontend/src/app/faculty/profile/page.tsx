@@ -1,7 +1,7 @@
 "use client";
 
 import {
-    GraduationCap,
+    BriefcaseBusiness,
     UserRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -32,7 +32,7 @@ import {
     clearAuthSession,
 } from "@/lib/auth/tokenStorage";
 import type {
-    StudentProfileData,
+    FacultyProfileData,
 } from "@/types";
 
 interface InformationRowProps {
@@ -80,13 +80,13 @@ function formatBirthday(
     ).format(date);
 }
 
-export default function StudentProfilePage() {
+export default function FacultyProfilePage() {
     const router = useRouter();
 
     const [
-        student,
-        setStudent,
-    ] = useState<StudentProfileData | null>(
+        faculty,
+        setFaculty,
+    ] = useState<FacultyProfileData | null>(
         null,
     );
 
@@ -118,16 +118,16 @@ export default function StudentProfilePage() {
 
                 if (
                     response.profile.role !==
-                    "STUDENT"
+                    "FACULTY"
                 ) {
                     router.replace(
-                        "/faculty/profile",
+                        "/student/profile",
                     );
 
                     return;
                 }
 
-                setStudent(
+                setFaculty(
                     response.profile,
                 );
             } catch (error) {
@@ -160,7 +160,7 @@ export default function StudentProfilePage() {
                     error.status === 403
                 ) {
                     router.replace(
-                        "/faculty/profile",
+                        "/student/profile",
                     );
 
                     return;
@@ -169,7 +169,7 @@ export default function StudentProfilePage() {
                 setErrorMessage(
                     error instanceof Error
                         ? error.message
-                        : "The student profile could not be loaded.",
+                        : "The faculty profile could not be loaded.",
                 );
             } finally {
                 if (!signal?.aborted) {
@@ -195,7 +195,7 @@ export default function StudentProfilePage() {
 
     if (
         errorMessage &&
-        !student
+        !faculty
     ) {
         return (
             <ServiceUnavailable
@@ -217,10 +217,10 @@ export default function StudentProfilePage() {
                 <div className="space-y-5">
                     <ProfileHeader
                         name={
-                            student?.fullName ??
-                            "Student"
+                            faculty?.fullName ??
+                            "Faculty Member"
                         }
-                        subtitle="View your personal and academic information."
+                        subtitle="View your personal and faculty information."
                         actions={
                             <Button
                                 variant="outline"
@@ -244,14 +244,14 @@ export default function StudentProfilePage() {
                                 </h1>
 
                                 <p className="mt-1 text-sm text-neutral-500">
-                                    Personal and academic account information.
+                                    Personal and faculty account information.
                                 </p>
                             </div>
 
-                            {student ? (
+                            {faculty ? (
                                 <StatusBadge
                                     status={
-                                        student.status
+                                        faculty.status
                                     }
                                     dot
                                 />
@@ -259,8 +259,8 @@ export default function StudentProfilePage() {
                         </header>
 
                         {isLoading ||
-                        !student ? (
-                            <StudentProfileSkeleton />
+                        !faculty ? (
+                            <FacultyProfileSkeleton />
                         ) : (
                             <div className="p-5">
                                 <section>
@@ -276,35 +276,35 @@ export default function StudentProfilePage() {
                                         <InformationRow
                                             label="Full Name"
                                             value={
-                                                student.fullName
+                                                faculty.fullName
                                             }
                                         />
 
                                         <InformationRow
-                                            label="Student Number"
+                                            label="Employee Number"
                                             value={
-                                                student.studentNumber
+                                                faculty.employeeNumber
                                             }
                                         />
 
                                         <InformationRow
                                             label="Email"
                                             value={
-                                                student.email
+                                                faculty.email
                                             }
                                         />
 
                                         <InformationRow
                                             label="Birthday"
                                             value={formatBirthday(
-                                                student.birthday,
+                                                faculty.birthday,
                                             )}
                                         />
 
                                         <InformationRow
                                             label="Address"
                                             value={
-                                                student.address ??
+                                                faculty.address ??
                                                 "Not provided"
                                             }
                                         />
@@ -312,7 +312,7 @@ export default function StudentProfilePage() {
                                         <InformationRow
                                             label="Account Status"
                                             value={
-                                                student.status
+                                                faculty.status
                                             }
                                         />
                                     </dl>
@@ -322,100 +322,48 @@ export default function StudentProfilePage() {
 
                                 <section>
                                     <div className="flex items-center gap-2 border-l-4 border-[#35822E] pl-3">
-                                        <GraduationCap className="h-5 w-5 text-[#35822E]" />
+                                        <BriefcaseBusiness className="h-5 w-5 text-[#35822E]" />
 
                                         <h2 className="font-semibold text-[#35822E]">
-                                            Academic Information
+                                            Faculty Information
                                         </h2>
                                     </div>
 
                                     <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
                                         <InformationRow
-                                            label="Program"
+                                            label="Department"
                                             value={
-                                                student.programName
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Program Code"
-                                            value={
-                                                student.programCode
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Curriculum"
-                                            value={
-                                                student.curriculumCode
+                                                faculty.department
                                             }
                                         />
 
                                         <InformationRow
                                             label="College"
                                             value={
-                                                student.college
+                                                faculty.college
                                             }
                                         />
 
                                         <InformationRow
                                             label="Campus"
                                             value={
-                                                student.campus
+                                                faculty.campus
                                             }
                                         />
 
                                         <InformationRow
-                                            label="Year Level"
-                                            value={`Year ${student.yearLevel}`}
-                                        />
-
-                                        <InformationRow
-                                            label="Required Units"
+                                            label="Specialization Group"
                                             value={
-                                                student.requiredUnits
+                                                faculty.specializationGroup ??
+                                                "Not specified"
                                             }
                                         />
 
                                         <InformationRow
-                                            label="Required Non-Academic Units"
+                                            label="Position"
                                             value={
-                                                student.requiredNonAcademicUnits
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Earned Units"
-                                            value={
-                                                student.earnedUnits
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Earned Non-Academic Units"
-                                            value={
-                                                student.earnedNonAcademicUnits
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Remaining Units"
-                                            value={
-                                                student.remainingUnits
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Enrolled Units"
-                                            value={
-                                                student.enrolledUnits
-                                            }
-                                        />
-
-                                        <InformationRow
-                                            label="Enlisted Units"
-                                            value={
-                                                student.enlistedUnits
+                                                faculty.title ??
+                                                "Faculty"
                                             }
                                         />
                                     </dl>
@@ -440,7 +388,7 @@ export default function StudentProfilePage() {
     );
 }
 
-function StudentProfileSkeleton() {
+function FacultyProfileSkeleton() {
     return (
         <div className="space-y-8 p-5">
             <section>
@@ -468,7 +416,7 @@ function StudentProfileSkeleton() {
 
                 <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {Array.from({
-                        length: 13,
+                        length: 5,
                     }).map(
                         (_, index) => (
                             <div key={index}>

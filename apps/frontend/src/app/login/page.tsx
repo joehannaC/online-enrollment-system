@@ -367,6 +367,7 @@ export default function LoginPage() {
                             type="submit"
                             disabled={isSubmitting}
                             className="
+                                mt-8
                                 flex h-12 w-full
                                 items-center
                                 justify-center
@@ -393,7 +394,7 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="my-6 flex items-center gap-3">
+                    {/*<div className="my-6 flex items-center gap-3">
                         <div
                             className="
                                 h-px flex-1
@@ -419,9 +420,9 @@ export default function LoginPage() {
                                 lg:bg-white/60
                             "
                         />
-                    </div>
+                    </div>*/}
 
-                    <button
+                    {/*<button
                         type="button"
                         disabled
                         title="Google login will be added later"
@@ -453,7 +454,7 @@ export default function LoginPage() {
                         </span>
 
                         Continue with Google
-                    </button>
+                    </button>*/}
 
                     <p
                         className="

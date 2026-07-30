@@ -459,24 +459,22 @@ export default function ChangePasswordModal({
                         </p>
                     ) : null}
 
-                    <div className="flex flex-col-reverse gap-3 border-t border-neutral-200 pt-5 sm:flex-row sm:justify-end">
+                    <div className="flex flex-row gap-3 border-t border-neutral-200 pt-5">
                         <Button
                             type="button"
                             variant="outline"
                             onClick={resetAndClose}
-                            disabled={
-                                isSubmitting
-                            }
+                            disabled={isSubmitting}
+                            className="flex-1"
                         >
                             Cancel
                         </Button>
 
                         <Button
                             type="submit"
-                            isLoading={
-                                isSubmitting
-                            }
+                            isLoading={isSubmitting}
                             loadingText="Changing..."
+                            className="flex-1"
                         >
                             Change Password
                         </Button>

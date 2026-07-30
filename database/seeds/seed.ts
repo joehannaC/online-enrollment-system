@@ -198,6 +198,9 @@ const facultyProfiles = [
         lastName: "Cruz",
         department: "Common Computing Courses",
         specializationGroup: "CC",
+        address: "Manila, Metro Manila",
+        birthday: new Date("1987-04-15"),
+        campus: "Manila Campus",
     },
     {
         key: "facultyCS",
@@ -209,6 +212,9 @@ const facultyProfiles = [
         lastName: "Santos",
         department: "Computer Science",
         specializationGroup: "CS",
+        address: "Makati City, Metro Manila",
+        birthday: new Date("1983-09-23"),
+        campus: "Manila Campus",
     },
     {
         key: "facultyGE",
@@ -220,6 +226,9 @@ const facultyProfiles = [
         lastName: "Evangelista",
         department: "General Education",
         specializationGroup: "GE",
+        address: "Quezon City, Metro Manila",
+        birthday: new Date("1989-01-12"),
+        campus: "Manila Campus",
     },
     {
         key: "facultyST",
@@ -231,6 +240,9 @@ const facultyProfiles = [
         lastName: "Reyes",
         department: "Software Technology",
         specializationGroup: "ST_AND_OTHER",
+        address: "Pasig City, Metro Manila",
+        birthday: new Date("1985-07-30"),
+        campus: "Manila Campus",
     },
 ] as const;
 
@@ -613,6 +625,9 @@ async function seedDatabase(): Promise<void> {
                                     : "College of Computer Studies",
                             specializationGroup:
                                 profile.specializationGroup,
+                            address: profile.address,
+                            birthday: profile.birthday,
+                            campus: profile.campus,
                             status: "ACTIVE",
                             seedTag,
                             updatedAt: now,

@@ -8,11 +8,6 @@ import {
     getAccessToken,
 } from "@/lib/auth/tokenStorage";
 
-const gradeServiceUrl =
-    process.env
-        .NEXT_PUBLIC_GRADE_SERVICE_URL ??
-    "http://localhost:4102";
-
 export class FacultyApiError extends Error {
     constructor(
         public readonly code: string,
@@ -21,6 +16,7 @@ export class FacultyApiError extends Error {
         public readonly service?: string,
     ) {
         super(message);
+
         this.name = "FacultyApiError";
     }
 }
@@ -40,37 +36,56 @@ export async function getFacultyDashboard(
         );
     }
 
-    const response = await fetch(
-        `${gradeServiceUrl}/api/faculty/dashboard`,
-        {
-            method: "GET",
+    let response: Response;
 
-            headers: {
-                Accept:
-                    "application/json",
+    try {
+        response = await fetch(
+            "/api/faculty/dashboard",
+            {
+                method: "GET",
 
-                Authorization:
-                    `Bearer ${accessToken}`,
+                headers: {
+                    Accept:
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${accessToken}`,
+                },
+
+                signal,
+                cache: "no-store",
             },
+        );
+    } catch (error) {
+        if (
+            error instanceof DOMException &&
+            error.name === "AbortError"
+        ) {
+            throw error;
+        }
 
-            signal,
-            cache: "no-store",
-        },
-    );
+        throw new FacultyApiError(
+            "GRADE_SERVICE_UNAVAILABLE",
+            "The Grade Service is unavailable.",
+            503,
+            "grade-service",
+        );
+    }
 
     let body:
         | ApiResponse<FacultyDashboardResponse>
         | ApiErrorResponse;
 
     try {
-        body = (await response.json()) as
-            | ApiResponse<FacultyDashboardResponse>
-            | ApiErrorResponse;
+        body =
+            (await response.json()) as
+                | ApiResponse<FacultyDashboardResponse>
+                | ApiErrorResponse;
     } catch {
         throw new FacultyApiError(
             "INVALID_SERVICE_RESPONSE",
             "The Grade Service returned an invalid response.",
-            response.status,
+            response.status || 502,
             "grade-service",
         );
     }

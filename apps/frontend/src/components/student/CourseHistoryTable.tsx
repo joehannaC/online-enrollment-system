@@ -1,10 +1,11 @@
 import {
     DataTable,
     StatusBadge,
+    type DataTableColumn,
 } from "@/components/common";
+
 import type {
     CourseHistoryRecord,
-    DataTableColumn,
 } from "@/types";
 
 interface CourseHistoryTableProps {
@@ -39,7 +40,10 @@ function getStatusBadge(
         );
     }
 
-    if (record.enrollmentStatus === "ENROLLED") {
+    if (
+        record.enrollmentStatus ===
+        "ENROLLED"
+    ) {
         return (
             <StatusBadge variant="neutral">
                 Registered
@@ -66,11 +70,15 @@ export default function CourseHistoryTable({
                 render: (record) => (
                     <div>
                         <p className="font-medium text-neutral-900">
-                            {record.courseName}
+                            {
+                                record.courseName
+                            }
                         </p>
 
                         <p className="mt-1 text-xs text-neutral-400 sm:hidden">
-                            {record.courseCode}
+                            {
+                                record.courseCode
+                            }
                         </p>
                     </div>
                 ),
@@ -87,17 +95,22 @@ export default function CourseHistoryTable({
                 render: (record) =>
                     record.units,
                 className: "text-center",
-                headerClassName: "text-center",
+                headerClassName:
+                    "text-center",
             },
             {
                 key: "term",
                 header: "Term",
                 render: (record) => (
                     <div>
-                        <p>{record.termName}</p>
+                        <p>
+                            {record.termName}
+                        </p>
 
                         <p className="mt-1 text-xs text-neutral-400">
-                            {record.academicYear}
+                            {
+                                record.academicYear
+                            }
                         </p>
                     </div>
                 ),
@@ -108,13 +121,14 @@ export default function CourseHistoryTable({
                 render: (record) =>
                     getStatusBadge(record),
                 className: "text-center",
-                headerClassName: "text-center",
+                headerClassName:
+                    "text-center",
             },
         ];
 
     return (
         <section>
-            <DataTable
+            <DataTable<CourseHistoryRecord>
                 caption="Student course history"
                 columns={columns}
                 data={records}

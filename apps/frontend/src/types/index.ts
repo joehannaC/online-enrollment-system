@@ -5,3 +5,4 @@ export * from "./course.types";
 export * from "./enrollment.types";
 export * from "./grade.types";
 export * from "./faculty.types";
+export * from "./profile.types";

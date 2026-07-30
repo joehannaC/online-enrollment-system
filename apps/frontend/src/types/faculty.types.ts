@@ -1,4 +1,5 @@
 import type {
+    AccountStatus,
     AcademicTermSummary,
     GradeStatus,
     ISODateString,
@@ -95,4 +96,28 @@ export interface FacultyGradeRecordsResponse {
         status: GradeStatus;
         returnReason?: string;
     }>;
+}
+
+export interface FacultyProfileResponse {
+    faculty: {
+        id: string;
+        employeeNumber: string;
+
+        title?: string;
+        firstName: string;
+        middleName?: string;
+        lastName: string;
+        fullName: string;
+
+        email: string;
+        address?: string;
+        birthday?: ISODateString;
+
+        department: string;
+        college: string;
+        specializationGroup?: string;
+        campus: string;
+
+        status: AccountStatus;
+    };
 }

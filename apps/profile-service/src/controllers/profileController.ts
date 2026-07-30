@@ -5,20 +5,20 @@ import type {
 } from "express";
 
 import {
-    getStudentProfile,
-    StudentProfileError,
-} from "../services/studentProfileService.js";
+    getProfileByUserId,
+    ProfileServiceError,
+} from "../services/profileService.js";
 
-export async function getStudentProfileController(
+export async function getMyProfileController(
     request: Request,
     response: Response,
     next: NextFunction,
 ): Promise<void> {
     try {
-        const userId =
-            request.auth?.userId;
+        const auth =
+            request.auth;
 
-        if (!userId) {
+        if (!auth) {
             response.status(401).json({
                 success: false,
                 error: {
@@ -27,7 +27,7 @@ export async function getStudentProfileController(
                     message:
                         "Authentication is required.",
                     service:
-                        "enrollment-service",
+                        "profile-service",
                 },
             });
 
@@ -35,8 +35,9 @@ export async function getStudentProfileController(
         }
 
         const profile =
-            await getStudentProfile(
-                userId,
+            await getProfileByUserId(
+                auth.userId,
+                auth.role,
             );
 
         response.status(200).json({
@@ -46,17 +47,19 @@ export async function getStudentProfileController(
     } catch (error) {
         if (
             error instanceof
-            StudentProfileError
+            ProfileServiceError
         ) {
             response.status(
                 error.statusCode,
             ).json({
                 success: false,
                 error: {
-                    code: error.code,
-                    message: error.message,
+                    code:
+                        error.code,
+                    message:
+                        error.message,
                     service:
-                        "enrollment-service",
+                        "profile-service",
                 },
             });
 

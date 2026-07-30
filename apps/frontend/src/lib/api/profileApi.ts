@@ -1,14 +1,14 @@
 import type {
     ApiErrorResponse,
     ApiResponse,
-    StudentDashboardResponse,
+    ProfileResponse,
 } from "@/types";
 
 import {
     getAccessToken,
 } from "@/lib/auth/tokenStorage";
 
-export class StudentApiError extends Error {
+export class ProfileApiError extends Error {
     constructor(
         public readonly code: string,
         message: string,
@@ -17,18 +17,18 @@ export class StudentApiError extends Error {
     ) {
         super(message);
 
-        this.name = "StudentApiError";
+        this.name = "ProfileApiError";
     }
 }
 
-export async function getStudentDashboard(
+export async function getMyProfile(
     signal?: AbortSignal,
-): Promise<StudentDashboardResponse> {
-    const accessToken =
+): Promise<ProfileResponse> {
+    const token =
         getAccessToken();
 
-    if (!accessToken) {
-        throw new StudentApiError(
+    if (!token) {
+        throw new ProfileApiError(
             "AUTH_TOKEN_MISSING",
             "Your login session could not be found.",
             401,
@@ -40,7 +40,7 @@ export async function getStudentDashboard(
 
     try {
         response = await fetch(
-            "/api/students/dashboard",
+            "/api/profiles/me",
             {
                 method: "GET",
 
@@ -49,7 +49,7 @@ export async function getStudentDashboard(
                         "application/json",
 
                     Authorization:
-                        `Bearer ${accessToken}`,
+                        `Bearer ${token}`,
                 },
 
                 signal,
@@ -64,29 +64,29 @@ export async function getStudentDashboard(
             throw error;
         }
 
-        throw new StudentApiError(
-            "ENROLLMENT_SERVICE_UNAVAILABLE",
-            "The Enrollment Service is unavailable.",
+        throw new ProfileApiError(
+            "PROFILE_SERVICE_UNAVAILABLE",
+            "The Profile Service is unavailable.",
             503,
-            "enrollment-service",
+            "profile-service",
         );
     }
 
     let body:
-        | ApiResponse<StudentDashboardResponse>
+        | ApiResponse<ProfileResponse>
         | ApiErrorResponse;
 
     try {
         body =
             (await response.json()) as
-                | ApiResponse<StudentDashboardResponse>
+                | ApiResponse<ProfileResponse>
                 | ApiErrorResponse;
     } catch {
-        throw new StudentApiError(
+        throw new ProfileApiError(
             "INVALID_SERVICE_RESPONSE",
-            "The Enrollment Service returned an invalid response.",
+            "The Profile Service returned an invalid response.",
             response.status || 502,
-            "enrollment-service",
+            "profile-service",
         );
     }
 
@@ -97,7 +97,7 @@ export async function getStudentDashboard(
         const errorBody =
             body as ApiErrorResponse;
 
-        throw new StudentApiError(
+        throw new ProfileApiError(
             errorBody.error.code,
             errorBody.error.message,
             response.status,

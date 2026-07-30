@@ -1,4 +1,7 @@
-import { ChevronDown } from "lucide-react";
+import {
+    ChevronDown,
+} from "lucide-react";
+
 import type {
     SelectHTMLAttributes,
 } from "react";
@@ -34,6 +37,8 @@ export default function Select({
     className = "",
     required,
     disabled,
+    value,
+    defaultValue,
     ...props
 }: SelectProps) {
     const selectId =
@@ -46,11 +51,25 @@ export default function Select({
     const descriptionId = error
         ? `${selectId}-error`
         : helperText
-        ? `${selectId}-helper`
-        : undefined;
+          ? `${selectId}-helper`
+          : undefined;
+
+    const valueProps =
+        value !== undefined
+            ? {
+                  value,
+              }
+            : {
+                  defaultValue:
+                      defaultValue ?? "",
+              };
 
     return (
-        <div className={containerClassName}>
+        <div
+            className={
+                containerClassName
+            }
+        >
             {label ? (
                 <label
                     htmlFor={selectId}
@@ -76,10 +95,15 @@ export default function Select({
                     required={required}
                     disabled={disabled}
                     aria-invalid={
-                        error ? true : undefined
+                        error
+                            ? true
+                            : undefined
                     }
-                    aria-describedby={descriptionId}
-                    defaultValue=""
+                    aria-describedby={
+                        descriptionId
+                    }
+                    {...valueProps}
+                    {...props}
                     className={[
                         "h-11 w-full appearance-none rounded-lg border bg-white",
                         "px-3 pr-10 text-sm text-neutral-900 outline-none transition",
@@ -90,21 +114,33 @@ export default function Select({
                             : "border-neutral-300 focus:border-[#35822E] focus:ring-[#35822E]/15",
                         className,
                     ].join(" ")}
-                    {...props}
                 >
-                    <option value="" disabled>
+                    <option
+                        value=""
+                        disabled
+                    >
                         {placeholder}
                     </option>
 
-                    {options.map((option) => (
-                        <option
-                            key={option.value}
-                            value={option.value}
-                            disabled={option.disabled}
-                        >
-                            {option.label}
-                        </option>
-                    ))}
+                    {options.map(
+                        (option) => (
+                            <option
+                                key={
+                                    option.value
+                                }
+                                value={
+                                    option.value
+                                }
+                                disabled={
+                                    option.disabled
+                                }
+                            >
+                                {
+                                    option.label
+                                }
+                            </option>
+                        ),
+                    )}
                 </select>
 
                 <ChevronDown
