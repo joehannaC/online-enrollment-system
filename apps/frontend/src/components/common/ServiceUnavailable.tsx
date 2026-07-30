@@ -21,7 +21,6 @@ interface ServiceUnavailableProps {
 export default function ServiceUnavailable({
     serviceName,
     title = "Service unavailable",
-    description,
     code = "503",
     showRetry = true,
     onRetry,
@@ -30,9 +29,8 @@ export default function ServiceUnavailable({
     const router = useRouter();
 
     const resolvedDescription =
-        description ??
         (serviceName
-            ? `The ${serviceName} is currently unavailable. Other system features may still continue to work.`
+            ? `The ${serviceName} is currently unavailable.`
             : "This feature is temporarily unavailable. Please try again in a moment.");
 
     function handleRetry(): void {

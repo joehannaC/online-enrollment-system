@@ -1,4 +1,5 @@
 import type {
+    AccountStatus,
     AcademicTermSummary,
     EnrollmentStatus,
     GradeResult,
@@ -23,6 +24,38 @@ export interface StudentProfileSummary {
     campus: string;
     yearLevel: number;
     requiredUnits: number;
+}
+
+export interface StudentProfileResponse {
+    student: {
+        id: string;
+        studentNumber: string;
+
+        firstName: string;
+        middleName?: string;
+        lastName: string;
+        fullName: string;
+
+        email: string;
+        address?: string;
+        birthday?: ISODateString;
+
+        programCode: string;
+        programName: string;
+        curriculumCode: string;
+
+        college: string;
+        campus: string;
+        yearLevel: number;
+
+        requiredUnits: number;
+        earnedUnits: number;
+        remainingUnits: number;
+        enrolledUnits: number;
+        enlistedUnits: number;
+
+        status: AccountStatus;
+    };
 }
 
 export interface RegisteredCourse {

@@ -110,17 +110,14 @@ export default function StudentDashboardPage() {
 
     if (errorMessage && !dashboard) {
         return (
-            <PageContainer>
-                <ServiceUnavailable
-                    serviceName="Student Dashboard Service"
-                    title="Dashboard unavailable"
-                    description={errorMessage}
-                    fullScreen={false}
-                    onRetry={() => {
-                        void loadDashboard();
-                    }}
-                />
-            </PageContainer>
+            <ServiceUnavailable
+                serviceName="Student Dashboard Service"
+                title="Dashboard unavailable"
+                description={errorMessage}
+                onRetry={() => {
+                    void loadDashboard();
+                }}
+            />
         );
     }
 

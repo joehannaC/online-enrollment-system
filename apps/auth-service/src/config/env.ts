@@ -1,37 +1,96 @@
 import "dotenv/config";
+
 import { z } from "zod";
 
 const environmentSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
+    NODE_ENV: z
+        .enum([
+            "development",
+            "test",
+            "production",
+        ])
+        .default("development"),
 
-  SERVICE_NAME: z.string().min(1),
+    SERVICE_NAME: z
+        .string()
+        .min(1)
+        .default("auth-service"),
 
-  HTTP_HOST: z.string().default("0.0.0.0"),
-  HTTP_PORT: z.coerce.number().int().positive(),
+    HTTP_HOST: z
+        .string()
+        .min(1)
+        .default("0.0.0.0"),
 
-  GRPC_HOST: z.string().default("0.0.0.0"),
-  GRPC_PORT: z.coerce.number().int().positive(),
+    HTTP_PORT: z.coerce
+        .number()
+        .int()
+        .positive()
+        .default(4100),
 
-  MONGODB_URI: z.string().min(1),
+    GRPC_HOST: z
+        .string()
+        .min(1)
+        .default("0.0.0.0"),
 
-  JWT_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default("1h"),
+    GRPC_PORT: z.coerce
+        .number()
+        .int()
+        .positive()
+        .default(5100),
 
-  FRONTEND_URL: z.string().url(),
+    MONGODB_URI: z
+        .string()
+        .min(
+            1,
+            "MONGODB_URI is required",
+        ),
+
+    MONGODB_DATABASE: z
+        .string()
+        .min(1)
+        .default("online_enrollment"),
+
+    JWT_SECRET: z
+        .string()
+        .min(
+            1,
+            "JWT_SECRET is required",
+        ),
+
+    JWT_EXPIRES_IN: z
+        .string()
+        .min(1)
+        .default("1h"),
+
+    FRONTEND_URL: z
+        .string()
+        .url()
+        .default("http://localhost:3001"),
 });
 
-const result = environmentSchema.safeParse(process.env);
+const result = environmentSchema.safeParse(
+    process.env,
+);
 
 if (!result.success) {
-  console.error("Invalid environment variables:");
+    console.error(
+        "Invalid environment variables:",
+    );
 
-  for (const issue of result.error.issues) {
-    console.error(`- ${issue.path.join(".")}: ${issue.message}`);
-  }
+    for (const issue of result.error.issues) {
+        const field =
+            issue.path.join(".") ||
+            "environment";
 
-  process.exit(1);
+        console.error(
+            `- ${field}: ${issue.message}`,
+        );
+    }
+
+    process.exit(1);
 }
 
 export const env = result.data;
+
+export type Environment =
+    z.infer<typeof environmentSchema>;

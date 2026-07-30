@@ -184,9 +184,7 @@ const curriculum: CurriculumCourse[] = [
 
 const exactStudentMissingCourses = new Set([
     "PRCCSST",
-    "STINTSY",
     "STDISCM",
-    "THS-ST3",
 ]);
 
 const facultyProfiles = [
@@ -526,10 +524,14 @@ async function seedDatabase(): Promise<void> {
                         studentNumber: "12345678",
                         firstName: "John",
                         lastName: "Doe",
+                        address: "Manila, Metro Manila",
+                        birthday: new Date("2000-01-01"),
                         yearLevel: 4,
-                        earnedUnits: 162,
+                        earnedUnits: 167,
                         earnedNonAcademicUnits: 9,
-                        remainingUnits: 11,
+                        remainingUnits: 0,
+                        enrolledUnits: 6,
+                        enlistedUnits: 0,
                     },
                     {
                         _id: ids.students.student2,
@@ -537,6 +539,8 @@ async function seedDatabase(): Promise<void> {
                         studentNumber: "12345001",
                         firstName: "Angela",
                         lastName: "Cruz",
+                        address: "Quezon City, Metro Manila",
+                        birthday: new Date("2002-06-14"),
                         yearLevel: 3,
                         earnedUnits: 116,
                         earnedNonAcademicUnits: 7,
@@ -548,6 +552,8 @@ async function seedDatabase(): Promise<void> {
                         studentNumber: "12345002",
                         firstName: "Marco",
                         lastName: "Dela Rosa",
+                        address: "Makati City, Metro Manila",
+                        birthday: new Date("2003-11-08"),
                         yearLevel: 2,
                         earnedUnits: 74,
                         earnedNonAcademicUnits: 6,
@@ -570,8 +576,10 @@ async function seedDatabase(): Promise<void> {
                             campus: "Manila Campus",
                             requiredUnits: 173,
                             requiredNonAcademicUnits: 9,
-                            enrolledUnits: 0,
-                            enlistedUnits: 0,
+                            enrolledUnits:
+                                student.enrolledUnits ?? 0,
+                            enlistedUnits:
+                                student.enlistedUnits ?? 0,
                             status: "ACTIVE",
                             seedTag,
                             updatedAt: now,
@@ -871,7 +879,10 @@ async function seedDatabase(): Promise<void> {
                                         score.computedScore,
                                     finalGradeValue:
                                         score.finalGradeValue,
-                                    result: "PASSED",
+                                    result:
+                                        rule.studentKey === "student1"
+                                            ? "CREDITED"
+                                            : "PASSED",
                                     status: "VERIFIED",
                                     version: 1,
                                     submittedAt:
@@ -1060,6 +1071,15 @@ async function seedDatabase(): Promise<void> {
                 }
 
                 const currentEnrollmentDefinitions = [
+                    {
+                        studentId:
+                            ids.students.student1,
+                        studentKey: "student1",
+                        courseCodes: [
+                            "STDISCM",
+                            "PRCCSST",
+                        ],
+                    },
                     {
                         studentId:
                             ids.students.student2,
@@ -1260,14 +1280,14 @@ async function seedDatabase(): Promise<void> {
             `Curriculum total: ${academicTotal} academic units and ${nonAcademicTotal} non-academic units.`,
         );
         console.log("");
-        console.log("Exact curriculum-audit student:");
+        console.log("Student demo curriculum progress:");
         console.log(
             "  Email: student@university.edu",
         );
         console.log("  Username: student.demo");
         console.log("  Password: Password123!");
         console.log(
-            "  Progress: 162 earned, 11 remaining, 0 enrolled, 0 enlisted.",
+            "  Progress: 167 earned, 0 remaining, 6 enrolled, 0 enlisted.",
         );
         console.log("");
         console.log("Faculty accounts:");

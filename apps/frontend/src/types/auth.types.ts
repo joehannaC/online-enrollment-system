@@ -67,3 +67,18 @@ export interface LogoutApiResponse {
     success: true;
     data: LogoutResponse;
 }
+
+export interface ChangePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface ChangePasswordResponse {
+    message: string;
+}
+
+export interface ChangePasswordApiResponse {
+    success: true;
+    data: ChangePasswordResponse;
+}
