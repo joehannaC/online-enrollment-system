@@ -13,6 +13,9 @@ import {
 import { env } from "./config/env.js";
 import facultyRouter from "./routes/facultyRoutes.js";
 
+import studentGradeRouter
+    from "./routes/studentGradeRoutes.js";
+
 export const app = express();
 
 app.disable("x-powered-by");
@@ -89,6 +92,11 @@ app.get(
 app.use(
     "/api/faculty",
     facultyRouter,
+);
+
+app.use(
+    "/api/students",
+    studentGradeRouter,
 );
 
 /*

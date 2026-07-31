@@ -1,0 +1,61 @@
+export type StudentGradeStatus =
+    | "PASSED"
+    | "FAILED"
+    | "CREDITED";
+
+export interface StudentGradeItem {
+    id: string;
+
+    courseId: string;
+    courseCode: string;
+    courseName: string;
+
+    units: number;
+
+    academicYear: string;
+    termNumber: number;
+
+    grade: string;
+    numericGrade?: number;
+
+    status: StudentGradeStatus;
+}
+
+export interface StudentGradeSummary {
+    programName: string;
+    curriculumCode: string;
+    studentNumber: string;
+    campus: string;
+    college: string;
+
+    currentGpa: number | null;
+    gradedUnits: number;
+    creditedUnits: number;
+}
+
+export interface StudentGradeAcademicPeriod {
+    academicYear: string;
+    termNumber: number;
+    label: string;
+}
+
+export interface StudentGradeResponse {
+    summary: StudentGradeSummary;
+
+    grades: StudentGradeItem[];
+
+    filters: {
+        academicPeriods:
+            StudentGradeAcademicPeriod[];
+
+        statuses:
+            StudentGradeStatus[];
+    };
+
+    pagination: {
+        page: number;
+        limit: number;
+        totalItems: number;
+        totalPages: number;
+    };
+}

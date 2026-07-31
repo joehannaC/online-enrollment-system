@@ -8,6 +8,15 @@ import helmet from "helmet";
 
 import studentRouter from "./routes/studentRoutes.js";
 
+import studentRecordRouter
+    from "./routes/studentRecordRoutes.js";
+
+import {
+    errorHandler,
+} from "./middleware/errorHandler.js";
+
+
+
 const app = express();
 
 app.use(helmet());
@@ -41,6 +50,13 @@ app.use(
     "/api/students",
     studentRouter,
 );
+
+app.use(
+    "/api/students",
+    studentRecordRouter,
+);
+
+app.use(errorHandler);
 
 app.use(
     (

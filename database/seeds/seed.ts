@@ -45,6 +45,7 @@ interface CurriculumCourse {
     nonAcademicUnits: number;
     trimester: number;
     category: CourseCategory;
+    prerequisiteCodes?: string[];
 }
 
 function oid(scope: string, key: string): ObjectId {
@@ -81,7 +82,8 @@ const ids = {
     },
 
     terms: {
-        current: oid("term", "AY2026-2027-T1"),
+        current: oid("term", "AY2025-2026-T3"),
+        next: oid("term", "AY2026-2027-T1"),
     },
 };
 
@@ -145,7 +147,7 @@ const curriculum: CurriculumCourse[] = [
     { code: "LBYARCH", name: "Computer Architecture Laboratory", academicUnits: 1, nonAcademicUnits: 0, trimester: 7, category: "CS_PROFESSIONAL" },
     { code: "STELEC1", name: "ST Professional Elective 1 – Ethical Hacking", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "PROFESSIONAL_ELECTIVE" },
     { code: "LCENWRD", name: "Encountering the Word in the World", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "GENERAL_EDUCATION" },
-    { code: "SAS3000", name: "Student Affairs Services 3000", academicUnits: 0, nonAcademicUnits: 0, trimester: 7, category: "OTHER_NON_ACADEMIC" },
+    { code: "SAS3000", name: "Student Affairs Services 3000", academicUnits: 0, nonAcademicUnits: 0, trimester: 7, category: "OTHER_NON_ACADEMIC", prerequisiteCodes: ["SAS2000"] },
     { code: "LCLSTWO", name: "Lasallian Studies 2", academicUnits: 0, nonAcademicUnits: 1, trimester: 7, category: "LASALLIAN_STUDIES" },
     { code: "LASARE3", name: "Lasallian Reflection 3", academicUnits: 0, nonAcademicUnits: 0, trimester: 7, category: "OTHER_NON_ACADEMIC" },
 
@@ -162,7 +164,7 @@ const curriculum: CurriculumCourse[] = [
 
     // 10th Trimester — 14 academic
     { code: "THS-ST2", name: "Thesis for Software Technology 2", academicUnits: 2, nonAcademicUnits: 0, trimester: 10, category: "THESIS" },
-    { code: "STDISCM", name: "Distributed Computing", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "ST_SPECIALIZATION" },
+    { code: "STDISCM", name: "Distributed Computing", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CSNETWK", "CSOPESY"] },
     { code: "STELEC3", name: "ST Professional Elective 3 – Human-Computer Interaction", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "PROFESSIONAL_ELECTIVE" },
     { code: "STELEC4", name: "ST Professional Elective 4 – Advanced Data Analytics", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "PROFESSIONAL_ELECTIVE" },
     { code: "GEETHIC", name: "Ethics", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "GENERAL_EDUCATION" },
@@ -179,13 +181,36 @@ const curriculum: CurriculumCourse[] = [
     { code: "GERIZAL", name: "Life and Works of Rizal", academicUnits: 3, nonAcademicUnits: 0, trimester: 12, category: "GENERAL_EDUCATION" },
     { code: "GEARTAP", name: "Art Appreciation", academicUnits: 3, nonAcademicUnits: 0, trimester: 12, category: "GENERAL_EDUCATION" },
     { code: "GEUSELF", name: "Understanding the Self", academicUnits: 3, nonAcademicUnits: 0, trimester: 12, category: "GENERAL_EDUCATION" },
-    { code: "LCFAITH", name: "Faith Worth Living", academicUnits: 3, nonAcademicUnits: 0, trimester: 12, category: "GENERAL_EDUCATION" },
+    { code: "LCFAITH", name: "Faith Worth Living", academicUnits: 3, nonAcademicUnits: 0, trimester: 12, category: "GENERAL_EDUCATION", prerequisiteCodes: ["LCLSTRI"] },
 ];
 
 const exactStudentMissingCourses = new Set([
     "PRCCSST",
     "STDISCM",
 ]);
+
+const student1CreditedCourses = new Set([
+    "CCPROG1",
+    "CCICOMP",
+    "MTH101A",
+]);
+
+const studentCurrentCourses = {
+    student1: new Set([
+        "STDISCM",
+        "PRCCSST",
+    ]),
+    student2: new Set([
+        "STINTSY",
+        "STDISCM",
+        "CCAPDEV",
+    ]),
+    student3: new Set([
+        "CCAPDEV",
+        "CSSECDV",
+        "GEWORLD",
+    ]),
+} as const;
 
 const facultyProfiles = [
     {
@@ -295,8 +320,8 @@ function getHistoricalTermDates(trimester: number): {
                 termNumber === 1
                     ? 3
                     : termNumber === 2
-                    ? 7
-                    : 11,
+                        ? 7
+                        : 11,
                 20,
             ),
         ),
@@ -506,7 +531,7 @@ async function seedDatabase(): Promise<void> {
                     ...facultyProfiles.map((profile) => ({
                         _id:
                             ids.users[
-                                profile.key as keyof typeof ids.users
+                            profile.key as keyof typeof ids.users
                             ],
                         email: profile.email,
                         username: profile.username,
@@ -557,6 +582,8 @@ async function seedDatabase(): Promise<void> {
                         earnedUnits: 116,
                         earnedNonAcademicUnits: 7,
                         remainingUnits: 57,
+                        enrolledUnits: 9,
+                        enlistedUnits: 0,
                     },
                     {
                         _id: ids.students.student3,
@@ -570,6 +597,8 @@ async function seedDatabase(): Promise<void> {
                         earnedUnits: 74,
                         earnedNonAcademicUnits: 6,
                         remainingUnits: 99,
+                        enrolledUnits: 9,
+                        enlistedUnits: 0,
                     },
                 ];
 
@@ -620,7 +649,7 @@ async function seedDatabase(): Promise<void> {
                             department: profile.department,
                             college:
                                 profile.specializationGroup ===
-                                "GE"
+                                    "GE"
                                     ? "College of Liberal Arts"
                                     : "College of Computer Studies",
                             specializationGroup:
@@ -676,26 +705,57 @@ async function seedDatabase(): Promise<void> {
                     "academicTerms",
                     {
                         _id: ids.terms.current,
+                        code: "AY2025-2026-T3",
+                        name: "Term 3",
+                        academicYear: "2025-2026",
+                        termNumber: 3,
+                        startDate: new Date(
+                            "2026-05-04",
+                        ),
+                        endDate: new Date(
+                            "2026-08-29",
+                        ),
+                        enrollmentStart: new Date(
+                            "2026-04-15",
+                        ),
+                        enrollmentEnd: new Date(
+                            "2026-05-15",
+                        ),
+                        gradeSubmissionDeadline:
+                            new Date("2026-09-08"),
+                        status: "ACTIVE",
+                        isCurrent: true,
+                        seedTag,
+                        updatedAt: now,
+                    },
+                    session,
+                );
+
+                await upsertById(
+                    db,
+                    "academicTerms",
+                    {
+                        _id: ids.terms.next,
                         code: "AY2026-2027-T1",
                         name: "Term 1",
                         academicYear: "2026-2027",
                         termNumber: 1,
                         startDate: new Date(
-                            "2026-07-01",
+                            "2026-09-07",
                         ),
                         endDate: new Date(
-                            "2026-10-31",
+                            "2026-12-19",
                         ),
                         enrollmentStart: new Date(
-                            "2026-06-20",
+                            "2026-07-20",
                         ),
                         enrollmentEnd: new Date(
-                            "2026-08-05",
+                            "2026-08-21",
                         ),
                         gradeSubmissionDeadline:
-                            new Date("2026-11-10"),
-                        status: "ACTIVE",
-                        isCurrent: true,
+                            new Date("2027-01-08"),
+                        status: "UPCOMING",
+                        isCurrent: false,
                         seedTag,
                         updatedAt: now,
                     },
@@ -723,17 +783,19 @@ async function seedDatabase(): Promise<void> {
                                 "CS-ST18 (2021)",
                             recommendedTrimester:
                                 course.trimester,
+                            prerequisiteCodes:
+                                course.prerequisiteCodes ?? [],
                             department:
                                 course.category ===
-                                "GENERAL_EDUCATION"
+                                    "GENERAL_EDUCATION"
                                     ? "General Education"
                                     : course.category ===
                                         "COMMON_COMPUTING"
-                                    ? "Common Computing"
-                                    : course.category ===
-                                        "CS_PROFESSIONAL"
-                                        ? "Computer Science"
-                                        : "Software Technology",
+                                        ? "Common Computing"
+                                        : course.category ===
+                                            "CS_PROFESSIONAL"
+                                            ? "Computer Science"
+                                            : "Software Technology",
                             status: "ACTIVE",
                             seedTag,
                             updatedAt: now,
@@ -749,8 +811,11 @@ async function seedDatabase(): Promise<void> {
                         studentKey: "student1",
                         completed: (
                             course: CurriculumCourse,
-                        ) =>
+                        ): boolean =>
                             !exactStudentMissingCourses.has(
+                                course.code,
+                            ) &&
+                            !studentCurrentCourses.student1.has(
                                 course.code,
                             ),
                     },
@@ -760,13 +825,26 @@ async function seedDatabase(): Promise<void> {
                         studentKey: "student2",
                         completed: (
                             course: CurriculumCourse,
-                        ) =>
-                            course.trimester <= 8 ||
-                            [
+                        ): boolean => {
+                            if (
+                                studentCurrentCourses.student2.has(
+                                    course.code,
+                                )
+                            ) {
+                                return false;
+                            }
+
+                            if (course.trimester <= 7) {
+                                return true;
+                            }
+
+                            return [
+                                "STMETHD",
                                 "MOBDEVE",
                                 "THS-ST1",
                                 "CSOPESY",
-                            ].includes(course.code),
+                            ].includes(course.code);
+                        },
                     },
                     {
                         studentId:
@@ -774,13 +852,26 @@ async function seedDatabase(): Promise<void> {
                         studentKey: "student3",
                         completed: (
                             course: CurriculumCourse,
-                        ) =>
-                            course.trimester <= 5 ||
-                            [
+                        ): boolean => {
+                            if (
+                                studentCurrentCourses.student3.has(
+                                    course.code,
+                                )
+                            ) {
+                                return false;
+                            }
+
+                            if (course.trimester <= 4) {
+                                return true;
+                            }
+
+                            return [
+                                "CSARCH1",
                                 "CSSWENG",
                                 "CSNETWK",
                                 "GELECAH",
-                            ].includes(course.code),
+                            ].includes(course.code);
+                        },
                     },
                 ];
 
@@ -895,7 +986,10 @@ async function seedDatabase(): Promise<void> {
                                     finalGradeValue:
                                         score.finalGradeValue,
                                     result:
-                                        rule.studentKey === "student1"
+                                        rule.studentKey === "student1" &&
+                                            student1CreditedCourses.has(
+                                                course.code,
+                                            )
                                             ? "CREDITED"
                                             : "PASSED",
                                     status: "VERIFIED",
@@ -1039,6 +1133,67 @@ async function seedDatabase(): Promise<void> {
                     },
                 ];
 
+                const registeredCourseCode = "LASARE3";
+                const registeredCourse = curriculum.find(
+                    (course) =>
+                        course.code === registeredCourseCode,
+                );
+
+                if (!registeredCourse) {
+                    throw new Error(
+                        `Missing curriculum course: ${registeredCourseCode}`,
+                    );
+                }
+
+                const registeredSectionId = oid(
+                    "section-next",
+                    registeredCourseCode,
+                );
+
+                await upsertById(
+                    db,
+                    "sections",
+                    {
+                        _id: registeredSectionId,
+                        courseId: oid(
+                            "course",
+                            registeredCourseCode,
+                        ),
+                        academicTermId: ids.terms.next,
+                        facultyId:
+                            facultyIdForCourse(registeredCourse),
+                        sectionCode: "R01",
+                        schedule: [],
+                        capacity: 40,
+                        enrolledCount: 1,
+                        status: "OPEN",
+                        seedTag,
+                        updatedAt: now,
+                    },
+                    session,
+                );
+
+                await upsertById(
+                    db,
+                    "enrollments",
+                    {
+                        _id: oid(
+                            "enrollment-registered",
+                            `student1:${registeredCourseCode}`,
+                        ),
+                        studentId: ids.students.student1,
+                        sectionId: registeredSectionId,
+                        academicTermId: ids.terms.next,
+                        status: "REGISTERED",
+                        registeredAt: new Date(
+                            "2026-07-25",
+                        ),
+                        seedTag,
+                        updatedAt: now,
+                    },
+                    session,
+                );
+
                 for (const definition of currentSectionDefinitions) {
                     const course = curriculum.find(
                         (item) =>
@@ -1089,31 +1244,32 @@ async function seedDatabase(): Promise<void> {
                     {
                         studentId:
                             ids.students.student1,
-                        studentKey: "student1",
-                        courseCodes: [
-                            "STDISCM",
-                            "PRCCSST",
-                        ],
+                        studentKey:
+                            "student1",
+                        courseCodes:
+                            Array.from(
+                                studentCurrentCourses.student1,
+                            ),
                     },
                     {
                         studentId:
                             ids.students.student2,
-                        studentKey: "student2",
-                        courseCodes: [
-                            "STINTSY",
-                            "STDISCM",
-                            "CCAPDEV",
-                        ],
+                        studentKey:
+                            "student2",
+                        courseCodes:
+                            Array.from(
+                                studentCurrentCourses.student2,
+                            ),
                     },
                     {
                         studentId:
                             ids.students.student3,
-                        studentKey: "student3",
-                        courseCodes: [
-                            "CCAPDEV",
-                            "CSSECDV",
-                            "GEWORLD",
-                        ],
+                        studentKey:
+                            "student3",
+                        courseCodes:
+                            Array.from(
+                                studentCurrentCourses.student3,
+                            ),
                     },
                 ];
 
@@ -1139,7 +1295,7 @@ async function seedDatabase(): Promise<void> {
                                     ids.terms.current,
                                 status: "ENROLLED",
                                 enrolledAt: new Date(
-                                    "2026-07-02",
+                                    "2026-05-06",
                                 ),
                                 seedTag,
                                 updatedAt: now,

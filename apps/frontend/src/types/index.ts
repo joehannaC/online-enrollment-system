@@ -6,3 +6,5 @@ export * from "./enrollment.types";
 export * from "./grade.types";
 export * from "./faculty.types";
 export * from "./profile.types";
+export * from "./studentRecord.types";
+export * from "./studentGrade.types";

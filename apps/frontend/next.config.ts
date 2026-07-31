@@ -42,29 +42,44 @@ const nextConfig: NextConfig = {
             {
                 source:
                     "/api/auth/:path*",
+
                 destination:
                     `${authServiceUrl}/api/auth/:path*`,
             },
+
+            {
+                source:
+                    "/api/students/grades",
+
+                destination:
+                    `${gradeServiceUrl}/api/students/grades`,
+            },
+
             {
                 source:
                     "/api/students/:path*",
+
                 destination:
                     `${enrollmentServiceUrl}/api/students/:path*`,
             },
+
             {
                 source:
                     "/api/faculty/:path*",
+
                 destination:
                     `${gradeServiceUrl}/api/faculty/:path*`,
             },
+
             {
                 source:
                     "/api/profiles/:path*",
+
                 destination:
                     `${profileServiceUrl}/api/profiles/:path*`,
             },
         ];
-    },
+    }
 };
 
 export default nextConfig;

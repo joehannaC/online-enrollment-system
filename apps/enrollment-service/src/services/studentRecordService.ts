@@ -1,0 +1,1238 @@
+import {
+    ObjectId,
+    type Db,
+} from "mongodb";
+
+import type {
+    AcademicPeriodOption,
+    StudentRecordItem,
+    StudentRecordResponse,
+    StudentRecordStatus,
+} from "../types/studentRecord.types.js";
+import type {
+    StudentRecordQuery,
+} from "../validators/studentRecordQuerySchema.js";
+
+interface StudentDocument {
+    _id: ObjectId;
+    userId: ObjectId;
+
+    curriculumCode: string;
+
+    requiredUnits?: number;
+    earnedUnits?: number;
+    remainingUnits?: number;
+    enrolledUnits?: number;
+    enlistedUnits?: number;
+
+    status: string;
+}
+
+interface CourseDocument {
+    _id: ObjectId;
+
+    courseCode: string;
+    courseName: string;
+
+    units?: number;
+    academicUnits?: number;
+    nonAcademicUnits?: number;
+
+    curriculumCode: string;
+    recommendedTrimester: number;
+
+    prerequisiteCodes?: string[];
+
+    status: string;
+}
+
+interface AcademicTermDocument {
+    _id: ObjectId;
+
+    code: string;
+    name: string;
+
+    academicYear: string;
+    termNumber: number;
+
+    curriculumTrimester?: number;
+
+    startDate: Date;
+    endDate: Date;
+
+    enrollmentStart?: Date;
+    enrollmentEnd?: Date;
+
+    status:
+        | "ACTIVE"
+        | "UPCOMING"
+        | "COMPLETED";
+
+    isCurrent: boolean;
+}
+
+interface SectionDocument {
+    _id: ObjectId;
+
+    courseId: ObjectId;
+    academicTermId: ObjectId;
+
+    sectionCode: string;
+
+    status:
+        | "OPEN"
+        | "CLOSED"
+        | "CANCELLED";
+}
+
+interface EnrollmentDocument {
+    _id: ObjectId;
+
+    studentId: ObjectId;
+    sectionId: ObjectId;
+    academicTermId: ObjectId;
+
+    status:
+        | "ENROLLED"
+        | "REGISTERED"
+        | "COMPLETED"
+        | "DROPPED"
+        | "CANCELLED";
+
+    enrolledAt?: Date;
+    registeredAt?: Date;
+    completedAt?: Date;
+
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+interface GradeDocument {
+    _id: ObjectId;
+
+    studentId: ObjectId;
+    sectionId: ObjectId;
+    academicTermId: ObjectId;
+
+    computedScore?: number;
+    finalGradeValue?: number;
+
+    result:
+        | "PASSED"
+        | "FAILED"
+        | "CREDITED";
+
+    status:
+        | "DRAFT"
+        | "SUBMITTED"
+        | "VERIFIED";
+
+    submittedAt?: Date;
+    verifiedAt?: Date;
+
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+interface EnrollmentContext {
+    enrollment: EnrollmentDocument;
+    section: SectionDocument;
+    academicTerm: AcademicTermDocument;
+}
+
+interface GradeContext {
+    grade: GradeDocument;
+    section: SectionDocument;
+    academicTerm: AcademicTermDocument;
+}
+
+export class StudentRecordServiceError
+    extends Error {
+    constructor(
+        public readonly code: string,
+        message: string,
+        public readonly status: number,
+    ) {
+        super(message);
+
+        this.name =
+            "StudentRecordServiceError";
+    }
+}
+
+function normalizeSearchValue(
+    value: string,
+): string {
+    return value
+        .trim()
+        .toLowerCase();
+}
+
+function getCourseUnits(
+    course: CourseDocument,
+): number {
+    return (
+        course.academicUnits ??
+        course.units ??
+        0
+    );
+}
+
+function formatGrade(
+    grade?: GradeDocument,
+): string | undefined {
+    if (
+        grade?.finalGradeValue ===
+        undefined
+    ) {
+        return undefined;
+    }
+
+    return grade.finalGradeValue
+        .toFixed(1);
+}
+
+function getEnrollmentPriority(
+    status: EnrollmentDocument["status"],
+): number {
+    const priorities: Record<
+        EnrollmentDocument["status"],
+        number
+    > = {
+        ENROLLED: 5,
+        REGISTERED: 4,
+        COMPLETED: 3,
+        DROPPED: 2,
+        CANCELLED: 1,
+    };
+
+    return priorities[status];
+}
+
+function getLatestDate(
+    document: {
+        updatedAt?: Date;
+        createdAt?: Date;
+    },
+): number {
+    return (
+        document.updatedAt?.getTime() ??
+        document.createdAt?.getTime() ??
+        0
+    );
+}
+
+function getBestEnrollment(
+    enrollmentContexts: EnrollmentContext[],
+): EnrollmentContext | undefined {
+    return [...enrollmentContexts].sort(
+        (first, second) => {
+            const priorityDifference =
+                getEnrollmentPriority(
+                    second.enrollment.status,
+                ) -
+                getEnrollmentPriority(
+                    first.enrollment.status,
+                );
+
+            if (
+                priorityDifference !== 0
+            ) {
+                return priorityDifference;
+            }
+
+            return (
+                getLatestDate(
+                    second.enrollment,
+                ) -
+                getLatestDate(
+                    first.enrollment,
+                )
+            );
+        },
+    )[0];
+}
+
+function getBestGrade(
+    gradeContexts: GradeContext[],
+): GradeContext | undefined {
+    const statusPriority: Record<
+        GradeDocument["status"],
+        number
+    > = {
+        VERIFIED: 3,
+        SUBMITTED: 2,
+        DRAFT: 1,
+    };
+
+    return [...gradeContexts].sort(
+        (first, second) => {
+            const priorityDifference =
+                statusPriority[
+                    second.grade.status
+                ] -
+                statusPriority[
+                    first.grade.status
+                ];
+
+            if (
+                priorityDifference !== 0
+            ) {
+                return priorityDifference;
+            }
+
+            return (
+                getLatestDate(
+                    second.grade,
+                ) -
+                getLatestDate(
+                    first.grade,
+                )
+            );
+        },
+    )[0];
+}
+
+function deriveStatus({
+    gradeContext,
+    enrollmentContext,
+    missingPrerequisiteCodes,
+    recommendedTrimester,
+    enlistmentSequence,
+}: {
+    gradeContext?: GradeContext;
+    enrollmentContext?: EnrollmentContext;
+    missingPrerequisiteCodes: string[];
+    recommendedTrimester: number;
+    enlistmentSequence: number;
+}): StudentRecordStatus {
+    if (
+        gradeContext?.grade.result ===
+        "CREDITED"
+    ) {
+        return "CREDITED";
+    }
+
+    if (
+        gradeContext?.grade.result ===
+        "PASSED"
+    ) {
+        return "COMPLETED";
+    }
+
+    if (
+        enrollmentContext
+            ?.enrollment.status ===
+        "COMPLETED"
+    ) {
+        return "COMPLETED";
+    }
+
+    if (
+        enrollmentContext
+            ?.enrollment.status ===
+        "ENROLLED"
+    ) {
+        return "IN_PROGRESS";
+    }
+
+    if (
+        enrollmentContext
+            ?.enrollment.status ===
+        "REGISTERED"
+    ) {
+        return "REGISTERED";
+    }
+
+    const prerequisitesSatisfied =
+        missingPrerequisiteCodes.length ===
+        0;
+
+    const recommendedTermReached =
+        recommendedTrimester <=
+        enlistmentSequence;
+
+    if (
+        prerequisitesSatisfied &&
+        recommendedTermReached
+    ) {
+        return "CAN_BE_ENLISTED";
+    }
+
+    return "CANNOT_YET_BE_ENLISTED";
+}
+
+function getRecordAcademicPeriod({
+    gradeContext,
+    enrollmentContext,
+    plannedTerm,
+}: {
+    gradeContext?: GradeContext;
+    enrollmentContext?: EnrollmentContext;
+    plannedTerm?: AcademicTermDocument;
+}): {
+    academicYear: string;
+    academicTerm: number;
+} {
+    if (gradeContext) {
+        return {
+            academicYear:
+                gradeContext
+                    .academicTerm
+                    .academicYear,
+
+            academicTerm:
+                gradeContext
+                    .academicTerm
+                    .termNumber,
+        };
+    }
+
+    if (enrollmentContext) {
+        return {
+            academicYear:
+                enrollmentContext
+                    .academicTerm
+                    .academicYear,
+
+            academicTerm:
+                enrollmentContext
+                    .academicTerm
+                    .termNumber,
+        };
+    }
+
+    if (plannedTerm) {
+        return {
+            academicYear:
+                plannedTerm.academicYear,
+
+            academicTerm:
+                plannedTerm.termNumber,
+        };
+    }
+
+    return {
+        academicYear: "Not Scheduled",
+        academicTerm: 0,
+    };
+}
+
+function buildAcademicPeriodOptions(
+    academicTerms: AcademicTermDocument[],
+): AcademicPeriodOption[] {
+    const uniquePeriods =
+        new Map<
+            string,
+            AcademicPeriodOption
+        >();
+
+    for (
+        const term of
+        academicTerms
+    ) {
+        const key =
+            `${term.academicYear}|${term.termNumber}`;
+
+        if (
+            uniquePeriods.has(key)
+        ) {
+            continue;
+        }
+
+        uniquePeriods.set(
+            key,
+            {
+                academicYear:
+                    term.academicYear,
+
+                termNumber:
+                    term.termNumber,
+
+                label:
+                    `${term.academicYear} — Term ${term.termNumber}`,
+            },
+        );
+    }
+
+    return Array.from(
+        uniquePeriods.values(),
+    ).sort(
+        (first, second) => {
+            const firstYear =
+                Number(
+                    first.academicYear
+                        .match(/\d{4}/)?.[0] ??
+                    0,
+                );
+
+            const secondYear =
+                Number(
+                    second.academicYear
+                        .match(/\d{4}/)?.[0] ??
+                    0,
+                );
+
+            if (
+                firstYear !==
+                secondYear
+            ) {
+                return (
+                    firstYear -
+                    secondYear
+                );
+            }
+
+            return (
+                first.termNumber -
+                second.termNumber
+            );
+        },
+    );
+}
+
+function calculateEnlistmentSequence(
+    currentTerm: AcademicTermDocument,
+    academicTerms: AcademicTermDocument[],
+): number {
+    if (
+        currentTerm.curriculumTrimester
+    ) {
+        return (
+            currentTerm
+                .curriculumTrimester +
+            1
+        );
+    }
+
+    const historicalSequences =
+        academicTerms
+            .filter(
+                (term) =>
+                    typeof term
+                        .curriculumTrimester ===
+                        "number" &&
+                    term.startDate <=
+                        currentTerm.startDate,
+            )
+            .map(
+                (term) =>
+                    term.curriculumTrimester ??
+                    0,
+            );
+
+    const latestHistoricalSequence =
+        historicalSequences.length > 0
+            ? Math.max(
+                  ...historicalSequences,
+              )
+            : 0;
+
+    return (
+        latestHistoricalSequence +
+        1
+    );
+}
+
+export async function getStudentRecords(
+    db: Db,
+    authenticatedUserId: string,
+    query: StudentRecordQuery,
+): Promise<StudentRecordResponse> {
+    if (
+        !ObjectId.isValid(
+            authenticatedUserId,
+        )
+    ) {
+        throw new StudentRecordServiceError(
+            "INVALID_USER_ID",
+            "The authenticated user ID is invalid.",
+            401,
+        );
+    }
+
+    const userObjectId =
+        new ObjectId(
+            authenticatedUserId,
+        );
+
+    const student =
+        await db
+            .collection<StudentDocument>(
+                "students",
+            )
+            .findOne({
+                userId: userObjectId,
+                status: "ACTIVE",
+            });
+
+    if (!student) {
+        throw new StudentRecordServiceError(
+            "STUDENT_NOT_FOUND",
+            "The student record could not be found.",
+            404,
+        );
+    }
+
+    const [
+        courses,
+        academicTerms,
+        currentTerm,
+    ] = await Promise.all([
+        db
+            .collection<CourseDocument>(
+                "courses",
+            )
+            .find({
+                curriculumCode:
+                    student.curriculumCode,
+
+                status: "ACTIVE",
+            })
+            .sort({
+                recommendedTrimester: 1,
+                courseCode: 1,
+            })
+            .toArray(),
+
+        db
+            .collection<AcademicTermDocument>(
+                "academicTerms",
+            )
+            .find({})
+            .sort({
+                startDate: 1,
+                termNumber: 1,
+            })
+            .toArray(),
+
+        db
+            .collection<AcademicTermDocument>(
+                "academicTerms",
+            )
+            .findOne({
+                isCurrent: true,
+                status: "ACTIVE",
+            }),
+    ]);
+
+    if (!currentTerm) {
+        throw new StudentRecordServiceError(
+            "CURRENT_ACADEMIC_TERM_NOT_FOUND",
+            "The current academic term is not configured.",
+            500,
+        );
+    }
+
+    if (courses.length === 0) {
+        throw new StudentRecordServiceError(
+            "CURRICULUM_NOT_FOUND",
+            "No courses were found for the student's curriculum.",
+            404,
+        );
+    }
+
+    const courseIds =
+        courses.map(
+            (course) =>
+                course._id,
+        );
+
+    const sections =
+        await db
+            .collection<SectionDocument>(
+                "sections",
+            )
+            .find({
+                courseId: {
+                    $in: courseIds,
+                },
+            })
+            .toArray();
+
+    const sectionIds =
+        sections.map(
+            (section) =>
+                section._id,
+        );
+
+    const [
+        enrollments,
+        grades,
+    ] = await Promise.all([
+        db
+            .collection<EnrollmentDocument>(
+                "enrollments",
+            )
+            .find({
+                studentId:
+                    student._id,
+
+                sectionId: {
+                    $in: sectionIds,
+                },
+            })
+            .toArray(),
+
+        db
+            .collection<GradeDocument>(
+                "grades",
+            )
+            .find({
+                studentId:
+                    student._id,
+
+                sectionId: {
+                    $in: sectionIds,
+                },
+            })
+            .toArray(),
+    ]);
+
+    const coursesById =
+        new Map(
+            courses.map(
+                (course) => [
+                    course._id
+                        .toHexString(),
+                    course,
+                ],
+            ),
+        );
+
+    const coursesByCode =
+        new Map(
+            courses.map(
+                (course) => [
+                    course.courseCode,
+                    course,
+                ],
+            ),
+        );
+
+    const termsById =
+        new Map(
+            academicTerms.map(
+                (term) => [
+                    term._id
+                        .toHexString(),
+                    term,
+                ],
+            ),
+        );
+
+    const plannedTermsByTrimester =
+        new Map<
+            number,
+            AcademicTermDocument
+        >();
+
+    for (
+        const term of
+        academicTerms
+    ) {
+        if (
+            typeof term
+                .curriculumTrimester !==
+            "number"
+        ) {
+            continue;
+        }
+
+        plannedTermsByTrimester.set(
+            term.curriculumTrimester,
+            term,
+        );
+    }
+
+    const sectionsById =
+        new Map(
+            sections.map(
+                (section) => [
+                    section._id
+                        .toHexString(),
+                    section,
+                ],
+            ),
+        );
+
+    const enrollmentContextsByCourseId =
+        new Map<
+            string,
+            EnrollmentContext[]
+        >();
+
+    for (
+        const enrollment of
+        enrollments
+    ) {
+        const section =
+            sectionsById.get(
+                enrollment.sectionId
+                    .toHexString(),
+            );
+
+        if (!section) {
+            continue;
+        }
+
+        const academicTerm =
+            termsById.get(
+                enrollment
+                    .academicTermId
+                    .toHexString(),
+            );
+
+        if (!academicTerm) {
+            continue;
+        }
+
+        const courseId =
+            section.courseId
+                .toHexString();
+
+        const existing =
+            enrollmentContextsByCourseId
+                .get(courseId) ??
+            [];
+
+        existing.push({
+            enrollment,
+            section,
+            academicTerm,
+        });
+
+        enrollmentContextsByCourseId
+            .set(
+                courseId,
+                existing,
+            );
+    }
+
+    const gradeContextsByCourseId =
+        new Map<
+            string,
+            GradeContext[]
+        >();
+
+    for (
+        const grade of
+        grades
+    ) {
+        const section =
+            sectionsById.get(
+                grade.sectionId
+                    .toHexString(),
+            );
+
+        if (!section) {
+            continue;
+        }
+
+        const academicTerm =
+            termsById.get(
+                grade.academicTermId
+                    .toHexString(),
+            );
+
+        if (!academicTerm) {
+            continue;
+        }
+
+        const courseId =
+            section.courseId
+                .toHexString();
+
+        const existing =
+            gradeContextsByCourseId
+                .get(courseId) ??
+            [];
+
+        existing.push({
+            grade,
+            section,
+            academicTerm,
+        });
+
+        gradeContextsByCourseId.set(
+            courseId,
+            existing,
+        );
+    }
+
+    const satisfiedCourseCodes =
+        new Set<string>();
+
+    for (
+        const [
+            courseId,
+            contexts,
+        ] of
+        gradeContextsByCourseId
+    ) {
+        const course =
+            coursesById.get(
+                courseId,
+            );
+
+        if (!course) {
+            continue;
+        }
+
+        const hasSatisfiedGrade =
+            contexts.some(
+                (context) =>
+                    context
+                        .grade.result ===
+                        "PASSED" ||
+                    context
+                        .grade.result ===
+                        "CREDITED",
+            );
+
+        if (hasSatisfiedGrade) {
+            satisfiedCourseCodes.add(
+                course.courseCode,
+            );
+        }
+    }
+
+    for (
+        const [
+            courseId,
+            contexts,
+        ] of
+        enrollmentContextsByCourseId
+    ) {
+        const course =
+            coursesById.get(
+                courseId,
+            );
+
+        if (!course) {
+            continue;
+        }
+
+        const completed =
+            contexts.some(
+                (context) =>
+                    context
+                        .enrollment
+                        .status ===
+                    "COMPLETED",
+            );
+
+        if (completed) {
+            satisfiedCourseCodes.add(
+                course.courseCode,
+            );
+        }
+    }
+
+    const enlistmentSequence =
+        calculateEnlistmentSequence(
+            currentTerm,
+            academicTerms,
+        );
+
+    const recordItems:
+        StudentRecordItem[] = [];
+
+    for (
+        const course of
+        courses
+    ) {
+        const courseId =
+            course._id
+                .toHexString();
+
+        const enrollmentContext =
+            getBestEnrollment(
+                enrollmentContextsByCourseId
+                    .get(courseId) ??
+                    [],
+            );
+
+        const gradeContext =
+            getBestGrade(
+                gradeContextsByCourseId
+                    .get(courseId) ??
+                    [],
+            );
+
+        const prerequisiteCodes =
+            course.prerequisiteCodes ??
+            [];
+
+        const missingPrerequisiteCodes =
+            prerequisiteCodes.filter(
+                (code) =>
+                    !satisfiedCourseCodes
+                        .has(code),
+            );
+
+        const plannedTerm =
+            plannedTermsByTrimester.get(
+                course
+                    .recommendedTrimester,
+            );
+
+        const period =
+            getRecordAcademicPeriod({
+                gradeContext,
+                enrollmentContext,
+                plannedTerm,
+            });
+
+        const status =
+            deriveStatus({
+                gradeContext,
+                enrollmentContext,
+                missingPrerequisiteCodes,
+
+                recommendedTrimester:
+                    course
+                        .recommendedTrimester,
+
+                enlistmentSequence,
+            });
+
+        recordItems.push({
+            id: courseId,
+            courseId,
+
+            courseCode:
+                course.courseCode,
+
+            courseName:
+                course.courseName,
+
+            units:
+                getCourseUnits(
+                    course,
+                ),
+
+            curriculumTerm:
+                course
+                    .recommendedTrimester,
+
+            academicYear:
+                period.academicYear,
+
+            academicTerm:
+                period.academicTerm,
+
+            status,
+
+            grade:
+                formatGrade(
+                    gradeContext?.grade,
+                ),
+
+            prerequisiteCodes:
+                prerequisiteCodes.filter(
+                    (code) =>
+                        coursesByCode.has(
+                            code,
+                        ),
+                ),
+
+            missingPrerequisiteCodes:
+                missingPrerequisiteCodes
+                    .filter(
+                        (code) =>
+                            coursesByCode.has(
+                                code,
+                            ),
+                    ),
+        });
+    }
+
+    recordItems.sort(
+        (first, second) => {
+            if (
+                first.curriculumTerm !==
+                second.curriculumTerm
+            ) {
+                return (
+                    first.curriculumTerm -
+                    second.curriculumTerm
+                );
+            }
+
+            return first.courseCode
+                .localeCompare(
+                    second.courseCode,
+                );
+        },
+    );
+
+    const requiredUnits =
+        recordItems.reduce(
+            (total, record) =>
+                total +
+                record.units,
+            0,
+        );
+
+    const earnedUnits =
+        recordItems
+            .filter(
+                (record) =>
+                    record.status ===
+                        "COMPLETED" ||
+                    record.status ===
+                        "CREDITED",
+            )
+            .reduce(
+                (total, record) =>
+                    total +
+                    record.units,
+                0,
+            );
+
+    const enrolledUnits =
+        recordItems
+            .filter(
+                (record) =>
+                    record.status ===
+                    "IN_PROGRESS",
+            )
+            .reduce(
+                (total, record) =>
+                    total +
+                    record.units,
+                0,
+            );
+
+    const enlistedUnits =
+        recordItems
+            .filter(
+                (record) =>
+                    record.status ===
+                    "REGISTERED",
+            )
+            .reduce(
+                (total, record) =>
+                    total +
+                    record.units,
+                0,
+            );
+
+    const search =
+        normalizeSearchValue(
+            query.search,
+        );
+
+    const filteredRecords =
+        recordItems.filter(
+            (record) => {
+                const matchesSearch =
+                    !search ||
+                    record.courseCode
+                        .toLowerCase()
+                        .includes(search) ||
+                    record.courseName
+                        .toLowerCase()
+                        .includes(search);
+
+                const matchesAcademicYear =
+                    !query.academicYear ||
+                    record.academicYear ===
+                        query.academicYear;
+
+                const matchesTerm =
+                    !query.termNumber ||
+                    record.academicTerm ===
+                        query.termNumber;
+
+                const matchesStatus =
+                    !query.status ||
+                    record.status ===
+                        query.status;
+
+                return (
+                    matchesSearch &&
+                    matchesAcademicYear &&
+                    matchesTerm &&
+                    matchesStatus
+                );
+            },
+        );
+
+    const totalItems =
+        filteredRecords.length;
+
+    const totalPages =
+        Math.max(
+            1,
+            Math.ceil(
+                totalItems /
+                    query.limit,
+            ),
+        );
+
+    const page =
+        Math.min(
+            query.page,
+            totalPages,
+        );
+
+    const offset =
+        (page - 1) *
+        query.limit;
+
+    const paginatedRecords =
+        filteredRecords.slice(
+            offset,
+            offset + query.limit,
+        );
+
+    const statuses:
+        StudentRecordStatus[] = [
+        "IN_PROGRESS",
+        "COMPLETED",
+        "CANNOT_YET_BE_ENLISTED",
+        "REGISTERED",
+        "CAN_BE_ENLISTED",
+        "CREDITED",
+    ];
+
+    const academicPeriods =
+        buildAcademicPeriodOptions(
+            academicTerms,
+        );
+
+    return {
+        summary: {
+            requiredUnits,
+
+            earnedUnits,
+
+            remainingUnits:
+                Math.max(
+                    0,
+                    requiredUnits -
+                        earnedUnits,
+                ),
+
+            enrolledUnits,
+            enlistedUnits,
+        },
+
+        records:
+            paginatedRecords,
+
+        filters: {
+            academicPeriods,
+            statuses,
+        },
+
+        pagination: {
+            page,
+            limit: query.limit,
+            totalItems,
+            totalPages,
+        },
+    };
+}
