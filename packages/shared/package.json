@@ -1,12 +1,18 @@
 {
-    "name": "@enrollment/shared",
+    "name": "@online-enrollment/shared",
     "version": "1.0.0",
     "private": true,
     "type": "module",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
     "scripts": {
-        "build": "tsc",
-        "typecheck": "tsc --noEmit"
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
     }
 }

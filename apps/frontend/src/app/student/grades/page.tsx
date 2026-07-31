@@ -13,6 +13,10 @@ import {
     useState,
 } from "react";
 
+import {
+    LoadingSkeleton,
+    ServiceUnavailable,
+} from "@/components/common";
 import PageContainer from "@/components/layout/PageContainer";
 import {
     getStudentGrades,
@@ -265,6 +269,11 @@ export default function StudentGradesPage() {
         setErrorMessage,
     ] = useState("");
 
+    const [
+        retryKey,
+        setRetryKey,
+    ] = useState(0);
+
     const selectedAcademicPeriod =
         useMemo(() => {
             if (!selectedPeriod) {
@@ -385,6 +394,7 @@ export default function StudentGradesPage() {
         router,
         selectedAcademicPeriod,
         status,
+        retryKey,
     ]);
 
     function clearFilters(): void {
@@ -599,7 +609,85 @@ export default function StudentGradesPage() {
                                             const value =
                                                 `${period.academicYear}|${period.termNumber}`;
 
-                                            return (
+                                        
+    if (
+        isLoading &&
+        !data
+    ) {
+        return (
+            <PageContainer>
+                <div className="mx-auto w-full max-w-[1440px] space-y-5">
+                    <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="space-y-3">
+                                <LoadingSkeleton className="h-5 w-72 max-w-full" />
+                                <LoadingSkeleton className="h-4 w-64 max-w-full" />
+                                <LoadingSkeleton className="h-4 w-52 max-w-full" />
+                            </div>
+
+                            <LoadingSkeleton className="h-24 w-full rounded-lg lg:w-48" />
+                        </div>
+                    </section>
+
+                    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+                        <div className="flex flex-col gap-4 border-b border-neutral-200 p-5 xl:flex-row xl:items-center">
+                            <div className="space-y-3 xl:mr-auto">
+                                <LoadingSkeleton className="h-10 w-40" />
+                                <LoadingSkeleton className="h-4 w-64 max-w-full" />
+                            </div>
+
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[260px]" />
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[190px]" />
+                            <LoadingSkeleton className="h-11 w-24 rounded-lg" />
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                            {Array.from({
+                                length: 7,
+                            }).map((_, index) => (
+                                <div
+                                    key={index}
+                                    className="grid grid-cols-1 gap-3 border-b border-neutral-100 pb-4 lg:grid-cols-5"
+                                >
+                                    {Array.from({
+                                        length: 5,
+                                    }).map((__, cellIndex) => (
+                                        <LoadingSkeleton
+                                            key={cellIndex}
+                                            className="h-5 w-full"
+                                        />
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            </PageContainer>
+        );
+    }
+
+    if (
+        errorMessage &&
+        !data
+    ) {
+        return (
+            <PageContainer>
+                <ServiceUnavailable
+                    title="Grades unavailable"
+                    description={errorMessage}
+                    serviceName="Grade Service"
+                    onRetry={() => {
+                        setRetryKey(
+                            (current) =>
+                                current + 1,
+                        );
+                    }}
+                />
+            </PageContainer>
+        );
+    }
+
+    return (
                                                 <option
                                                     key={value}
                                                     value={value}

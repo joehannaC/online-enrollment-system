@@ -15,6 +15,8 @@ import {
     errorHandler,
 } from "./middleware/errorHandler.js";
 
+import studentEnrollmentRouter
+    from "./routes/studentEnrollmentRoutes.js";
 
 
 const app = express();
@@ -54,6 +56,11 @@ app.use(
 app.use(
     "/api/students",
     studentRecordRouter,
+);
+
+app.use(
+    "/api/students",
+    studentEnrollmentRouter,
 );
 
 app.use(errorHandler);

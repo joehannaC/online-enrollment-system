@@ -8,6 +8,10 @@ import {
     StudentRecordServiceError,
 } from "../services/studentRecordService.js";
 
+import {
+    StudentEnrollmentServiceError,
+} from "../services/studentEnrollmentService.js";
+
 export function errorHandler(
     error: unknown,
     request: Request,
@@ -30,6 +34,33 @@ export function errorHandler(
 
                     message:
                         error.message,
+
+                    service:
+                        "enrollment-service",
+                },
+            });
+
+        return;
+    }
+
+    if (
+        error instanceof
+        StudentEnrollmentServiceError
+    ) {
+        response
+            .status(error.status)
+            .json({
+                success: false,
+
+                error: {
+                    code:
+                        error.code,
+
+                    message:
+                        error.message,
+
+                    details:
+                        error.details,
 
                     service:
                         "enrollment-service",

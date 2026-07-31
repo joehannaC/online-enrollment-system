@@ -7,3 +7,5 @@ export interface JwtPayload {
     studentId?: string;
     facultyId?: string;
 }
+
+export * from "./academics/calculateAcademicSummary.js";

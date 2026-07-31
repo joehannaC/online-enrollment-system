@@ -8,3 +8,4 @@ export * from "./faculty.types";
 export * from "./profile.types";
 export * from "./studentRecord.types";
 export * from "./studentGrade.types";
+export * from "./studentEnrollment.types";

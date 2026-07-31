@@ -13,6 +13,11 @@ import type {
     StudentGradeQuery,
 } from "../validators/studentGradeQuerySchema.js";
 
+import {
+    calculateAcademicSummary,
+    type AcademicGradeInput,
+} from "@online-enrollment/shared";
+
 interface StudentDocument {
     _id: ObjectId;
     userId: ObjectId;

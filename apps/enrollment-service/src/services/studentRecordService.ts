@@ -5,6 +5,7 @@ import {
 
 import type {
     AcademicPeriodOption,
+    CourseEligibilityCode,
     StudentRecordItem,
     StudentRecordResponse,
     StudentRecordStatus,
@@ -291,6 +292,83 @@ function getBestGrade(
             );
         },
     )[0];
+}
+
+interface RecordEligibility {
+    code: CourseEligibilityCode;
+    title: string;
+    message: string;
+    missingPrerequisiteCodes: string[];
+}
+
+function getRecordEligibility({
+    status,
+    courseCode,
+    missingPrerequisiteCodes,
+}: {
+    status: StudentRecordStatus;
+    courseCode: string;
+    missingPrerequisiteCodes: string[];
+}): RecordEligibility {
+    switch (status) {
+        case "COMPLETED":
+            return {
+                code: "ALREADY_COMPLETED",
+                title: "Completed",
+                message:
+                    `${courseCode} has already been completed.`,
+                missingPrerequisiteCodes: [],
+            };
+
+        case "CREDITED":
+            return {
+                code: "ALREADY_COMPLETED",
+                title: "Credited",
+                message:
+                    `${courseCode} was credited and counts toward earned units.`,
+                missingPrerequisiteCodes: [],
+            };
+
+        case "CAN_BE_ENLISTED":
+            return {
+                code: "ELIGIBLE",
+                title: "Eligible",
+                message:
+                    `${courseCode} can be enlisted because its prerequisites and curriculum requirements have been completed.`,
+                missingPrerequisiteCodes: [],
+            };
+
+        case "CANNOT_YET_BE_ENLISTED":
+            return {
+                code: "MISSING_PREREQUISITES",
+                title: "Cannot yet be enlisted",
+                message:
+                    missingPrerequisiteCodes.length > 0
+                        ? `Complete ${missingPrerequisiteCodes.join(
+                              ", ",
+                          )} before enlisting ${courseCode}.`
+                        : `${courseCode} cannot yet be enlisted because its curriculum requirements have not been satisfied.`,
+                missingPrerequisiteCodes,
+            };
+
+        case "REGISTERED":
+            return {
+                code: "ALREADY_SELECTED",
+                title: "Selected",
+                message:
+                    `${courseCode} is already registered for the current academic term.`,
+                missingPrerequisiteCodes: [],
+            };
+
+        case "IN_PROGRESS":
+            return {
+                code: "ALREADY_SELECTED",
+                title: "In progress",
+                message:
+                    `${courseCode} is currently being taken.`,
+                missingPrerequisiteCodes: [],
+            };
+    }
 }
 
 function deriveStatus({
@@ -997,6 +1075,20 @@ export async function getStudentRecords(
                 enlistmentSequence,
             });
 
+        const eligibility =
+            getRecordEligibility({
+                status,
+                courseCode:
+                    course.courseCode,
+                missingPrerequisiteCodes:
+                    missingPrerequisiteCodes.filter(
+                        (code) =>
+                            coursesByCode.has(
+                                code,
+                            ),
+                    ),
+            });
+
         recordItems.push({
             id: courseId,
             courseId,
@@ -1024,6 +1116,15 @@ export async function getStudentRecords(
 
             status,
 
+            eligibilityCode:
+                eligibility.code,
+
+            eligibilityTitle:
+                eligibility.title,
+
+            eligibilityMessage:
+                eligibility.message,
+
             grade:
                 formatGrade(
                     gradeContext?.grade,
@@ -1038,13 +1139,8 @@ export async function getStudentRecords(
                 ),
 
             missingPrerequisiteCodes:
-                missingPrerequisiteCodes
-                    .filter(
-                        (code) =>
-                            coursesByCode.has(
-                                code,
-                            ),
-                    ),
+                eligibility
+                    .missingPrerequisiteCodes,
         });
     }
 

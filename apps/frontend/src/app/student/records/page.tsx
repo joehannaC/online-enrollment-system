@@ -3,7 +3,11 @@
 import {
     ChevronLeft,
     ChevronRight,
+    CircleAlert,
+    CircleCheck,
+    Info,
     Search,
+    X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -12,6 +16,10 @@ import {
     useState,
 } from "react";
 
+import {
+    LoadingSkeleton,
+    ServiceUnavailable,
+} from "@/components/common";
 import PageContainer from "@/components/layout/PageContainer";
 import {
     getStudentRecords,
@@ -23,65 +31,204 @@ import type {
     StudentRecordStatus,
 } from "@/types";
 
-const statusLabels: Record<
-    StudentRecordStatus,
-    string
-> = {
-    IN_PROGRESS: "In Progress",
-    COMPLETED: "Completed",
-    CANNOT_YET_BE_ENLISTED:
-        "Cannot Yet Be Enlisted",
-    REGISTERED: "Registered",
-    CAN_BE_ENLISTED: "Can Be Enlisted",
-    CREDITED: "Credited",
-};
-
-const statusClasses: Record<
+const recordStatusLabels: Record<
     StudentRecordStatus,
     string
 > = {
     IN_PROGRESS:
-        "border-blue-300 bg-blue-50 text-blue-700",
+        "In Progress",
 
     COMPLETED:
-        "border-green-300 bg-green-50 text-green-700",
+        "Completed",
 
     CANNOT_YET_BE_ENLISTED:
-        "border-neutral-300 bg-neutral-100 text-neutral-600",
+        "Cannot Yet Be Enlisted",
 
     REGISTERED:
-        "border-violet-300 bg-violet-50 text-violet-700",
+        "Registered",
 
     CAN_BE_ENLISTED:
-        "border-amber-300 bg-amber-50 text-amber-700",
+        "Can Be Enlisted",
 
     CREDITED:
-        "border-cyan-300 bg-cyan-50 text-cyan-700",
+        "Credited",
 };
 
-const selectableStatuses = Object.entries(
-    statusLabels,
-) as [
-    StudentRecordStatus,
-    string,
-][];
+const selectableStatuses =
+    Object.entries(
+        recordStatusLabels,
+    ) as [
+        StudentRecordStatus,
+        string,
+    ][];
+
+function getStatusLabel(
+    record: StudentRecordItem,
+): string {
+    switch (
+        record.eligibilityCode
+    ) {
+        case "ELIGIBLE":
+            return "Eligible";
+
+        case "MISSING_PREREQUISITES":
+            return "Cannot yet be enlisted";
+
+        case "ALREADY_COMPLETED":
+            return "Completed";
+
+        case "ALREADY_SELECTED":
+            return "Selected";
+
+        case "SECTION_FULL":
+            return "Full";
+
+        case "MAXIMUM_LOAD_EXCEEDED":
+            return "Load exceeded";
+
+        case "ENROLLMENT_NOT_OPEN":
+            return "Not yet open";
+
+        case "ENROLLMENT_CLOSED":
+            return "Closed";
+
+        case "ENROLLMENT_SUBMITTED":
+            return "Submitted";
+
+        case "FAILED_COURSE_RETAKE_NOT_ALLOWED":
+            return "Retake unavailable";
+
+        case "SCHEDULE_CONFLICT":
+            return "Conflict";
+
+        default:
+            return "Status";
+    }
+}
+
+function getStatusClassName(
+    record: StudentRecordItem,
+): string {
+    switch (
+        record.eligibilityCode
+    ) {
+        case "ELIGIBLE":
+            return [
+                "border-green-300",
+                "bg-green-50",
+                "text-green-700",
+                "hover:bg-green-100",
+            ].join(" ");
+
+        case "ALREADY_COMPLETED":
+        case "ALREADY_SELECTED":
+            return [
+                "border-blue-300",
+                "bg-blue-50",
+                "text-blue-700",
+                "hover:bg-blue-100",
+            ].join(" ");
+
+        case "SECTION_FULL":
+        case "ENROLLMENT_CLOSED":
+        case "ENROLLMENT_SUBMITTED":
+            return [
+                "border-red-300",
+                "bg-red-50",
+                "text-red-700",
+                "hover:bg-red-100",
+            ].join(" ");
+
+        default:
+            return [
+                "border-amber-300",
+                "bg-amber-50",
+                "text-amber-700",
+                "hover:bg-amber-100",
+            ].join(" ");
+    }
+}
+
+function getStatusIconClassName(
+    record: StudentRecordItem,
+): string {
+    switch (
+        record.eligibilityCode
+    ) {
+        case "ELIGIBLE":
+        case "ALREADY_COMPLETED":
+            return "bg-green-100 text-green-700";
+
+        case "ALREADY_SELECTED":
+            return "bg-blue-100 text-blue-700";
+
+        case "SECTION_FULL":
+        case "ENROLLMENT_CLOSED":
+        case "ENROLLMENT_SUBMITTED":
+            return "bg-red-100 text-red-700";
+
+        default:
+            return "bg-amber-100 text-amber-700";
+    }
+}
+
+function usesPositiveStatusIcon(
+    record: StudentRecordItem,
+): boolean {
+    return (
+        record.eligibilityCode ===
+            "ELIGIBLE" ||
+        record.eligibilityCode ===
+            "ALREADY_COMPLETED"
+    );
+}
 
 function StatusBadge({
-    status,
+    record,
+    onClick,
 }: {
-    status: StudentRecordStatus;
+    record: StudentRecordItem;
+
+    onClick: (
+        record: StudentRecordItem,
+    ) => void;
 }) {
     return (
-        <span
+        <button
+            type="button"
+            onClick={() => {
+                onClick(record);
+            }}
             className={[
-                "inline-flex max-w-full items-center justify-center",
-                "rounded-full border px-3 py-1",
-                "text-center text-xs font-medium",
-                statusClasses[status],
+                `
+                    inline-flex
+                    max-w-full
+                    items-center
+                    justify-center
+                    gap-1.5
+                    rounded-full
+                    border px-3 py-1
+                    text-center
+                    text-xs font-medium
+                    transition
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-[#35822E]/30
+                `,
+                getStatusClassName(
+                    record,
+                ),
             ].join(" ")}
         >
-            {statusLabels[status]}
-        </span>
+            <Info
+                aria-hidden="true"
+                className="h-3.5 w-3.5"
+            />
+
+            {getStatusLabel(
+                record,
+            )}
+        </button>
     );
 }
 
@@ -130,8 +277,13 @@ function SummaryCard({
 
 function DesktopRecordRow({
     record,
+    onStatusClick,
 }: {
     record: StudentRecordItem;
+
+    onStatusClick: (
+        record: StudentRecordItem,
+    ) => void;
 }) {
     return (
         <tr
@@ -220,7 +372,10 @@ function DesktopRecordRow({
 
             <td className="px-5 py-4 text-center">
                 <StatusBadge
-                    status={record.status}
+                    record={record}
+                    onClick={
+                        onStatusClick
+                    }
                 />
             </td>
         </tr>
@@ -229,8 +384,13 @@ function DesktopRecordRow({
 
 function MobileRecordCard({
     record,
+    onStatusClick,
 }: {
     record: StudentRecordItem;
+
+    onStatusClick: (
+        record: StudentRecordItem,
+    ) => void;
 }) {
     return (
         <article
@@ -270,7 +430,10 @@ function MobileRecordCard({
 
                 <div className="shrink-0">
                     <StatusBadge
-                        status={record.status}
+                        record={record}
+                        onClick={
+                            onStatusClick
+                        }
                     />
                 </div>
             </div>
@@ -418,6 +581,19 @@ export default function StudentRecordsPage() {
         setErrorMessage,
     ] = useState("");
 
+    const [
+        retryKey,
+        setRetryKey,
+    ] = useState(0);
+
+    const [
+        statusNotification,
+        setStatusNotification,
+    ] =
+        useState<StudentRecordItem | null>(
+            null,
+        );
+
     useEffect(() => {
         const timeout =
             window.setTimeout(() => {
@@ -557,6 +733,28 @@ export default function StudentRecordsPage() {
         router,
         selectedAcademicPeriod,
         status,
+        retryKey,
+    ]);
+
+    useEffect(() => {
+        if (!statusNotification) {
+            return;
+        }
+
+        const timeout =
+            window.setTimeout(() => {
+                setStatusNotification(
+                    null,
+                );
+            }, 5000);
+
+        return () => {
+            window.clearTimeout(
+                timeout,
+            );
+        };
+    }, [
+        statusNotification,
     ]);
 
     function clearFilters(): void {
@@ -583,6 +781,82 @@ export default function StudentRecordsPage() {
                   data.pagination.totalItems,
               )
             : 0;
+
+    if (
+        isLoading &&
+        !data
+    ) {
+        return (
+            <PageContainer>
+                <div className="mx-auto w-full max-w-[1440px] space-y-5">
+                    <header>
+                        <LoadingSkeleton className="h-10 w-48" />
+                        <LoadingSkeleton className="mt-3 h-4 w-72 max-w-full" />
+                    </header>
+
+                    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        {Array.from({
+                            length: 6,
+                        }).map((_, index) => (
+                            <LoadingSkeleton
+                                key={index}
+                                className="h-28 w-full rounded-xl"
+                            />
+                        ))}
+                    </section>
+
+                    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+                        <div className="flex flex-col gap-4 border-b border-neutral-200 p-5 xl:flex-row xl:items-center">
+                            <LoadingSkeleton className="h-6 w-44 xl:mr-auto" />
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[280px]" />
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[230px]" />
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[210px]" />
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                            {Array.from({
+                                length: 7,
+                            }).map((_, index) => (
+                                <div
+                                    key={index}
+                                    className="grid grid-cols-1 gap-3 border-b border-neutral-100 pb-4 lg:grid-cols-6"
+                                >
+                                    {Array.from({
+                                        length: 6,
+                                    }).map((__, cellIndex) => (
+                                        <LoadingSkeleton
+                                            key={cellIndex}
+                                            className="h-5 w-full"
+                                        />
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            </PageContainer>
+        );
+    }
+
+    if (
+        errorMessage &&
+        !data
+    ) {
+        return (
+            <ServiceUnavailable
+                title="Academic records unavailable"
+                description={errorMessage}
+                serviceName="Student Records Service"
+                onRetry={() => {
+                    setRetryKey(
+                        (current) =>
+                            current + 1,
+                    );
+                }}
+            />
+        );
+    }
+
 
     return (
         <PageContainer>
@@ -831,21 +1105,16 @@ export default function StudentRecordsPage() {
                                         Academic Terms
                                     </option>
 
-                                    {data?.filters
-                                        .academicPeriods
-                                        .map((period) => {
-                                            const value =
-                                                `${period.academicYear}|${period.termNumber}`;
+                                    {data?.filters.academicPeriods.map((period) => {
+                                        const value = `${period.academicYear}|${period.termNumber}`;
 
-                                            return (
-                                                <option
-                                                    key={value}
-                                                    value={value}
-                                                >
-                                                    {period.label}
-                                                </option>
-                                            );
-                                        })}
+                                        return (
+                                            <option key={value} value={value}>
+                                                {period.label}
+                                            </option>
+                                        );
+                                    })}
+                                        
                                 </select>
 
                                 <select
@@ -1051,6 +1320,9 @@ export default function StudentRecordsPage() {
                                                       record={
                                                           record
                                                       }
+                                                      onStatusClick={
+                                                          setStatusNotification
+                                                      }
                                                   />
                                               ),
                                           )
@@ -1117,6 +1389,9 @@ export default function StudentRecordsPage() {
                                           }
                                           record={
                                               record
+                                          }
+                                          onStatusClick={
+                                              setStatusNotification
                                           }
                                       />
                                   ),
@@ -1276,6 +1551,128 @@ export default function StudentRecordsPage() {
                     </footer>
                 </section>
             </div>
+
+            {statusNotification ? (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="
+                        fixed right-4 top-4 z-50
+                        w-[calc(100%-2rem)]
+                        max-w-sm rounded-xl
+                        border border-neutral-200
+                        bg-white p-4
+                        shadow-2xl
+                        sm:right-6 sm:top-6
+                    "
+                >
+                    <div className="flex items-start gap-3">
+                        <div
+                            className={[
+                                `
+                                    mt-0.5 flex
+                                    h-9 w-9
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                `,
+                                getStatusIconClassName(
+                                    statusNotification,
+                                ),
+                            ].join(" ")}
+                        >
+                            {usesPositiveStatusIcon(
+                                statusNotification,
+                            ) ? (
+                                <CircleCheck className="h-5 w-5" />
+                            ) : (
+                                <CircleAlert className="h-5 w-5" />
+                            )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-[#35822E]">
+                                {
+                                    statusNotification
+                                        .courseCode
+                                }
+                            </p>
+
+                            <h2 className="mt-0.5 text-sm font-semibold text-neutral-900">
+                                {statusNotification
+                                    .eligibilityTitle ||
+                                    getStatusLabel(
+                                        statusNotification,
+                                    )}
+                            </h2>
+
+                            <p className="mt-1 text-sm leading-5 text-neutral-600">
+                                {
+                                    statusNotification
+                                        .eligibilityMessage
+                                }
+                            </p>
+
+                            {statusNotification
+                                .missingPrerequisiteCodes
+                                .length > 0 ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {statusNotification
+                                        .missingPrerequisiteCodes
+                                        .map(
+                                            (
+                                                prerequisite,
+                                            ) => (
+                                                <span
+                                                    key={
+                                                        prerequisite
+                                                    }
+                                                    className="
+                                                        rounded-full
+                                                        bg-neutral-100
+                                                        px-2.5 py-1
+                                                        text-xs
+                                                        font-semibold
+                                                        text-neutral-700
+                                                    "
+                                                >
+                                                    {
+                                                        prerequisite
+                                                    }
+                                                </span>
+                                            ),
+                                        )}
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-label="Close status notification"
+                            onClick={() => {
+                                setStatusNotification(
+                                    null,
+                                );
+                            }}
+                            className="
+                                inline-flex
+                                h-8 w-8
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-lg
+                                text-neutral-500
+                                transition
+                                hover:bg-neutral-100
+                                hover:text-neutral-800
+                            "
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            ) : null}
         </PageContainer>
     );
 }

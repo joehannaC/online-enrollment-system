@@ -9,6 +9,12 @@ import {
 import { createHash } from "node:crypto";
 import path from "node:path";
 
+import {
+    calculateAcademicSummary,
+    getGpeFromRawPercentage,
+    type AcademicGradeInput,
+} from "../../packages/shared/src/index.js";
+
 dotenv.config({
     path: path.resolve(process.cwd(), "database/seeds/.env"),
 });
@@ -96,18 +102,18 @@ const curriculum: CurriculumCourse[] = [
     { code: "NSTP101", name: "National Service Training Program Orientation", academicUnits: 0, nonAcademicUnits: 0, trimester: 1, category: "OTHER_NON_ACADEMIC" },
 
     // 2nd Trimester — 17 academic, 3 non-academic
-    { code: "CCPROG2", name: "Programming with Structured Data Types", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_COMPUTING" },
-    { code: "CCDSTRU", name: "Discrete Structures", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_COMPUTING" },
-    { code: "CSMATH1", name: "Differential Calculus", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_MATH" },
+    { code: "CCPROG2", name: "Programming with Structured Data Types", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_COMPUTING", prerequisiteCodes: ["CCPROG1"] },
+    { code: "CCDSTRU", name: "Discrete Structures", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_COMPUTING", prerequisiteCodes: ["MTH101A"] },
+    { code: "CSMATH1", name: "Differential Calculus", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_MATH", prerequisiteCodes: ["MTH101A"] },
     { code: "GEFTWEL", name: "Physical Fitness and Wellness", academicUnits: 2, nonAcademicUnits: 0, trimester: 2, category: "GENERAL_EDUCATION" },
     { code: "GELECSP", name: "General Education Elective – Filipino", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "GENERAL_EDUCATION" },
     { code: "LASARE1", name: "Lasallian Reflection 1", academicUnits: 0, nonAcademicUnits: 0, trimester: 2, category: "OTHER_NON_ACADEMIC" },
     { code: "NSTP-01", name: "National Service Training Program 1", academicUnits: 0, nonAcademicUnits: 3, trimester: 2, category: "NSTP" },
 
     // 3rd Trimester — 17 academic, 3 non-academic
-    { code: "CCPROG3", name: "Object-Oriented Programming", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_COMPUTING" },
-    { code: "CCDSALG", name: "Data Structures and Algorithms", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_COMPUTING" },
-    { code: "CSMATH2", name: "Linear Algebra for Computer Science", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_MATH" },
+    { code: "CCPROG3", name: "Object-Oriented Programming", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_COMPUTING", prerequisiteCodes: ["CCPROG2"] },
+    { code: "CCDSALG", name: "Data Structures and Algorithms", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_COMPUTING", prerequisiteCodes: ["CCPROG2", "CCDSTRU"] },
+    { code: "CSMATH2", name: "Linear Algebra for Computer Science", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_MATH", prerequisiteCodes: ["CSMATH1"] },
     { code: "STT101A", name: "Probability and Statistics", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "COMMON_MATH" },
     { code: "GEDANCE", name: "Physical Fitness and Wellness in Dance", academicUnits: 2, nonAcademicUnits: 0, trimester: 3, category: "GENERAL_EDUCATION" },
     { code: "GESTSOC", name: "Science, Technology, and Society", academicUnits: 3, nonAcademicUnits: 0, trimester: 3, category: "GENERAL_EDUCATION" },
@@ -115,36 +121,36 @@ const curriculum: CurriculumCourse[] = [
     { code: "NSTP-02", name: "National Service Training Program 2", academicUnits: 0, nonAcademicUnits: 3, trimester: 3, category: "NSTP" },
 
     // 4th Trimester — 17 academic
-    { code: "CSADPRG", name: "Advanced Programming Techniques", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "CS_PROFESSIONAL" },
-    { code: "CCINFOM", name: "Information Management", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "COMMON_COMPUTING" },
-    { code: "CSALGCM", name: "Algorithms and Complexity", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "CS_PROFESSIONAL" },
-    { code: "CSINTSY", name: "Introduction to Artificial Intelligence", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "CS_PROFESSIONAL" },
+    { code: "CSADPRG", name: "Advanced Programming Techniques", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCPROG3"] },
+    { code: "CCINFOM", name: "Information Management", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "COMMON_COMPUTING", prerequisiteCodes: ["CCPROG2"] },
+    { code: "CSALGCM", name: "Algorithms and Complexity", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCDSALG", "CCDSTRU"] },
+    { code: "CSINTSY", name: "Introduction to Artificial Intelligence", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCDSALG"] },
     { code: "GESPORT", name: "Physical Fitness and Wellness in Individual Sports", academicUnits: 2, nonAcademicUnits: 0, trimester: 4, category: "GENERAL_EDUCATION" },
     { code: "LCASEAN", name: "The Filipino and ASEAN", academicUnits: 3, nonAcademicUnits: 0, trimester: 4, category: "GENERAL_EDUCATION" },
 
     // 5th Trimester — 17 academic, 1 non-academic
-    { code: "CCAPDEV", name: "Web Application Development", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "COMMON_COMPUTING" },
-    { code: "CSARCH1", name: "Computer Organization and Architecture 1", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "CS_PROFESSIONAL" },
-    { code: "STALGCM", name: "Advanced Algorithms and Complexities", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "ST_SPECIALIZATION" },
-    { code: "ST-MATH", name: "Integral Calculus for Computer Science Students", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "ST_SPECIALIZATION" },
+    { code: "CCAPDEV", name: "Web Application Development", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "COMMON_COMPUTING", prerequisiteCodes: ["CCPROG3", "CCINFOM"] },
+    { code: "CSARCH1", name: "Computer Organization and Architecture 1", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCICOMP", "CCPROG2"] },
+    { code: "STALGCM", name: "Advanced Algorithms and Complexities", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CSALGCM"] },
+    { code: "ST-MATH", name: "Integral Calculus for Computer Science Students", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CSMATH1"] },
     { code: "GETEAMS", name: "Physical Fitness and Wellness in Team Sports", academicUnits: 2, nonAcademicUnits: 0, trimester: 5, category: "GENERAL_EDUCATION" },
     { code: "GERPHIS", name: "Readings in Philippine History", academicUnits: 3, nonAcademicUnits: 0, trimester: 5, category: "GENERAL_EDUCATION" },
     { code: "LCLSONE", name: "Lasallian Studies 1", academicUnits: 0, nonAcademicUnits: 1, trimester: 5, category: "LASALLIAN_STUDIES" },
     { code: "LASARE2", name: "Lasallian Reflection 2", academicUnits: 0, nonAcademicUnits: 0, trimester: 5, category: "OTHER_NON_ACADEMIC" },
 
     // 6th Trimester — 15 academic
-    { code: "CSSWENG", name: "Software Engineering", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "CS_PROFESSIONAL" },
-    { code: "STHCIUX", name: "Human Computer Interaction and User Experience", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "ST_SPECIALIZATION" },
-    { code: "CSNETWK", name: "Introduction to Computer Networks", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "CS_PROFESSIONAL" },
-    { code: "CSMODEL", name: "Modelling and Simulation", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "CS_PROFESSIONAL" },
+    { code: "CSSWENG", name: "Software Engineering", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCAPDEV"] },
+    { code: "STHCIUX", name: "Human Computer Interaction and User Experience", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CCAPDEV"] },
+    { code: "CSNETWK", name: "Introduction to Computer Networks", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CSARCH1"] },
+    { code: "CSMODEL", name: "Modelling and Simulation", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCPROG3", "STT101A"] },
     { code: "GELECAH", name: "General Education Elective – Arts and Humanities", academicUnits: 3, nonAcademicUnits: 0, trimester: 6, category: "GENERAL_EDUCATION" },
     { code: "SAS2000", name: "Student Affairs Services 2000", academicUnits: 0, nonAcademicUnits: 0, trimester: 6, category: "OTHER_NON_ACADEMIC" },
 
     // 7th Trimester — 16 academic, 1 non-academic
-    { code: "STSWENG", name: "Advanced Software Engineering", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "ST_SPECIALIZATION" },
-    { code: "STADVDB", name: "Advanced Database Systems", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "ST_SPECIALIZATION" },
-    { code: "CSARCH2", name: "Computer Organization and Architecture 2", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "CS_PROFESSIONAL" },
-    { code: "LBYARCH", name: "Computer Architecture Laboratory", academicUnits: 1, nonAcademicUnits: 0, trimester: 7, category: "CS_PROFESSIONAL" },
+    { code: "STSWENG", name: "Advanced Software Engineering", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CSSWENG"] },
+    { code: "STADVDB", name: "Advanced Database Systems", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CCINFOM"] },
+    { code: "CSARCH2", name: "Computer Organization and Architecture 2", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CSARCH1"] },
+    { code: "LBYARCH", name: "Computer Architecture Laboratory", academicUnits: 1, nonAcademicUnits: 0, trimester: 7, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CSARCH1"] },
     { code: "STELEC1", name: "ST Professional Elective 1 – Ethical Hacking", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "PROFESSIONAL_ELECTIVE" },
     { code: "LCENWRD", name: "Encountering the Word in the World", academicUnits: 3, nonAcademicUnits: 0, trimester: 7, category: "GENERAL_EDUCATION" },
     { code: "SAS3000", name: "Student Affairs Services 3000", academicUnits: 0, nonAcademicUnits: 0, trimester: 7, category: "OTHER_NON_ACADEMIC", prerequisiteCodes: ["SAS2000"] },
@@ -152,27 +158,27 @@ const curriculum: CurriculumCourse[] = [
     { code: "LASARE3", name: "Lasallian Reflection 3", academicUnits: 0, nonAcademicUnits: 0, trimester: 7, category: "OTHER_NON_ACADEMIC" },
 
     // 8th Trimester — 6 academic
-    { code: "STMETHD", name: "Software Technology Research Methods", academicUnits: 3, nonAcademicUnits: 0, trimester: 8, category: "ST_SPECIALIZATION" },
-    { code: "PRCCSST", name: "Practicum for Software Technology", academicUnits: 3, nonAcademicUnits: 0, trimester: 8, category: "PRACTICUM" },
+    { code: "STMETHD", name: "Software Technology Research Methods", academicUnits: 3, nonAcademicUnits: 0, trimester: 8, category: "ST_SPECIALIZATION", prerequisiteCodes: ["STSWENG"] },
+    { code: "PRCCSST", name: "Practicum for Software Technology", academicUnits: 3, nonAcademicUnits: 0, trimester: 8, category: "PRACTICUM", prerequisiteCodes: ["CSSWENG"] },
 
     // 9th Trimester — 14 academic
-    { code: "MOBDEVE", name: "Mobile Development", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "ST_SPECIALIZATION" },
-    { code: "THS-ST1", name: "Thesis for Software Technology 1", academicUnits: 2, nonAcademicUnits: 0, trimester: 9, category: "THESIS" },
-    { code: "CSOPESY", name: "Introduction to Operating Systems", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "CS_PROFESSIONAL" },
-    { code: "STINTSY", name: "Advanced Intelligent Systems", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "ST_SPECIALIZATION" },
+    { code: "MOBDEVE", name: "Mobile Development", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CCAPDEV"] },
+    { code: "THS-ST1", name: "Thesis for Software Technology 1", academicUnits: 2, nonAcademicUnits: 0, trimester: 9, category: "THESIS", prerequisiteCodes: ["STMETHD"] },
+    { code: "CSOPESY", name: "Introduction to Operating Systems", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CSARCH2"] },
+    { code: "STINTSY", name: "Advanced Intelligent Systems", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CSINTSY"] },
     { code: "STELEC2", name: "ST Professional Elective 2 – Solid Data Engineering", academicUnits: 3, nonAcademicUnits: 0, trimester: 9, category: "PROFESSIONAL_ELECTIVE" },
 
     // 10th Trimester — 14 academic
-    { code: "THS-ST2", name: "Thesis for Software Technology 2", academicUnits: 2, nonAcademicUnits: 0, trimester: 10, category: "THESIS" },
+    { code: "THS-ST2", name: "Thesis for Software Technology 2", academicUnits: 2, nonAcademicUnits: 0, trimester: 10, category: "THESIS", prerequisiteCodes: ["THS-ST1"] },
     { code: "STDISCM", name: "Distributed Computing", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "ST_SPECIALIZATION", prerequisiteCodes: ["CSNETWK", "CSOPESY"] },
     { code: "STELEC3", name: "ST Professional Elective 3 – Human-Computer Interaction", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "PROFESSIONAL_ELECTIVE" },
     { code: "STELEC4", name: "ST Professional Elective 4 – Advanced Data Analytics", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "PROFESSIONAL_ELECTIVE" },
     { code: "GEETHIC", name: "Ethics", academicUnits: 3, nonAcademicUnits: 0, trimester: 10, category: "GENERAL_EDUCATION" },
 
     // 11th Trimester — 14 academic, 1 non-academic
-    { code: "CSSECDV", name: "Secure Web Development", academicUnits: 3, nonAcademicUnits: 0, trimester: 11, category: "CS_PROFESSIONAL" },
-    { code: "CCINOV8", name: "Innovation and Technology Management", academicUnits: 3, nonAcademicUnits: 0, trimester: 11, category: "COMMON_COMPUTING" },
-    { code: "THS-ST3", name: "Thesis for Software Technology 3", academicUnits: 2, nonAcademicUnits: 0, trimester: 11, category: "THESIS" },
+    { code: "CSSECDV", name: "Secure Web Development", academicUnits: 3, nonAcademicUnits: 0, trimester: 11, category: "CS_PROFESSIONAL", prerequisiteCodes: ["CCAPDEV"] },
+    { code: "CCINOV8", name: "Innovation and Technology Management", academicUnits: 3, nonAcademicUnits: 0, trimester: 11, category: "COMMON_COMPUTING", prerequisiteCodes: ["CSSWENG"] },
+    { code: "THS-ST3", name: "Thesis for Software Technology 3", academicUnits: 2, nonAcademicUnits: 0, trimester: 11, category: "THESIS", prerequisiteCodes: ["THS-ST2"] },
     { code: "GELECST", name: "General Education Elective – Filipino Literature", academicUnits: 3, nonAcademicUnits: 0, trimester: 11, category: "GENERAL_EDUCATION" },
     { code: "GEWORLD", name: "The Contemporary World", academicUnits: 3, nonAcademicUnits: 0, trimester: 11, category: "GENERAL_EDUCATION" },
     { code: "LCLSTRI", name: "Lasallian Studies 3", academicUnits: 0, nonAcademicUnits: 1, trimester: 11, category: "LASALLIAN_STUDIES" },
@@ -193,6 +199,12 @@ const student1CreditedCourses = new Set([
     "CCPROG1",
     "CCICOMP",
     "MTH101A",
+]);
+
+const student2FailedCourses = new Set([
+    // Trimester 7 maps to Term 1. It can be retaken in Term 1
+    // of a later academic year, including AY 2026-2027.
+    "STELEC1",
 ]);
 
 const studentCurrentCourses = {
@@ -393,6 +405,36 @@ async function createIndexes(db: Db): Promise<void> {
             },
             { unique: true },
         ),
+        db.collection("studentEnrollments").createIndex(
+            {
+                studentId: 1,
+                academicTermId: 1,
+            },
+            {
+                unique: true,
+                name: "unique_student_enrollment_term",
+            },
+        ),
+        db.collection("studentEnrollmentItems").createIndex(
+            {
+                enrollmentId: 1,
+                courseId: 1,
+            },
+            {
+                unique: true,
+                name: "unique_enrollment_course",
+            },
+        ),
+        db.collection("studentEnrollmentItems").createIndex(
+            {
+                enrollmentId: 1,
+                sectionId: 1,
+            },
+            {
+                unique: true,
+                name: "unique_enrollment_section",
+            },
+        ),
     ]);
 }
 
@@ -401,6 +443,8 @@ async function clearSeedData(
     session: ClientSession,
 ): Promise<void> {
     const collections = [
+        "studentEnrollmentItems",
+        "studentEnrollments",
         "gradeSubmissions",
         "grades",
         "enrollments",
@@ -454,27 +498,51 @@ function scoreFor(
     finalGradeValue: number;
 } {
     const hash = createHash("sha256")
-        .update(`${studentKey}:${courseCode}`)
+        .update(
+            `${studentKey}:${courseCode}`,
+        )
         .digest();
 
-    const computedScore = 76 + (hash[0] % 22);
-
-    let finalGradeValue = 2.0;
-
-    if (computedScore >= 95) {
-        finalGradeValue = 4.0;
-    } else if (computedScore >= 90) {
-        finalGradeValue = 3.5;
-    } else if (computedScore >= 85) {
-        finalGradeValue = 3.0;
-    } else if (computedScore >= 80) {
-        finalGradeValue = 2.5;
-    }
+    /*
+     * Generate deterministic demo grades from
+     * 60 through 100. The same student/course
+     * pair always receives the same raw score.
+     */
+    const computedScore =
+        60 + (hash[0] % 41);
 
     return {
         computedScore,
-        finalGradeValue,
+        finalGradeValue:
+            getGpeFromRawPercentage(
+                computedScore,
+            ),
     };
+}
+
+
+const enrollmentDemoCounts = [
+    0,
+    1,
+    3,
+    5,
+    12,
+    22,
+    23,
+    30,
+    39,
+    42,
+    44,
+    45,
+] as const;
+
+function getDemoEnrolledCount(
+    sectionIndex: number,
+): number {
+    return enrollmentDemoCounts[
+        sectionIndex %
+            enrollmentDemoCounts.length
+    ];
 }
 
 async function seedDatabase(): Promise<void> {
@@ -564,10 +632,10 @@ async function seedDatabase(): Promise<void> {
                         address: "Manila, Metro Manila",
                         birthday: new Date("2000-01-01"),
                         yearLevel: 4,
-                        earnedUnits: 167,
-                        earnedNonAcademicUnits: 9,
-                        remainingUnits: 0,
-                        enrolledUnits: 6,
+                        earnedUnits: 0,
+                        earnedNonAcademicUnits: 0,
+                        remainingUnits: 170,
+                        enrolledUnits: 0,
                         enlistedUnits: 0,
                     },
                     {
@@ -579,10 +647,10 @@ async function seedDatabase(): Promise<void> {
                         address: "Quezon City, Metro Manila",
                         birthday: new Date("2002-06-14"),
                         yearLevel: 3,
-                        earnedUnits: 116,
-                        earnedNonAcademicUnits: 7,
-                        remainingUnits: 57,
-                        enrolledUnits: 9,
+                        earnedUnits: 0,
+                        earnedNonAcademicUnits: 0,
+                        remainingUnits: 170,
+                        enrolledUnits: 0,
                         enlistedUnits: 0,
                     },
                     {
@@ -594,10 +662,10 @@ async function seedDatabase(): Promise<void> {
                         address: "Makati City, Metro Manila",
                         birthday: new Date("2003-11-08"),
                         yearLevel: 2,
-                        earnedUnits: 74,
-                        earnedNonAcademicUnits: 6,
-                        remainingUnits: 99,
-                        enrolledUnits: 9,
+                        earnedUnits: 0,
+                        earnedNonAcademicUnits: 0,
+                        remainingUnits: 170,
+                        enrolledUnits: 0,
                         enlistedUnits: 0,
                     },
                 ];
@@ -615,7 +683,7 @@ async function seedDatabase(): Promise<void> {
                             college:
                                 "College of Computer Studies",
                             campus: "Manila Campus",
-                            requiredUnits: 173,
+                            requiredUnits: 170,
                             requiredNonAcademicUnits: 9,
                             enrolledUnits:
                                 student.enrolledUnits ?? 0,
@@ -693,6 +761,7 @@ async function seedDatabase(): Promise<void> {
                             endDate: dates.endDate,
                             status: "COMPLETED",
                             isCurrent: false,
+                            isEnrollmentTerm: false,
                             seedTag,
                             updatedAt: now,
                         },
@@ -725,6 +794,7 @@ async function seedDatabase(): Promise<void> {
                             new Date("2026-09-08"),
                         status: "ACTIVE",
                         isCurrent: true,
+                        isEnrollmentTerm: false,
                         seedTag,
                         updatedAt: now,
                     },
@@ -741,21 +811,22 @@ async function seedDatabase(): Promise<void> {
                         academicYear: "2026-2027",
                         termNumber: 1,
                         startDate: new Date(
-                            "2026-09-07",
+                            "2026-09-01T00:00:00+08:00",
                         ),
                         endDate: new Date(
                             "2026-12-19",
                         ),
                         enrollmentStart: new Date(
-                            "2026-07-20",
+                            "2026-08-01T00:00:00+08:00",
                         ),
                         enrollmentEnd: new Date(
-                            "2026-08-21",
+                            "2026-08-15T23:59:59+08:00",
                         ),
                         gradeSubmissionDeadline:
                             new Date("2027-01-08"),
                         status: "UPCOMING",
                         isCurrent: false,
+                        isEnrollmentTerm: true,
                         seedTag,
                         updatedAt: now,
                     },
@@ -982,16 +1053,36 @@ async function seedDatabase(): Promise<void> {
                                             course,
                                         ),
                                     computedScore:
-                                        score.computedScore,
+                                        rule.studentKey === "student2" &&
+                                        student2FailedCourses.has(
+                                            course.code,
+                                        )
+                                            ? 59
+                                            : score.computedScore,
                                     finalGradeValue:
-                                        score.finalGradeValue,
+                                        rule.studentKey === "student1" &&
+                                        student1CreditedCourses.has(
+                                            course.code,
+                                        )
+                                            ? 3.5
+                                            : rule.studentKey === "student2" &&
+                                                student2FailedCourses.has(
+                                                    course.code,
+                                                )
+                                                ? 0
+                                                : score.finalGradeValue,
                                     result:
                                         rule.studentKey === "student1" &&
-                                            student1CreditedCourses.has(
-                                                course.code,
-                                            )
+                                        student1CreditedCourses.has(
+                                            course.code,
+                                        )
                                             ? "CREDITED"
-                                            : "PASSED",
+                                            : rule.studentKey === "student2" &&
+                                                student2FailedCourses.has(
+                                                    course.code,
+                                                )
+                                                ? "FAILED"
+                                                : "PASSED",
                                     status: "VERIFIED",
                                     version: 1,
                                     submittedAt:
@@ -1024,6 +1115,153 @@ async function seedDatabase(): Promise<void> {
                                 },
                             },
                             { session },
+                        );
+                }
+
+                const academicTotal = curriculum.reduce(
+                    (sum, course) =>
+                        sum + course.academicUnits,
+                    0,
+                );
+
+                const nonAcademicTotal = curriculum.reduce(
+                    (sum, course) =>
+                        sum + course.nonAcademicUnits,
+                    0,
+                );
+
+                for (const rule of studentCompletionRules) {
+                    const academicGradeInputs:
+                        AcademicGradeInput[] = [];
+
+                    let earnedNonAcademicUnits = 0;
+
+                    for (const course of curriculum) {
+                        if (!rule.completed(course)) {
+                            continue;
+                        }
+
+                        earnedNonAcademicUnits +=
+                            course.nonAcademicUnits;
+
+                        if (course.academicUnits === 0) {
+                            continue;
+                        }
+
+                        const isCredited =
+                            rule.studentKey === "student1" &&
+                            student1CreditedCourses.has(
+                                course.code,
+                            );
+
+                        const isFailed =
+                            rule.studentKey === "student2" &&
+                            student2FailedCourses.has(
+                                course.code,
+                            );
+
+                        const score =
+                            scoreFor(
+                                rule.studentKey,
+                                course.code,
+                            );
+
+                        academicGradeInputs.push({
+                            academicUnits:
+                                course.academicUnits,
+
+                            rawPercentage:
+                                isCredited
+                                    ? null
+                                    : isFailed
+                                      ? 59
+                                      : score.computedScore,
+
+                            finalGradeValue:
+                                isCredited
+                                    ? 3.5
+                                    : isFailed
+                                      ? 0
+                                      : score.finalGradeValue,
+
+                            result:
+                                isCredited
+                                    ? "CREDITED"
+                                    : isFailed
+                                      ? "FAILED"
+                                      : "PASSED",
+
+                            status:
+                                "VERIFIED",
+                        });
+                    }
+
+                    const academicSummary =
+                        calculateAcademicSummary(
+                            academicGradeInputs,
+                        );
+
+                    await db
+                        .collection(
+                            "students",
+                        )
+                        .updateOne(
+                            {
+                                _id:
+                                    rule.studentId,
+                            },
+                            {
+                                $set: {
+                                    requiredUnits:
+                                        academicTotal,
+
+                                    requiredNonAcademicUnits:
+                                        nonAcademicTotal,
+
+                                    earnedUnits:
+                                        academicSummary
+                                            .earnedAcademicUnits,
+
+                                    earnedNonAcademicUnits,
+
+                                    remainingUnits:
+                                        Math.max(
+                                            0,
+                                            academicTotal -
+                                                academicSummary
+                                                    .earnedAcademicUnits,
+                                        ),
+
+                                    enrolledUnits: 0,
+
+                                    enlistedUnits: 0,
+
+                                    currentGpa:
+                                        academicSummary
+                                            .currentGpa,
+
+                                    gpaAcademicUnits:
+                                        academicSummary
+                                            .gpaAcademicUnits,
+
+                                    totalGradePoints:
+                                        academicSummary
+                                            .totalGradePoints,
+
+                                    creditedAcademicUnits:
+                                        academicSummary
+                                            .creditedAcademicUnits,
+
+                                    failedAcademicUnits:
+                                        academicSummary
+                                            .failedAcademicUnits,
+
+                                    updatedAt: now,
+                                },
+                            },
+                            {
+                                session,
+                            },
                         );
                 }
 
@@ -1133,66 +1371,89 @@ async function seedDatabase(): Promise<void> {
                     },
                 ];
 
-                const registeredCourseCode = "LASARE3";
-                const registeredCourse = curriculum.find(
-                    (course) =>
-                        course.code === registeredCourseCode,
-                );
+                const enrollmentScheduleSlots = [
+                    { days: ["MONDAY", "WEDNESDAY"], startTime: "08:00", endTime: "09:30", room: "G201" },
+                    { days: ["MONDAY", "WEDNESDAY"], startTime: "09:45", endTime: "11:15", room: "G202" },
+                    { days: ["MONDAY", "WEDNESDAY"], startTime: "11:30", endTime: "13:00", room: "G203" },
+                    { days: ["MONDAY", "WEDNESDAY"], startTime: "13:15", endTime: "14:45", room: "G204" },
+                    { days: ["MONDAY", "WEDNESDAY"], startTime: "15:00", endTime: "16:30", room: "G205" },
+                    { days: ["TUESDAY", "THURSDAY"], startTime: "08:00", endTime: "09:30", room: "G301" },
+                    { days: ["TUESDAY", "THURSDAY"], startTime: "09:45", endTime: "11:15", room: "G302" },
+                    { days: ["TUESDAY", "THURSDAY"], startTime: "11:30", endTime: "13:00", room: "G303" },
+                    { days: ["TUESDAY", "THURSDAY"], startTime: "13:15", endTime: "14:45", room: "G304" },
+                    { days: ["TUESDAY", "THURSDAY"], startTime: "15:00", endTime: "16:30", room: "G305" },
+                    { days: ["FRIDAY"], startTime: "08:00", endTime: "11:00", room: "Y201" },
+                    { days: ["FRIDAY"], startTime: "11:15", endTime: "14:15", room: "Y202" },
+                    { days: ["FRIDAY"], startTime: "14:30", endTime: "17:30", room: "Y203" },
+                    { days: ["SATURDAY"], startTime: "08:00", endTime: "11:00", room: "Y301" },
+                    { days: ["SATURDAY"], startTime: "11:15", endTime: "14:15", room: "Y302" },
+                    { days: ["SATURDAY"], startTime: "14:30", endTime: "17:30", room: "Y303" },
+                ] as const;
 
-                if (!registeredCourse) {
-                    throw new Error(
-                        `Missing curriculum course: ${registeredCourseCode}`,
+                const termOneOfferedCourses =
+                    curriculum.filter(
+                        (course) =>
+                            ((course.trimester - 1) % 3) + 1 === 1,
+                    );
+
+                for (
+                    let index = 0;
+                    index < termOneOfferedCourses.length;
+                    index += 1
+                ) {
+                    const course =
+                        termOneOfferedCourses[index];
+
+                    const scheduleSlot =
+                        enrollmentScheduleSlots[
+                            index %
+                                enrollmentScheduleSlots.length
+                        ];
+
+                    await upsertById(
+                        db,
+                        "sections",
+                        {
+                            _id: oid(
+                                "section-next",
+                                course.code,
+                            ),
+                            courseId: oid(
+                                "course",
+                                course.code,
+                            ),
+                            academicTermId:
+                                ids.terms.next,
+                            facultyId:
+                                facultyIdForCourse(course),
+                            sectionCode: `N${String(
+                                index + 1,
+                            ).padStart(2, "0")}`,
+                            schedule: [
+                                {
+                                    days: [
+                                        ...scheduleSlot.days,
+                                    ],
+                                    startTime:
+                                        scheduleSlot.startTime,
+                                    endTime:
+                                        scheduleSlot.endTime,
+                                    room:
+                                        scheduleSlot.room,
+                                },
+                            ],
+                            capacity: 45,
+                            enrolledCount:
+                                getDemoEnrolledCount(
+                                    index,
+                                ),
+                            status: "OPEN",
+                            seedTag,
+                            updatedAt: now,
+                        },
+                        session,
                     );
                 }
-
-                const registeredSectionId = oid(
-                    "section-next",
-                    registeredCourseCode,
-                );
-
-                await upsertById(
-                    db,
-                    "sections",
-                    {
-                        _id: registeredSectionId,
-                        courseId: oid(
-                            "course",
-                            registeredCourseCode,
-                        ),
-                        academicTermId: ids.terms.next,
-                        facultyId:
-                            facultyIdForCourse(registeredCourse),
-                        sectionCode: "R01",
-                        schedule: [],
-                        capacity: 40,
-                        enrolledCount: 1,
-                        status: "OPEN",
-                        seedTag,
-                        updatedAt: now,
-                    },
-                    session,
-                );
-
-                await upsertById(
-                    db,
-                    "enrollments",
-                    {
-                        _id: oid(
-                            "enrollment-registered",
-                            `student1:${registeredCourseCode}`,
-                        ),
-                        studentId: ids.students.student1,
-                        sectionId: registeredSectionId,
-                        academicTermId: ids.terms.next,
-                        status: "REGISTERED",
-                        registeredAt: new Date(
-                            "2026-07-25",
-                        ),
-                        seedTag,
-                        updatedAt: now,
-                    },
-                    session,
-                );
 
                 for (const definition of currentSectionDefinitions) {
                     const course = curriculum.find(
@@ -1238,83 +1499,6 @@ async function seedDatabase(): Promise<void> {
                         },
                         session,
                     );
-                }
-
-                const currentEnrollmentDefinitions = [
-                    {
-                        studentId:
-                            ids.students.student1,
-                        studentKey:
-                            "student1",
-                        courseCodes:
-                            Array.from(
-                                studentCurrentCourses.student1,
-                            ),
-                    },
-                    {
-                        studentId:
-                            ids.students.student2,
-                        studentKey:
-                            "student2",
-                        courseCodes:
-                            Array.from(
-                                studentCurrentCourses.student2,
-                            ),
-                    },
-                    {
-                        studentId:
-                            ids.students.student3,
-                        studentKey:
-                            "student3",
-                        courseCodes:
-                            Array.from(
-                                studentCurrentCourses.student3,
-                            ),
-                    },
-                ];
-
-                for (const definition of currentEnrollmentDefinitions) {
-                    for (const courseCode of definition.courseCodes) {
-                        const sectionId = oid(
-                            "section-current",
-                            courseCode,
-                        );
-
-                        await upsertById(
-                            db,
-                            "enrollments",
-                            {
-                                _id: oid(
-                                    "enrollment-current",
-                                    `${definition.studentKey}:${courseCode}`,
-                                ),
-                                studentId:
-                                    definition.studentId,
-                                sectionId,
-                                academicTermId:
-                                    ids.terms.current,
-                                status: "ENROLLED",
-                                enrolledAt: new Date(
-                                    "2026-05-06",
-                                ),
-                                seedTag,
-                                updatedAt: now,
-                            },
-                            session,
-                        );
-
-                        await db
-                            .collection("sections")
-                            .updateOne(
-                                { _id: sectionId },
-                                {
-                                    $inc: {
-                                        enrolledCount: 1,
-                                    },
-                                },
-                                { session },
-                            );
-                    }
                 }
 
                 for (const definition of currentSectionDefinitions) {
@@ -1374,7 +1558,7 @@ async function seedDatabase(): Promise<void> {
                         title:
                             "Enrollment period is now open",
                         message:
-                            "Students may enroll in available sections until August 5, 2026.",
+                            "Students may enroll in available sections from August 1 through August 15, 2026.",
                         audience: "STUDENT",
                         publishedAt: new Date(
                             "2026-07-28",
@@ -1434,12 +1618,12 @@ async function seedDatabase(): Promise<void> {
             await session.endSession();
         }
 
-        const academicTotal = curriculum.reduce(
+        const curriculumAcademicTotal = curriculum.reduce(
             (sum, course) =>
                 sum + course.academicUnits,
             0,
         );
-        const nonAcademicTotal = curriculum.reduce(
+        const curriculumNonAcademicTotal = curriculum.reduce(
             (sum, course) =>
                 sum + course.nonAcademicUnits,
             0,
@@ -1448,7 +1632,7 @@ async function seedDatabase(): Promise<void> {
         console.log("");
         console.log("Seed completed successfully.");
         console.log(
-            `Curriculum total: ${academicTotal} academic units and ${nonAcademicTotal} non-academic units.`,
+            `Curriculum total: ${curriculumAcademicTotal} academic units and ${curriculumNonAcademicTotal} non-academic units.`,
         );
         console.log("");
         console.log("Student demo curriculum progress:");
@@ -1458,7 +1642,13 @@ async function seedDatabase(): Promise<void> {
         console.log("  Username: student.demo");
         console.log("  Password: Password123!");
         console.log(
-            "  Progress: 167 earned, 0 remaining, 6 enrolled, 0 enlisted.",
+            "  Student enrolled units start at 0 until enrollment is submitted.",
+        );
+        console.log(
+            "  GPA uses the shared calculator: credited = 3.5, failed = 0.0.",
+        );
+        console.log(
+            "  Upcoming sections use deterministic demo seat counts from 0 to 45.",
         );
         console.log("");
         console.log("Faculty accounts:");

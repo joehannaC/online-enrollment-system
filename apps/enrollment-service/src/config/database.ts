@@ -69,6 +69,16 @@ export function getDatabase(): Db {
     return database;
 }
 
+export function getMongoClient(): MongoClient {
+    if (!mongoClient) {
+        throw new Error(
+            "MongoDB client has not been initialized.",
+        );
+    }
+
+    return mongoClient;
+}
+
 export function isDatabaseConnected(): boolean {
     return connected;
 }
