@@ -64,11 +64,18 @@ export interface RegisteredCourse {
 
     courseCode: string;
     courseName: string;
+
     units: number;
+    nonAcademicUnits: number;
+
     sectionCode: string;
 
-    schedule: ScheduleItem[];
-    enrollmentStatus: EnrollmentStatus;
+    schedule:
+        ScheduleItem[];
+
+    enrollmentStatus:
+        | "REGISTERED"
+        | "IN_PROGRESS";
 }
 
 export interface StudentScheduleEntry {
@@ -93,50 +100,29 @@ export interface AnnouncementItem {
 }
 
 export interface StudentDashboardResponse {
-    student: StudentProfileSummary;
-    currentTerm: AcademicTermSummary;
+    student:
+        StudentProfileSummary;
+
+    currentTerm:
+        AcademicTermSummary;
 
     summary: {
-        registeredCourseCount: number;
-        registeredUnits: number;
+        registeredCourseCount:
+            number;
+
+        registeredUnits:
+            number;
+
+        registeredNonAcademicUnits:
+            number;
     };
 
-    registeredCourses: RegisteredCourse[];
-    todaySchedule: StudentScheduleEntry[];
-    announcements: AnnouncementItem[];
-}
+    registeredCourses:
+        RegisteredCourse[];
 
-export interface AcademicRecordSummary {
-    requiredUnits: number;
-    earnedUnits: number;
-    remainingUnits: number;
-    enrolledUnits: number;
-    enlistedUnits: number;
-}
+    todaySchedule:
+        StudentScheduleEntry[];
 
-export interface CourseHistoryRecord {
-    enrollmentId: string;
-    courseId: string;
-    sectionId: string;
-    academicTermId: string;
-
-    courseCode: string;
-    courseName: string;
-    units: number;
-
-    academicYear: string;
-    termName: string;
-    sectionCode: string;
-
-    enrollmentStatus: EnrollmentStatus;
-    grade?: number;
-    gradeCode?: string;
-    result?: GradeResult;
-}
-
-export interface StudentRecordsResponse {
-    student: StudentProfileSummary;
-    summary: AcademicRecordSummary;
-    availableTerms: AcademicTermSummary[];
-    records: CourseHistoryRecord[];
+    announcements:
+        AnnouncementItem[];
 }

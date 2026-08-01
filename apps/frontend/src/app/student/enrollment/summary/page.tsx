@@ -2,7 +2,10 @@
 
 import {
     ArrowLeft,
+    CircleAlert,
+    CircleCheck,
     Pencil,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -40,6 +43,86 @@ function formatDate(value: string): string {
     ).format(new Date(value));
 }
 
+type SubmissionNotification = {
+    type: "SUCCESS" | "ERROR";
+    title: string;
+    message: string;
+};
+
+function getSubmissionErrorNotification(
+    error: StudentEnrollmentApiError,
+): SubmissionNotification {
+    switch (error.code) {
+        case "SECTION_FULL":
+        case "ENROLLMENT_SECTION_FULL":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "A selected section is already full. Please enroll in another open section.",
+            };
+
+        case "MAXIMUM_UNITS_EXCEEDED":
+        case "MAXIMUM_LOAD_EXCEEDED":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "The maximum academic unit limit has been reached. Remove a course before submitting again.",
+            };
+
+        case "ENROLLMENT_VERSION_CONFLICT":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "Your enrollment changed in another tab. The latest enrollment details have been reloaded.",
+            };
+
+        case "ENROLLMENT_PERIOD_CLOSED":
+        case "ENROLLMENT_CLOSED":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "The enrollment period has already ended.",
+            };
+
+        case "ENROLLMENT_ALREADY_SUBMITTED":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "This enrollment has already been submitted.",
+            };
+
+        case "ENROLLMENT_SERVICE_BUSY":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "The Enrollment Service is handling a high volume of requests. Please try again.",
+            };
+
+        case "ENROLLMENT_SERVICE_UNAVAILABLE":
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    "The Enrollment Service is currently unavailable. Please try again later.",
+            };
+
+        default:
+            return {
+                type: "ERROR",
+                title: "Submission unsuccessful",
+                message:
+                    error.message ||
+                    "The enrollment could not be submitted. Please review your selected sections and try again.",
+            };
+    }
+}
+
 export default function EnrollmentSummaryPage() {
     const router = useRouter();
 
@@ -70,6 +153,14 @@ export default function EnrollmentSummaryPage() {
         errorMessage,
         setErrorMessage,
     ] = useState("");
+
+    const [
+        submissionNotification,
+        setSubmissionNotification,
+    ] =
+        useState<SubmissionNotification | null>(
+            null,
+        );
 
     async function loadSummary(): Promise<void> {
         setIsLoading(true);
@@ -117,6 +208,27 @@ export default function EnrollmentSummaryPage() {
         void loadSummary();
     }, []);
 
+    useEffect(() => {
+        if (!submissionNotification) {
+            return;
+        }
+
+        const timeout =
+            window.setTimeout(() => {
+                setSubmissionNotification(
+                    null,
+                );
+            }, 5000);
+
+        return () => {
+            window.clearTimeout(
+                timeout,
+            );
+        };
+    }, [
+        submissionNotification,
+    ]);
+
     async function confirmSubmission(): Promise<void> {
         if (
             !data ||
@@ -127,29 +239,93 @@ export default function EnrollmentSummaryPage() {
 
         setIsSubmitting(true);
         setErrorMessage("");
+        setSubmissionNotification(
+            null,
+        );
 
         try {
-            await submitStudentEnrollment(
-                data.enrollment.version,
+            const result =
+                await submitStudentEnrollment(
+                    data.enrollment.version,
+                );
+
+            setIsSubmitModalOpen(
+                false,
             );
 
-            setIsSubmitModalOpen(false);
             await loadSummary();
-        } catch (error) {
+
             if (
-                error instanceof
-                StudentEnrollmentApiError
+                result.outcome ===
+                "PARTIAL_SUCCESS"
             ) {
-                setErrorMessage(
-                    error.message,
-                );
+                setSubmissionNotification({
+                    type: "SUCCESS",
+                    title:
+                        "Enrollment partially successful",
+                    message:
+                        result.message,
+                });
 
                 return;
             }
 
-            setErrorMessage(
-                "The enrollment could not be submitted.",
+            if (
+                result.outcome ===
+                "ALL_SECTIONS_FULL"
+            ) {
+                setSubmissionNotification({
+                    type: "ERROR",
+                    title:
+                        "Submission unsuccessful",
+                    message:
+                        result.message,
+                });
+
+                return;
+            }
+
+            setSubmissionNotification({
+                type: "SUCCESS",
+                title:
+                    "Enrollment successful",
+                message:
+                    result.message,
+            });
+        } catch (error) {
+            setIsSubmitModalOpen(
+                false,
             );
+
+            if (
+                error instanceof
+                StudentEnrollmentApiError
+            ) {
+                setSubmissionNotification(
+                    getSubmissionErrorNotification(
+                        error,
+                    ),
+                );
+
+                if (
+                    error.code ===
+                        "ENROLLMENT_VERSION_CONFLICT" ||
+                    error.code ===
+                        "SECTION_FULL"
+                ) {
+                    await loadSummary();
+                }
+
+                return;
+            }
+
+            setSubmissionNotification({
+                type: "ERROR",
+                title:
+                    "Submission unsuccessful",
+                message:
+                    "The enrollment could not be submitted. Please try again.",
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -393,15 +569,6 @@ export default function EnrollmentSummaryPage() {
                     </div>
                 ) : null}
 
-                {errorMessage ? (
-                    <div
-                        role="alert"
-                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                    >
-                        {errorMessage}
-                    </div>
-                ) : null}
-
                 <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
                     <div className="border-b border-neutral-200 px-4 py-4 sm:px-5">
                         <h2 className="text-lg font-semibold text-[#35822E]">
@@ -598,6 +765,107 @@ export default function EnrollmentSummaryPage() {
                     </div>
                 </section>
             </div>
+
+            {submissionNotification ? (
+                <div
+                    role={
+                        submissionNotification.type ===
+                        "SUCCESS"
+                            ? "status"
+                            : "alert"
+                    }
+                    aria-live={
+                        submissionNotification.type ===
+                        "SUCCESS"
+                            ? "polite"
+                            : "assertive"
+                    }
+                    className={[
+                        `
+                            fixed right-4 top-4 z-50
+                            w-[calc(100%-2rem)]
+                            max-w-sm rounded-xl
+                            border bg-white p-4
+                            shadow-2xl
+                            sm:right-6 sm:top-6
+                        `,
+                        submissionNotification.type ===
+                        "SUCCESS"
+                            ? "border-green-200"
+                            : "border-red-200",
+                    ].join(" ")}
+                >
+                    <div className="flex items-start gap-3">
+                        <div
+                            className={[
+                                `
+                                    mt-0.5 flex
+                                    h-9 w-9 shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                `,
+                                submissionNotification.type ===
+                                "SUCCESS"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700",
+                            ].join(" ")}
+                        >
+                            {submissionNotification.type ===
+                            "SUCCESS" ? (
+                                <CircleCheck
+                                    aria-hidden="true"
+                                    className="h-5 w-5"
+                                />
+                            ) : (
+                                <CircleAlert
+                                    aria-hidden="true"
+                                    className="h-5 w-5"
+                                />
+                            )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-sm font-semibold text-neutral-900">
+                                {
+                                    submissionNotification.title
+                                }
+                            </h2>
+
+                            <p className="mt-1 text-sm leading-5 text-neutral-600">
+                                {
+                                    submissionNotification.message
+                                }
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-label="Close notification"
+                            onClick={() => {
+                                setSubmissionNotification(
+                                    null,
+                                );
+                            }}
+                            className="
+                                rounded-lg p-1
+                                text-neutral-400
+                                transition
+                                hover:bg-neutral-100
+                                hover:text-neutral-700
+                                focus:outline-none
+                                focus:ring-2
+                                focus:ring-[#35822E]/30
+                            "
+                        >
+                            <X
+                                aria-hidden="true"
+                                className="h-4 w-4"
+                            />
+                        </button>
+                    </div>
+                </div>
+            ) : null}
 
             <ConfirmationModal
                 isOpen={

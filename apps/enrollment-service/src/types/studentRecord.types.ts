@@ -33,6 +33,7 @@ export interface StudentRecordItem {
     courseName: string;
 
     units: number;
+    nonAcademicUnits: number;
     curriculumTerm: number;
 
     academicYear: string;
@@ -56,10 +57,19 @@ export interface StudentRecordItem {
 
 export interface StudentRecordSummary {
     requiredUnits: number;
+    requiredNonAcademicUnits: number;
+
     earnedUnits: number;
+    earnedNonAcademicUnits: number;
+
     remainingUnits: number;
+    remainingNonAcademicUnits: number;
+
     enrolledUnits: number;
+    enrolledNonAcademicUnits: number;
+
     enlistedUnits: number;
+    enlistedNonAcademicUnits: number;
 }
 
 export interface StudentRecordFilters {

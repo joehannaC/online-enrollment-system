@@ -164,6 +164,7 @@ export default function LoginPage() {
                 <section
                     className="
                         w-full max-w-md
+                        translate-y-4
                         rounded-3xl
                         bg-white/95
                         p-6
@@ -171,6 +172,7 @@ export default function LoginPage() {
                         backdrop-blur-sm
                         sm:p-8
                         lg:max-w-[400px]
+                        lg:translate-y-8
                         lg:rounded-none
                         lg:bg-transparent
                         lg:p-0

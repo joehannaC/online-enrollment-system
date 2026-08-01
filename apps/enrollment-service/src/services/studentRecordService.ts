@@ -21,10 +21,15 @@ interface StudentDocument {
     curriculumCode: string;
 
     requiredUnits?: number;
+    requiredNonAcademicUnits?: number;
     earnedUnits?: number;
+    earnedNonAcademicUnits?: number;
     remainingUnits?: number;
+    remainingNonAcademicUnits?: number;
     enrolledUnits?: number;
+    enrolledNonAcademicUnits?: number;
     enlistedUnits?: number;
+    enlistedNonAcademicUnits?: number;
 
     status: string;
 }
@@ -108,6 +113,34 @@ interface EnrollmentDocument {
     updatedAt?: Date;
 }
 
+
+interface StudentEnrollmentHeaderDocument {
+    _id: ObjectId;
+    studentId: ObjectId;
+    academicTermId: ObjectId;
+    status:
+        | "DRAFT"
+        | "SUBMITTED"
+        | "CANCELLED";
+    totalAcademicUnits: number;
+    totalNonAcademicUnits: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+interface StudentEnrollmentItemDocument {
+    _id: ObjectId;
+    enrollmentId: ObjectId;
+    studentId: ObjectId;
+    academicTermId: ObjectId;
+    sectionId: ObjectId;
+    courseId: ObjectId;
+    academicUnits: number;
+    nonAcademicUnits: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 interface GradeDocument {
     _id: ObjectId;
 
@@ -177,6 +210,12 @@ function getCourseUnits(
         course.units ??
         0
     );
+}
+
+function getCourseNonAcademicUnits(
+    course: CourseDocument,
+): number {
+    return course.nonAcademicUnits ?? 0;
 }
 
 function formatGrade(
@@ -374,12 +413,16 @@ function getRecordEligibility({
 function deriveStatus({
     gradeContext,
     enrollmentContext,
+    selectionStatus,
     missingPrerequisiteCodes,
     recommendedTrimester,
     enlistmentSequence,
 }: {
     gradeContext?: GradeContext;
     enrollmentContext?: EnrollmentContext;
+    selectionStatus?:
+        | "DRAFT"
+        | "SUBMITTED";
     missingPrerequisiteCodes: string[];
     recommendedTrimester: number;
     enlistmentSequence: number;
@@ -422,6 +465,14 @@ function deriveStatus({
         return "REGISTERED";
     }
 
+    if (selectionStatus === "SUBMITTED") {
+        return "IN_PROGRESS";
+    }
+
+    if (selectionStatus === "DRAFT") {
+        return "REGISTERED";
+    }
+
     const prerequisitesSatisfied =
         missingPrerequisiteCodes.length ===
         0;
@@ -443,10 +494,12 @@ function deriveStatus({
 function getRecordAcademicPeriod({
     gradeContext,
     enrollmentContext,
+    selectionTerm,
     plannedTerm,
 }: {
     gradeContext?: GradeContext;
     enrollmentContext?: EnrollmentContext;
+    selectionTerm?: AcademicTermDocument;
     plannedTerm?: AcademicTermDocument;
 }): {
     academicYear: string;
@@ -477,6 +530,16 @@ function getRecordAcademicPeriod({
                 enrollmentContext
                     .academicTerm
                     .termNumber,
+        };
+    }
+
+    if (selectionTerm) {
+        return {
+            academicYear:
+                selectionTerm.academicYear,
+
+            academicTerm:
+                selectionTerm.termNumber,
         };
     }
 
@@ -701,6 +764,60 @@ export async function getStudentRecords(
             500,
         );
     }
+
+    const enrollmentHeader =
+        await db
+            .collection<StudentEnrollmentHeaderDocument>(
+                "studentEnrollments",
+            )
+            .findOne(
+                {
+                    studentId: student._id,
+                    status: {
+                        $in: [
+                            "DRAFT",
+                            "SUBMITTED",
+                        ],
+                    },
+                },
+                {
+                    sort: {
+                        updatedAt: -1,
+                        createdAt: -1,
+                    },
+                },
+            );
+
+    const enrollmentItems = enrollmentHeader
+        ? await db
+              .collection<StudentEnrollmentItemDocument>(
+                  "studentEnrollmentItems",
+              )
+              .find({
+                  enrollmentId:
+                      enrollmentHeader._id,
+                  studentId: student._id,
+              })
+              .toArray()
+        : [];
+
+    const enrollmentSelectionTerm =
+        enrollmentHeader
+            ? academicTerms.find(
+                  (term) =>
+                      term._id.equals(
+                          enrollmentHeader.academicTermId,
+                      ),
+              )
+            : undefined;
+
+    const enrollmentItemByCourseId =
+        new Map(
+            enrollmentItems.map((item) => [
+                item.courseId.toHexString(),
+                item,
+            ]),
+        );
 
     if (courses.length === 0) {
         throw new StudentRecordServiceError(
@@ -1038,6 +1155,20 @@ export async function getStudentRecords(
                     [],
             );
 
+        const enrollmentItem =
+            enrollmentItemByCourseId.get(
+                courseId,
+            );
+
+        const selectionStatus =
+            enrollmentItem &&
+            enrollmentHeader
+                ? enrollmentHeader.status ===
+                  "SUBMITTED"
+                    ? "SUBMITTED"
+                    : "DRAFT"
+                : undefined;
+
         const prerequisiteCodes =
             course.prerequisiteCodes ??
             [];
@@ -1059,6 +1190,10 @@ export async function getStudentRecords(
             getRecordAcademicPeriod({
                 gradeContext,
                 enrollmentContext,
+                selectionTerm:
+                    enrollmentItem
+                        ? enrollmentSelectionTerm
+                        : undefined,
                 plannedTerm,
             });
 
@@ -1066,6 +1201,7 @@ export async function getStudentRecords(
             deriveStatus({
                 gradeContext,
                 enrollmentContext,
+                selectionStatus,
                 missingPrerequisiteCodes,
 
                 recommendedTrimester:
@@ -1100,7 +1236,14 @@ export async function getStudentRecords(
                 course.courseName,
 
             units:
-                getCourseUnits(
+                enrollmentItem
+                    ?.academicUnits ??
+                getCourseUnits(course),
+
+            nonAcademicUnits:
+                enrollmentItem
+                    ?.nonAcademicUnits ??
+                getCourseNonAcademicUnits(
                     course,
                 ),
 
@@ -1166,54 +1309,108 @@ export async function getStudentRecords(
     const requiredUnits =
         recordItems.reduce(
             (total, record) =>
-                total +
-                record.units,
+                total + record.units,
             0,
         );
 
+    const requiredNonAcademicUnits =
+        student.requiredNonAcademicUnits ??
+        recordItems.reduce(
+            (total, record) =>
+                total +
+                record.nonAcademicUnits,
+            0,
+        );
+
+    const earnedRecords =
+        recordItems.filter(
+            (record) =>
+                record.status ===
+                    "COMPLETED" ||
+                record.status ===
+                    "CREDITED",
+        );
+
     const earnedUnits =
-        recordItems
-            .filter(
-                (record) =>
-                    record.status ===
-                        "COMPLETED" ||
-                    record.status ===
-                        "CREDITED",
-            )
-            .reduce(
-                (total, record) =>
-                    total +
-                    record.units,
-                0,
-            );
+        earnedRecords.reduce(
+            (total, record) =>
+                total + record.units,
+            0,
+        );
+
+    const earnedNonAcademicUnits =
+        earnedRecords.reduce(
+            (total, record) =>
+                total +
+                record.nonAcademicUnits,
+            0,
+        );
+
+    const enrolledRecords =
+    recordItems.filter(
+        (record) =>
+            record.status ===
+            "IN_PROGRESS",
+    );
 
     const enrolledUnits =
-        recordItems
-            .filter(
-                (record) =>
-                    record.status ===
-                    "IN_PROGRESS",
-            )
-            .reduce(
-                (total, record) =>
-                    total +
-                    record.units,
-                0,
-            );
+        enrolledRecords.reduce(
+            (total, record) =>
+                total +
+                Number(
+                    record.units ??
+                        0,
+                ),
+            0,
+        );
+
+    const enrolledNonAcademicUnits =
+        enrolledRecords.reduce(
+            (total, record) =>
+                total +
+                Number(
+                    record.nonAcademicUnits ??
+                        0,
+                ),
+            0,
+        );
+
+    /*
+     * Enlisted units represent the student's current
+     * unsubmitted enrollment draft.
+     *
+     * Calculate the values directly from the draft items.
+     * Deriving the values from recordItems can miss a draft
+     * when a historical enrollment or grade takes precedence
+     * while the record status is being resolved.
+     */
+    const activeDraftItems =
+        enrollmentHeader?.status ===
+        "DRAFT"
+            ? enrollmentItems
+            : [];
 
     const enlistedUnits =
-        recordItems
-            .filter(
-                (record) =>
-                    record.status ===
-                    "REGISTERED",
-            )
-            .reduce(
-                (total, record) =>
-                    total +
-                    record.units,
-                0,
-            );
+        activeDraftItems.reduce(
+            (total, item) =>
+                total +
+                Number(
+                    item.academicUnits ??
+                        0,
+                ),
+            0,
+        );
+
+    const enlistedNonAcademicUnits =
+        activeDraftItems.reduce(
+            (total, item) =>
+                total +
+                Number(
+                    item.nonAcademicUnits ??
+                        0,
+                ),
+            0,
+        );
 
     const search =
         normalizeSearchValue(
@@ -1302,8 +1499,10 @@ export async function getStudentRecords(
     return {
         summary: {
             requiredUnits,
+            requiredNonAcademicUnits,
 
             earnedUnits,
+            earnedNonAcademicUnits,
 
             remainingUnits:
                 Math.max(
@@ -1312,8 +1511,18 @@ export async function getStudentRecords(
                         earnedUnits,
                 ),
 
+            remainingNonAcademicUnits:
+                Math.max(
+                    0,
+                    requiredNonAcademicUnits -
+                        earnedNonAcademicUnits,
+                ),
+
             enrolledUnits,
+            enrolledNonAcademicUnits,
+
             enlistedUnits,
+            enlistedNonAcademicUnits,
         },
 
         records:

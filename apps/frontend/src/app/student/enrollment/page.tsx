@@ -4,9 +4,12 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronDown,
+    CircleAlert,
+    CircleCheck,
     Eye,
     Pencil,
     Search,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -33,6 +36,41 @@ import type {
     EnrollmentSectionOption,
     StudentEnrollmentResponse,
 } from "@/types";
+
+function formatUnitTotal(
+    academicUnits: number,
+    nonAcademicUnits: number,
+): string {
+    return nonAcademicUnits > 0
+        ? `${academicUnits}(${nonAcademicUnits})`
+        : String(academicUnits);
+}
+
+function getActionLabel(
+    course: EnrollmentSectionOption,
+): string {
+    switch (
+        course.eligibilityCode
+    ) {
+        case "ALREADY_COMPLETED":
+            return "Completed";
+
+        case "ALREADY_CREDITED":
+            return "Credited";
+
+        case "ALREADY_SELECTED":
+            return "Enroll";
+
+        case "MISSING_PREREQUISITES":
+            return "Unavailable";
+
+        case "SECTION_FULL":
+            return "Full";
+
+        default:
+            return "Enroll";
+    }
+}
 
 function formatDate(value: string): string {
     return new Intl.DateTimeFormat(
@@ -108,7 +146,10 @@ function MobileCourseCard({
                         Units
                     </dt>
                     <dd className="mt-1 font-semibold text-neutral-800">
-                        {course.academicUnits}
+                        {formatUnitTotal(
+                            course.academicUnits,
+                            course.nonAcademicUnits,
+                        )}
                     </dd>
                 </div>
 
@@ -138,11 +179,15 @@ function MobileCourseCard({
                     !course.canEnroll ||
                     isMutating
                 }
-                onClick={() =>
-                    void onEnroll(
-                        course.sectionId,
-                    )
-                }
+                onClick={() => {
+                    if (
+                        course.sectionId
+                    ) {
+                        void onEnroll(
+                            course.sectionId,
+                        );
+                    }
+                }}
                 className="
                     mt-4 h-10 w-full
                     rounded-lg
@@ -154,11 +199,19 @@ function MobileCourseCard({
                     disabled:bg-neutral-300
                 "
             >
-                Enroll
+                {getActionLabel(
+                    course,
+                )}
             </button>
         </article>
     );
 }
+
+type ActionNotification = {
+    type: "SUCCESS" | "ERROR";
+    title: string;
+    message: string;
+};
 
 export default function StudentEnrollmentPage() {
     const router = useRouter();
@@ -210,9 +263,12 @@ export default function StudentEnrollmentPage() {
     ] = useState("");
 
     const [
-        successMessage,
-        setSuccessMessage,
-    ] = useState("");
+        actionNotification,
+        setActionNotification,
+    ] =
+        useState<ActionNotification | null>(
+            null,
+        );
 
 
     const loadEnrollment =
@@ -318,6 +374,27 @@ export default function StudentEnrollmentPage() {
     ]);
 
 
+    useEffect(() => {
+        if (!actionNotification) {
+            return;
+        }
+
+        const timeout =
+            window.setTimeout(() => {
+                setActionNotification(
+                    null,
+                );
+            }, 5000);
+
+        return () => {
+            window.clearTimeout(
+                timeout,
+            );
+        };
+    }, [
+        actionNotification,
+    ]);
+
     async function handleEnroll(
         sectionId: string,
     ): Promise<void> {
@@ -330,7 +407,9 @@ export default function StudentEnrollmentPage() {
 
         setIsMutating(true);
         setErrorMessage("");
-        setSuccessMessage("");
+        setActionNotification(
+            null,
+        );
 
         try {
             await addEnrollmentDraftItem(
@@ -340,17 +419,28 @@ export default function StudentEnrollmentPage() {
 
             await loadEnrollment();
 
-            setSuccessMessage(
-                "The course was added to your enrollment draft.",
-            );
+            setActionNotification({
+                type: "SUCCESS",
+                title:
+                    "Course selected",
+                message:
+                    "The course was added to your enrollment draft.",
+            });
         } catch (error) {
             if (
                 error instanceof
                 StudentEnrollmentApiError
             ) {
-                setErrorMessage(
-                    error.message,
-                );
+                setActionNotification({
+                    type: "ERROR",
+                    title:
+                        "Enrollment unsuccessful",
+                    message:
+                        error.code ===
+                        "SECTION_FULL"
+                            ? "This section is already full. Please enroll in another open section."
+                            : error.message,
+                });
 
                 if (
                     error.code ===
@@ -362,9 +452,13 @@ export default function StudentEnrollmentPage() {
                 return;
             }
 
-            setErrorMessage(
-                "The course could not be added.",
-            );
+            setActionNotification({
+                type: "ERROR",
+                title:
+                    "Enrollment unsuccessful",
+                message:
+                    "The course could not be added.",
+            });
         } finally {
             setIsMutating(false);
         }
@@ -464,7 +558,8 @@ export default function StudentEnrollmentPage() {
                         </div>
                     </section>
                 </div>
-            </PageContainer>
+
+        </PageContainer>
         );
     }
 
@@ -591,24 +686,6 @@ export default function StudentEnrollmentPage() {
                             </div>
                         </div>
                     </section>
-                ) : null}
-
-                {successMessage ? (
-                    <div
-                        role="status"
-                        className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
-                    >
-                        {successMessage}
-                    </div>
-                ) : null}
-
-                {errorMessage ? (
-                    <div
-                        role="alert"
-                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                    >
-                        {errorMessage}
-                    </div>
                 ) : null}
 
                 {shouldShowAvailableCourses ? (
@@ -766,7 +843,8 @@ export default function StudentEnrollmentPage() {
                                               ) => (
                                                   <tr
                                                       key={
-                                                          course.sectionId
+                                                          course.sectionId ??
+                                                          course.courseId
                                                       }
                                                       className="border-b border-neutral-200 last:border-b-0"
                                                   >
@@ -781,9 +859,10 @@ export default function StudentEnrollmentPage() {
                                                           }
                                                       </td>
                                                       <td className="px-4 py-4 text-center font-semibold text-neutral-800">
-                                                          {
-                                                              course.academicUnits
-                                                          }
+                                                          {formatUnitTotal(
+                                                              course.academicUnits,
+                                                              course.nonAcademicUnits,
+                                                          )}
                                                       </td>
                                                       <td className="px-4 py-4 text-neutral-700">
                                                           {
@@ -835,11 +914,15 @@ export default function StudentEnrollmentPage() {
                                                                   !course.canEnroll ||
                                                                   isMutating
                                                               }
-                                                              onClick={() =>
-                                                                  void handleEnroll(
-                                                                      course.sectionId,
-                                                                  )
-                                                              }
+                                                              onClick={() => {
+                                                                  if (
+                                                                      course.sectionId
+                                                                  ) {
+                                                                      void handleEnroll(
+                                                                          course.sectionId,
+                                                                      );
+                                                                  }
+                                                              }}
                                                               className="
                                                                   h-9 min-w-[100px]
                                                                   rounded-lg
@@ -853,7 +936,9 @@ export default function StudentEnrollmentPage() {
                                                                   disabled:bg-neutral-300
                                                               "
                                                           >
-                                                              Enroll
+                                                              {getActionLabel(
+                                                                  course,
+                                                              )}
                                                           </button>
                                                       </td>
                                                   </tr>
@@ -979,6 +1064,70 @@ export default function StudentEnrollmentPage() {
                 ) : null}
             </div>
 
+                {actionNotification ? (
+                <div
+                    role={
+                        actionNotification.type ===
+                        "SUCCESS"
+                            ? "status"
+                            : "alert"
+                    }
+                    aria-live={
+                        actionNotification.type ===
+                        "SUCCESS"
+                            ? "polite"
+                            : "assertive"
+                    }
+                    className={[
+                        "fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-xl border bg-white p-4 shadow-2xl sm:right-6 sm:top-6",
+                        actionNotification.type ===
+                        "SUCCESS"
+                            ? "border-green-200"
+                            : "border-red-200",
+                    ].join(" ")}
+                >
+                    <div className="flex items-start gap-3">
+                        <div
+                            className={[
+                                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                                actionNotification.type ===
+                                "SUCCESS"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700",
+                            ].join(" ")}
+                        >
+                            {actionNotification.type ===
+                            "SUCCESS" ? (
+                                <CircleCheck className="h-5 w-5" />
+                            ) : (
+                                <CircleAlert className="h-5 w-5" />
+                            )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-sm font-semibold text-neutral-900">
+                                {actionNotification.title}
+                            </h2>
+                            <p className="mt-1 text-sm leading-5 text-neutral-600">
+                                {actionNotification.message}
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-label="Close notification"
+                            onClick={() => {
+                                setActionNotification(
+                                    null,
+                                );
+                            }}
+                            className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            ) : null}
         </PageContainer>
     );
 }

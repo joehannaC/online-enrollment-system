@@ -65,54 +65,24 @@ const selectableStatuses =
 function getStatusLabel(
     record: StudentRecordItem,
 ): string {
-    switch (
-        record.eligibilityCode
-    ) {
-        case "ELIGIBLE":
-            return "Eligible";
-
-        case "MISSING_PREREQUISITES":
-            return "Cannot yet be enlisted";
-
-        case "ALREADY_COMPLETED":
-            return "Completed";
-
-        case "ALREADY_SELECTED":
-            return "Selected";
-
-        case "SECTION_FULL":
-            return "Full";
-
-        case "MAXIMUM_LOAD_EXCEEDED":
-            return "Load exceeded";
-
-        case "ENROLLMENT_NOT_OPEN":
-            return "Not yet open";
-
-        case "ENROLLMENT_CLOSED":
-            return "Closed";
-
-        case "ENROLLMENT_SUBMITTED":
-            return "Submitted";
-
-        case "FAILED_COURSE_RETAKE_NOT_ALLOWED":
-            return "Retake unavailable";
-
-        case "SCHEDULE_CONFLICT":
-            return "Conflict";
-
-        default:
-            return "Status";
-    }
+    return recordStatusLabels[
+        record.status
+    ];
 }
 
 function getStatusClassName(
     record: StudentRecordItem,
 ): string {
-    switch (
-        record.eligibilityCode
-    ) {
-        case "ELIGIBLE":
+    switch (record.status) {
+        case "IN_PROGRESS":
+            return [
+                "border-yellow-300",
+                "bg-yellow-50",
+                "text-yellow-700",
+                "hover:bg-yellow-100",
+            ].join(" ");
+
+        case "COMPLETED":
             return [
                 "border-green-300",
                 "bg-green-50",
@@ -120,8 +90,15 @@ function getStatusClassName(
                 "hover:bg-green-100",
             ].join(" ");
 
-        case "ALREADY_COMPLETED":
-        case "ALREADY_SELECTED":
+        case "CREDITED":
+            return [
+                "border-neutral-300",
+                "bg-neutral-100",
+                "text-neutral-700",
+                "hover:bg-neutral-200",
+            ].join(" ");
+
+        case "REGISTERED":
             return [
                 "border-blue-300",
                 "bg-blue-50",
@@ -129,9 +106,7 @@ function getStatusClassName(
                 "hover:bg-blue-100",
             ].join(" ");
 
-        case "SECTION_FULL":
-        case "ENROLLMENT_CLOSED":
-        case "ENROLLMENT_SUBMITTED":
+        case "CANNOT_YET_BE_ENLISTED":
             return [
                 "border-red-300",
                 "bg-red-50",
@@ -139,34 +114,47 @@ function getStatusClassName(
                 "hover:bg-red-100",
             ].join(" ");
 
+        case "CAN_BE_ENLISTED":
+            return [
+                "border-orange-300",
+                "bg-orange-50",
+                "text-orange-700",
+                "hover:bg-orange-100",
+            ].join(" ");
+
         default:
             return [
-                "border-amber-300",
-                "bg-amber-50",
-                "text-amber-700",
-                "hover:bg-amber-100",
+                "border-neutral-300",
+                "bg-neutral-50",
+                "text-neutral-700",
+                "hover:bg-neutral-100",
             ].join(" ");
     }
+}
+
+function formatUnitTotal(
+    academicUnits: number,
+    nonAcademicUnits: number,
+): string {
+    return nonAcademicUnits > 0
+        ? `${academicUnits}(${nonAcademicUnits})`
+        : String(academicUnits);
 }
 
 function getStatusIconClassName(
     record: StudentRecordItem,
 ): string {
-    switch (
-        record.eligibilityCode
-    ) {
-        case "ELIGIBLE":
-        case "ALREADY_COMPLETED":
+    switch (record.status) {
+        case "CAN_BE_ENLISTED":
+        case "IN_PROGRESS":
             return "bg-green-100 text-green-700";
 
-        case "ALREADY_SELECTED":
+        case "COMPLETED":
+        case "CREDITED":
+        case "REGISTERED":
             return "bg-blue-100 text-blue-700";
 
-        case "SECTION_FULL":
-        case "ENROLLMENT_CLOSED":
-        case "ENROLLMENT_SUBMITTED":
-            return "bg-red-100 text-red-700";
-
+        case "CANNOT_YET_BE_ENLISTED":
         default:
             return "bg-amber-100 text-amber-700";
     }
@@ -176,10 +164,14 @@ function usesPositiveStatusIcon(
     record: StudentRecordItem,
 ): boolean {
     return (
-        record.eligibilityCode ===
-            "ELIGIBLE" ||
-        record.eligibilityCode ===
-            "ALREADY_COMPLETED"
+        record.status ===
+            "CAN_BE_ENLISTED" ||
+        record.status ===
+            "IN_PROGRESS" ||
+        record.status ===
+            "COMPLETED" ||
+        record.status ===
+            "CREDITED"
     );
 }
 
@@ -237,7 +229,7 @@ function SummaryCard({
     value,
 }: {
     label: string;
-    value: number;
+    value: string | number;
 }) {
     return (
         <article
@@ -341,7 +333,10 @@ function DesktopRecordRow({
                     text-neutral-800
                 "
             >
-                {record.units}
+                {formatUnitTotal(
+                    record.units,
+                    record.nonAcademicUnits,
+                )}
             </td>
 
             <td
@@ -463,7 +458,10 @@ function MobileRecordCard({
                             text-neutral-800
                         "
                     >
-                        {record.units}
+                        {formatUnitTotal(
+                            record.units,
+                            record.nonAcademicUnits,
+                        )}
                     </dd>
                 </div>
 
@@ -904,40 +902,60 @@ export default function StudentRecordsPage() {
                         <SummaryCard
                             label="Required Units"
                             value={
-                                data.summary
-                                    .requiredUnits
+                                formatUnitTotal(
+                                    data.summary
+                                        .requiredUnits,
+                                    data.summary
+                                        .requiredNonAcademicUnits,
+                                )
                             }
                         />
 
                         <SummaryCard
                             label="Earned Units"
                             value={
-                                data.summary
-                                    .earnedUnits
+                                formatUnitTotal(
+                                    data.summary
+                                        .earnedUnits,
+                                    data.summary
+                                        .earnedNonAcademicUnits,
+                                )
                             }
                         />
 
                         <SummaryCard
                             label="Remaining Units"
                             value={
-                                data.summary
-                                    .remainingUnits
+                                formatUnitTotal(
+                                    data.summary
+                                        .remainingUnits,
+                                    data.summary
+                                        .remainingNonAcademicUnits,
+                                )
                             }
                         />
 
                         <SummaryCard
                             label="Enrolled Units"
                             value={
-                                data.summary
-                                    .enrolledUnits
+                                formatUnitTotal(
+                                    data.summary
+                                        .enrolledUnits,
+                                    data.summary
+                                        .enrolledNonAcademicUnits,
+                                )
                             }
                         />
 
                         <SummaryCard
                             label="Enlisted Units"
                             value={
-                                data.summary
-                                    .enlistedUnits
+                                formatUnitTotal(
+                                    data.summary
+                                        .enlistedUnits,
+                                    data.summary
+                                        .enlistedNonAcademicUnits,
+                                )
                             }
                         />
                     </section>

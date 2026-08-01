@@ -354,17 +354,15 @@ export async function handleSubmitEnrollment(
             return;
         }
 
-        await submitEnrollment(
-            request.auth.userId,
-            parsed.data,
-        );
+        const result =
+            await submitEnrollment(
+                request.auth.userId,
+                parsed.data,
+            );
 
         response.status(200).json({
             success: true,
-            data: {
-                message:
-                    "Enrollment submitted successfully.",
-            },
+            data: result,
         });
     } catch (error) {
         next(error);

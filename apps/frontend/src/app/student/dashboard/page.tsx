@@ -164,6 +164,7 @@ export default function StudentDashboardPage() {
                         isLoading={
                             isLoading
                         }
+                        showSchedule
                     />
 
                     <AnnouncementList

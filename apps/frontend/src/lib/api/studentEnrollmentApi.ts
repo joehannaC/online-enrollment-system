@@ -5,6 +5,7 @@ import type {
     ApiErrorResponse,
     ApiResponse,
     StudentEnrollmentResponse,
+    SubmitEnrollmentResult,
 } from "@/types";
 
 export interface EnrollmentListQuery {
@@ -224,7 +225,7 @@ export async function removeEnrollmentDraftItem(
 
 export async function submitStudentEnrollment(
     expectedVersion: number,
-): Promise<void> {
+): Promise<SubmitEnrollmentResult> {
     const response =
         await fetch(
             "/api/students/enrollment/submit",
@@ -244,7 +245,7 @@ export async function submitStudentEnrollment(
             },
         );
 
-    await parseApiResponse<{
-        message: string;
-    }>(response);
+    return parseApiResponse<SubmitEnrollmentResult>(
+        response,
+    );
 }

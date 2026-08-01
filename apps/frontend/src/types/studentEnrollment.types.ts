@@ -120,3 +120,28 @@ export interface StudentEnrollmentResponse {
     };
 }
 
+
+export interface RejectedEnrollmentSection {
+    itemId: string;
+    sectionId: string;
+    sectionCode: string;
+    courseId: string;
+    courseCode: string;
+    courseName: string;
+    reason: "SECTION_FULL";
+}
+
+export interface SubmitEnrollmentResult {
+    outcome:
+        | "SUCCESS"
+        | "PARTIAL_SUCCESS"
+        | "ALL_SECTIONS_FULL";
+
+    message: string;
+
+    submittedCourseCount: number;
+    rejectedCourseCount: number;
+
+    rejectedSections:
+        RejectedEnrollmentSection[];
+}

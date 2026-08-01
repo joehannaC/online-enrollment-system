@@ -99,8 +99,7 @@ const curriculum: CurriculumCourse[] = [
     { code: "CCICOMP", name: "Introduction to Computing", academicUnits: 3, nonAcademicUnits: 0, trimester: 1, category: "COMMON_COMPUTING" },
     { code: "MTH101A", name: "Algebra and Trigonometry", academicUnits: 5, nonAcademicUnits: 0, trimester: 1, category: "COMMON_MATH" },
     { code: "GEPCOMM", name: "Purposive Communication", academicUnits: 3, nonAcademicUnits: 0, trimester: 1, category: "GENERAL_EDUCATION" },
-    { code: "NSTP101", name: "National Service Training Program Orientation", academicUnits: 0, nonAcademicUnits: 0, trimester: 1, category: "OTHER_NON_ACADEMIC" },
-
+    
     // 2nd Trimester — 17 academic, 3 non-academic
     { code: "CCPROG2", name: "Programming with Structured Data Types", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_COMPUTING", prerequisiteCodes: ["CCPROG1"] },
     { code: "CCDSTRU", name: "Discrete Structures", academicUnits: 3, nonAcademicUnits: 0, trimester: 2, category: "COMMON_COMPUTING", prerequisiteCodes: ["MTH101A"] },
@@ -545,7 +544,69 @@ function getDemoEnrolledCount(
     ];
 }
 
+function validateCurriculumUnits(): void {
+    const academicTotal =
+        curriculum.reduce(
+            (sum, course) =>
+                sum +
+                course.academicUnits,
+            0,
+        );
+
+    const nonAcademicCourses =
+        curriculum.filter(
+            (course) =>
+                course.nonAcademicUnits >
+                0,
+        );
+
+    const nonAcademicTotal =
+        nonAcademicCourses.reduce(
+            (sum, course) =>
+                sum +
+                course.nonAcademicUnits,
+            0,
+        );
+
+    if (academicTotal !== 170) {
+        throw new Error(
+            `Expected 170 academic units, but found ${academicTotal}.`,
+        );
+    }
+
+    const expectedNonAcademicUnits =
+        new Map<string, number>([
+            ["NSTP-01", 3],
+            ["NSTP-02", 3],
+            ["LCLSONE", 1],
+            ["LCLSTWO", 1],
+            ["LCLSTRI", 1],
+        ]);
+
+    const hasExpectedBreakdown =
+        expectedNonAcademicUnits.size ===
+            nonAcademicCourses.length &&
+        nonAcademicCourses.every(
+            (course) =>
+                expectedNonAcademicUnits.get(
+                    course.code,
+                ) ===
+                course.nonAcademicUnits,
+        );
+
+    if (
+        nonAcademicTotal !== 9 ||
+        !hasExpectedBreakdown
+    ) {
+        throw new Error(
+            "The non-academic units must be NSTP-01=3, NSTP-02=3, LCLSONE=1, LCLSTWO=1, and LCLSTRI=1, for a total of 9.",
+        );
+    }
+}
+
 async function seedDatabase(): Promise<void> {
+    validateCurriculumUnits();
+
     const client = new MongoClient(mongoUri);
 
     try {
@@ -636,7 +697,9 @@ async function seedDatabase(): Promise<void> {
                         earnedNonAcademicUnits: 0,
                         remainingUnits: 170,
                         enrolledUnits: 0,
+                        enrolledNonAcademicUnits: 0,
                         enlistedUnits: 0,
+                        enlistedNonAcademicUnits: 0,
                     },
                     {
                         _id: ids.students.student2,
@@ -651,7 +714,9 @@ async function seedDatabase(): Promise<void> {
                         earnedNonAcademicUnits: 0,
                         remainingUnits: 170,
                         enrolledUnits: 0,
+                        enrolledNonAcademicUnits: 0,
                         enlistedUnits: 0,
+                        enlistedNonAcademicUnits: 0,
                     },
                     {
                         _id: ids.students.student3,
@@ -666,7 +731,9 @@ async function seedDatabase(): Promise<void> {
                         earnedNonAcademicUnits: 0,
                         remainingUnits: 170,
                         enrolledUnits: 0,
+                        enrolledNonAcademicUnits: 0,
                         enlistedUnits: 0,
+                        enlistedNonAcademicUnits: 0,
                     },
                 ];
 
@@ -687,8 +754,12 @@ async function seedDatabase(): Promise<void> {
                             requiredNonAcademicUnits: 9,
                             enrolledUnits:
                                 student.enrolledUnits ?? 0,
+                            enrolledNonAcademicUnits:
+                                student.enrolledNonAcademicUnits ?? 0,
                             enlistedUnits:
                                 student.enlistedUnits ?? 0,
+                            enlistedNonAcademicUnits:
+                                student.enlistedNonAcademicUnits ?? 0,
                             status: "ACTIVE",
                             seedTag,
                             updatedAt: now,
@@ -980,7 +1051,7 @@ async function seedDatabase(): Promise<void> {
                                 course.trimester,
                             ).padStart(2, "0")}`,
                             schedule: [],
-                            capacity: 40,
+                            capacity:45,
                             enrolledCount: 0,
                             status: "CLOSED",
                             seedTag,
@@ -1234,7 +1305,11 @@ async function seedDatabase(): Promise<void> {
 
                                     enrolledUnits: 0,
 
+                                    enrolledNonAcademicUnits: 0,
+
                                     enlistedUnits: 0,
+
+                                    enlistedNonAcademicUnits: 0,
 
                                     currentGpa:
                                         academicSummary
@@ -1309,7 +1384,7 @@ async function seedDatabase(): Promise<void> {
                                 room: "G304",
                             },
                         ],
-                        capacity: 32,
+                        capacity: 45,
                     },
                     {
                         courseCode: "THS-ST3",
@@ -1393,67 +1468,150 @@ async function seedDatabase(): Promise<void> {
                 const termOneOfferedCourses =
                     curriculum.filter(
                         (course) =>
-                            ((course.trimester - 1) % 3) + 1 === 1,
+                            ((course.trimester - 1) % 3) + 1 === 1 ||
+                            course.code === "PRCCSST",
                     );
 
+                /*
+                 * Every offered course receives two or three
+                 * sections with different schedules and seat
+                 * counts. STDISCM is the exception: it has one
+                 * section only, with 44 of 45 seats occupied.
+                 */
                 for (
-                    let index = 0;
-                    index < termOneOfferedCourses.length;
-                    index += 1
+                    let courseIndex = 0;
+                    courseIndex <
+                    termOneOfferedCourses.length;
+                    courseIndex += 1
                 ) {
                     const course =
-                        termOneOfferedCourses[index];
-
-                    const scheduleSlot =
-                        enrollmentScheduleSlots[
-                            index %
-                                enrollmentScheduleSlots.length
+                        termOneOfferedCourses[
+                            courseIndex
                         ];
 
-                    await upsertById(
-                        db,
-                        "sections",
-                        {
-                            _id: oid(
-                                "section-next",
-                                course.code,
-                            ),
-                            courseId: oid(
-                                "course",
-                                course.code,
-                            ),
-                            academicTermId:
-                                ids.terms.next,
-                            facultyId:
-                                facultyIdForCourse(course),
-                            sectionCode: `N${String(
-                                index + 1,
-                            ).padStart(2, "0")}`,
-                            schedule: [
-                                {
-                                    days: [
-                                        ...scheduleSlot.days,
-                                    ],
-                                    startTime:
-                                        scheduleSlot.startTime,
-                                    endTime:
-                                        scheduleSlot.endTime,
-                                    room:
-                                        scheduleSlot.room,
-                                },
-                            ],
-                            capacity: 45,
-                            enrolledCount:
-                                getDemoEnrolledCount(
-                                    index,
+                    const sectionCount =
+                        course.code ===
+                        "STDISCM"
+                            ? 1
+                            : courseIndex %
+                                  2 ===
+                              0
+                              ? 2
+                              : 3;
+
+                    for (
+                        let sectionIndex = 0;
+                        sectionIndex <
+                        sectionCount;
+                        sectionIndex += 1
+                    ) {
+                        const scheduleIndex =
+                            (
+                                courseIndex *
+                                    3 +
+                                sectionIndex
+                            ) %
+                            enrollmentScheduleSlots.length;
+
+                        const scheduleSlot =
+                            course.code ===
+                            "PRCCSST"
+                                ? {
+                                      days: [
+                                          "ARRANGED",
+                                      ],
+                                      startTime:
+                                          "",
+                                      endTime:
+                                          "",
+                                      room: `Off Campus ${
+                                          sectionIndex +
+                                          1
+                                      }`,
+                                  }
+                                : enrollmentScheduleSlots[
+                                      scheduleIndex
+                                  ];
+
+                        const enrolledCount =
+                            course.code ===
+                            "STDISCM"
+                                ? 44
+                                : getDemoEnrolledCount(
+                                      courseIndex *
+                                          3 +
+                                          sectionIndex,
+                                  );
+
+                        await upsertById(
+                            db,
+                            "sections",
+                            {
+                                _id: oid(
+                                    "section-next",
+                                    `${course.code}:${
+                                        sectionIndex +
+                                        1
+                                    }`,
                                 ),
-                            status: "OPEN",
-                            seedTag,
-                            updatedAt: now,
-                        },
-                        session,
-                    );
+
+                                courseId: oid(
+                                    "course",
+                                    course.code,
+                                ),
+
+                                academicTermId:
+                                    ids.terms.next,
+
+                                facultyId:
+                                    facultyIdForCourse(
+                                        course,
+                                    ),
+
+                                sectionCode: `N${String(
+                                    courseIndex +
+                                        1,
+                                ).padStart(
+                                    2,
+                                    "0",
+                                )}-${String(
+                                    sectionIndex +
+                                        1,
+                                ).padStart(
+                                    2,
+                                    "0",
+                                )}`,
+
+                                schedule: [
+                                    {
+                                        days: [
+                                            ...scheduleSlot.days,
+                                        ],
+
+                                        startTime:
+                                            scheduleSlot.startTime,
+
+                                        endTime:
+                                            scheduleSlot.endTime,
+
+                                        room:
+                                            scheduleSlot.room,
+                                    },
+                                ],
+
+                                capacity: 45,
+
+                                enrolledCount,
+
+                                status: "OPEN",
+                                seedTag,
+                                updatedAt: now,
+                            },
+                            session,
+                        );
+                    }
                 }
+
 
                 for (const definition of currentSectionDefinitions) {
                     const course = curriculum.find(

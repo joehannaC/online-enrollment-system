@@ -2,6 +2,9 @@
 
 import {
     ArrowLeft,
+    CircleAlert,
+    CircleCheck,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -27,6 +30,12 @@ import type {
     EnrollmentSummaryItem,
     StudentEnrollmentResponse,
 } from "@/types";
+
+type ActionNotification = {
+    type: "SUCCESS" | "ERROR";
+    title: string;
+    message: string;
+};
 
 export default function EditEnrollmentPage() {
     const router = useRouter();
@@ -61,6 +70,14 @@ export default function EditEnrollmentPage() {
         errorMessage,
         setErrorMessage,
     ] = useState("");
+
+    const [
+        actionNotification,
+        setActionNotification,
+    ] =
+        useState<ActionNotification | null>(
+            null,
+        );
 
     async function loadEnrollment(): Promise<void> {
         setIsLoading(true);
@@ -124,6 +141,27 @@ export default function EditEnrollmentPage() {
         void loadEnrollment();
     }, []);
 
+    useEffect(() => {
+        if (!actionNotification) {
+            return;
+        }
+
+        const timeout =
+            window.setTimeout(() => {
+                setActionNotification(
+                    null,
+                );
+            }, 5000);
+
+        return () => {
+            window.clearTimeout(
+                timeout,
+            );
+        };
+    }, [
+        actionNotification,
+    ]);
+
     async function confirmDrop(): Promise<void> {
         if (
             !data ||
@@ -135,6 +173,9 @@ export default function EditEnrollmentPage() {
 
         setIsDropping(true);
         setErrorMessage("");
+        setActionNotification(
+            null,
+        );
 
         try {
             await removeEnrollmentDraftItem(
@@ -147,14 +188,26 @@ export default function EditEnrollmentPage() {
             );
 
             await loadEnrollment();
+
+            setActionNotification({
+                type: "SUCCESS",
+                title:
+                    "Course removed",
+                message:
+                    "The selected course was removed from your enrollment draft.",
+            });
         } catch (error) {
             if (
                 error instanceof
                 StudentEnrollmentApiError
             ) {
-                setErrorMessage(
-                    error.message,
-                );
+                setActionNotification({
+                    type: "ERROR",
+                    title:
+                        "Removal unsuccessful",
+                    message:
+                        error.message,
+                });
 
                 if (
                     error.code ===
@@ -166,9 +219,13 @@ export default function EditEnrollmentPage() {
                 return;
             }
 
-            setErrorMessage(
-                "The selected course could not be dropped.",
-            );
+            setActionNotification({
+                type: "ERROR",
+                title:
+                    "Removal unsuccessful",
+                message:
+                    "The selected course could not be removed.",
+            });
         } finally {
             setIsDropping(false);
         }
@@ -318,7 +375,7 @@ export default function EditEnrollmentPage() {
                                 </div>
                             </div>
 
-                            <button
+                            {/*<button
                                 type="button"
                                 onClick={() => {
                                     router.push(
@@ -336,18 +393,9 @@ export default function EditEnrollmentPage() {
                                 "
                             >
                                 Save Enrollment
-                            </button>
+                            </button>*/}
                         </div>
                     </section>
-                ) : null}
-
-                {errorMessage ? (
-                    <div
-                        role="alert"
-                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                    >
-                        {errorMessage}
-                    </div>
                 ) : null}
 
                 <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -569,6 +617,71 @@ export default function EditEnrollmentPage() {
                     </div>
                 </section>
             </div>
+
+            {actionNotification ? (
+                <div
+                    role={
+                        actionNotification.type ===
+                        "SUCCESS"
+                            ? "status"
+                            : "alert"
+                    }
+                    aria-live={
+                        actionNotification.type ===
+                        "SUCCESS"
+                            ? "polite"
+                            : "assertive"
+                    }
+                    className={[
+                        "fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-xl border bg-white p-4 shadow-2xl sm:right-6 sm:top-6",
+                        actionNotification.type ===
+                        "SUCCESS"
+                            ? "border-green-200"
+                            : "border-red-200",
+                    ].join(" ")}
+                >
+                    <div className="flex items-start gap-3">
+                        <div
+                            className={[
+                                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                                actionNotification.type ===
+                                "SUCCESS"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700",
+                            ].join(" ")}
+                        >
+                            {actionNotification.type ===
+                            "SUCCESS" ? (
+                                <CircleCheck className="h-5 w-5" />
+                            ) : (
+                                <CircleAlert className="h-5 w-5" />
+                            )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-sm font-semibold text-neutral-900">
+                                {actionNotification.title}
+                            </h2>
+                            <p className="mt-1 text-sm leading-5 text-neutral-600">
+                                {actionNotification.message}
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            aria-label="Close notification"
+                            onClick={() => {
+                                setActionNotification(
+                                    null,
+                                );
+                            }}
+                            className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            ) : null}
 
             <ConfirmationModal
                 isOpen={

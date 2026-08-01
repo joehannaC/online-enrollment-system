@@ -7,42 +7,66 @@ import {
     EmptyState,
     LoadingSkeleton,
 } from "@/components/common";
-import type { AnnouncementItem } from "@/types";
+import type {
+    AnnouncementItem,
+} from "@/types";
 
 interface AnnouncementListProps {
-    announcements: AnnouncementItem[];
-    isLoading?: boolean;
+    announcements:
+        AnnouncementItem[];
+
+    isLoading?:
+        boolean;
 }
 
 function formatAnnouncementDate(
     value: string,
 ): string {
-    const date = new Date(value);
+    const date =
+        new Date(value);
 
-    if (Number.isNaN(date.getTime())) {
+    if (
+        Number.isNaN(
+            date.getTime(),
+        )
+    ) {
         return value;
     }
 
-    const today = new Date();
+    const today =
+        new Date();
 
     if (
-        date.getFullYear() === today.getFullYear() &&
-        date.getMonth() === today.getMonth() &&
-        date.getDate() === today.getDate()
+        date.getFullYear() ===
+            today.getFullYear() &&
+        date.getMonth() ===
+            today.getMonth() &&
+        date.getDate() ===
+            today.getDate()
     ) {
         return "Today";
     }
 
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-    }).format(date);
+    return new Intl.DateTimeFormat(
+        "en-US",
+        {
+            month:
+                "short",
+
+            day:
+                "numeric",
+        },
+    ).format(date);
 }
 
 export default function AnnouncementList({
     announcements,
     isLoading = false,
 }: AnnouncementListProps) {
+    const shouldScroll =
+        announcements.length >
+        2;
+
     return (
         <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <header className="flex items-center gap-2 border-b border-neutral-200 px-5 py-4">
@@ -58,10 +82,17 @@ export default function AnnouncementList({
 
             {isLoading ? (
                 <div className="space-y-5 p-5">
-                    {Array.from({ length: 3 }).map(
-                        (_, index) => (
+                    {Array.from({
+                        length: 2,
+                    }).map(
+                        (
+                            _,
+                            index,
+                        ) => (
                             <div
-                                key={index}
+                                key={
+                                    index
+                                }
                                 className="flex gap-3"
                             >
                                 <LoadingSkeleton
@@ -80,7 +111,8 @@ export default function AnnouncementList({
                         ),
                     )}
                 </div>
-            ) : announcements.length === 0 ? (
+            ) : announcements.length ===
+              0 ? (
                 <div className="p-5">
                     <EmptyState
                         compact
@@ -90,11 +122,23 @@ export default function AnnouncementList({
                     />
                 </div>
             ) : (
-                <div className="divide-y divide-neutral-100 px-5">
+                <div
+                    className={[
+                        "divide-y divide-neutral-100 px-5",
+
+                        shouldScroll
+                            ? "max-h-[240px] overflow-y-auto overscroll-contain"
+                            : "overflow-hidden",
+                    ].join(" ")}
+                >
                     {announcements.map(
-                        (announcement) => (
+                        (
+                            announcement,
+                        ) => (
                             <article
-                                key={announcement.id}
+                                key={
+                                    announcement.id
+                                }
                                 className="flex gap-3 py-4"
                             >
                                 <span
@@ -109,7 +153,7 @@ export default function AnnouncementList({
                                         }
                                     </h3>
 
-                                    <p className="mt-1 text-sm leading-5 text-neutral-500">
+                                    <p className="mt-1 break-words text-sm leading-5 text-neutral-500">
                                         {
                                             announcement.message
                                         }

@@ -1,8 +1,6 @@
 export type EnrollmentStatus =
-    | "ENLISTED"
-    | "ENROLLED"
-    | "DROPPED"
-    | "COMPLETED";
+    | "REGISTERED"
+    | "IN_PROGRESS";
 
 export type AcademicTermStatus =
     | "UPCOMING"
@@ -42,6 +40,7 @@ export interface StudentProfileSummary {
     college: string;
     campus: string;
     yearLevel: number;
+
     requiredUnits: number;
 }
 
@@ -51,11 +50,16 @@ export interface RegisteredCourse {
 
     courseCode: string;
     courseName: string;
+
     units: number;
+    nonAcademicUnits: number;
+
     sectionCode: string;
 
     schedule: ScheduleItem[];
-    enrollmentStatus: EnrollmentStatus;
+
+    enrollmentStatus:
+        EnrollmentStatus;
 }
 
 export interface StudentScheduleEntry {
@@ -80,15 +84,29 @@ export interface AnnouncementItem {
 }
 
 export interface StudentDashboardResponse {
-    student: StudentProfileSummary;
-    currentTerm: AcademicTermSummary;
+    student:
+        StudentProfileSummary;
+
+    currentTerm:
+        AcademicTermSummary;
 
     summary: {
-        registeredCourseCount: number;
-        registeredUnits: number;
+        registeredCourseCount:
+            number;
+
+        registeredUnits:
+            number;
+
+        registeredNonAcademicUnits:
+            number;
     };
 
-    registeredCourses: RegisteredCourse[];
-    todaySchedule: StudentScheduleEntry[];
-    announcements: AnnouncementItem[];
+    registeredCourses:
+        RegisteredCourse[];
+
+    todaySchedule:
+        StudentScheduleEntry[];
+
+    announcements:
+        AnnouncementItem[];
 }
