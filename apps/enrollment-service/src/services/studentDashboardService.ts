@@ -746,6 +746,46 @@ export async function getStudentDashboard(
         );
     }
 
+    const registeredSectionIds =
+        Array.from(
+            registeredCourseMap.values(),
+        ).map((course) =>
+            new ObjectId(course.sectionId),
+        );
+
+    const submittedGradeSectionIds =
+        registeredSectionIds.length > 0
+            ? new Set(
+                  (
+                      await database
+                          .collection("grades")
+                          .find({
+                              studentId: student._id,
+                              sectionId: {
+                                  $in: registeredSectionIds,
+                              },
+                              status: {
+                                  $in: ["SUBMITTED", "VERIFIED"],
+                              },
+                          })
+                          .project({ sectionId: 1 })
+                          .toArray()
+                  ).map((grade) =>
+                      grade.sectionId.toString(),
+                  ),
+              )
+            : new Set<string>();
+
+    for (const [courseId, course] of registeredCourseMap) {
+        if (
+            submittedGradeSectionIds.has(
+                course.sectionId,
+            )
+        ) {
+            registeredCourseMap.delete(courseId);
+        }
+    }
+
     const registeredCourses =
         Array.from(
             registeredCourseMap.values(),
@@ -863,7 +903,16 @@ export async function getStudentDashboard(
                 status:
                     "PUBLISHED",
 
-                $or: [
+                $and: [
+                    {
+                        $or: [
+                            { studentId: student._id },
+                            { studentId: { $exists: false } },
+                            { studentId: null },
+                        ],
+                    },
+                    {
+                        $or: [
                     {
                         expiresAt: {
                             $exists:
@@ -881,6 +930,8 @@ export async function getStudentDashboard(
                             $gte:
                                 new Date(),
                         },
+                    },
+                        ],
                     },
                 ],
             })

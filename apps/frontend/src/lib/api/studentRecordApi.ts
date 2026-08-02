@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import type {
     ApiErrorResponse,
     ApiResponse,
@@ -109,9 +110,9 @@ export async function getStudentRecords(
 
     try {
         response = await fetch(
-            `/api/students/records${buildQueryString(
+            buildApiUrl(`/api/students/records${buildQueryString(
                 query,
-            )}`,
+            )}`),
             {
                 method: "GET",
 

@@ -168,6 +168,60 @@ interface GradeDocument {
     updatedAt?: Date;
 }
 
+function isFinalGrade(
+    grade?: GradeDocument,
+): boolean {
+    return (
+        grade?.status ===
+            "SUBMITTED" ||
+        grade?.status ===
+            "VERIFIED"
+    );
+}
+
+function isPassedGrade(
+    grade?: GradeDocument,
+): boolean {
+    return (
+        isFinalGrade(grade) &&
+        (
+            grade?.result ===
+                "PASSED" ||
+            grade?.result ===
+                "CREDITED" ||
+            (
+                typeof grade
+                    ?.finalGradeValue ===
+                    "number" &&
+                grade.finalGradeValue >
+                    1.0
+            )
+        )
+    );
+}
+
+function isFailedGrade(
+    grade?: GradeDocument,
+): boolean {
+    return (
+        isFinalGrade(grade) &&
+        grade?.result !==
+            "CREDITED" &&
+        (
+            grade?.result ===
+                "FAILED" ||
+            (
+                typeof grade
+                    ?.finalGradeValue ===
+                    "number" &&
+                grade.finalGradeValue <=
+                    1.0
+            )
+        )
+    );
+}
+
+
 interface EnrollmentContext {
     enrollment: EnrollmentDocument;
     section: SectionDocument;
@@ -221,22 +275,15 @@ function getCourseNonAcademicUnits(
 function formatGrade(
     grade?: GradeDocument,
 ): string | undefined {
-    const finalGradeValue =
-        grade?.finalGradeValue;
-
     if (
-        typeof finalGradeValue !==
-            "number" ||
-        !Number.isFinite(
-            finalGradeValue,
-        )
+        grade?.finalGradeValue ===
+        undefined
     ) {
         return undefined;
     }
 
-    return finalGradeValue.toFixed(
-        1,
-    );
+    return grade.finalGradeValue
+        .toFixed(1);
 }
 
 function getEnrollmentPriority(
@@ -314,27 +361,27 @@ function getBestGrade(
 
     return [...gradeContexts].sort(
         (first, second) => {
-            const priorityDifference =
-                statusPriority[
-                    second.grade.status
-                ] -
-                statusPriority[
-                    first.grade.status
-                ];
-
-            if (
-                priorityDifference !== 0
-            ) {
-                return priorityDifference;
-            }
-
-            return (
+            const dateDifference =
                 getLatestDate(
                     second.grade,
                 ) -
                 getLatestDate(
                     first.grade,
-                )
+                );
+
+            if (
+                dateDifference !== 0
+            ) {
+                return dateDifference;
+            }
+
+            return (
+                statusPriority[
+                    second.grade.status
+                ] -
+                statusPriority[
+                    first.grade.status
+                ]
             );
         },
     )[0];
@@ -434,16 +481,48 @@ function deriveStatus({
     recommendedTrimester: number;
     enlistmentSequence: number;
 }): StudentRecordStatus {
+    const grade =
+        gradeContext?.grade;
+
+    /*
+     * Final grades must take precedence over enrollment
+     * records. Once a grade is SUBMITTED or VERIFIED,
+     * the course is no longer counted as enrolled,
+     * whether the result is passed or failed.
+     */
     if (
-        gradeContext?.grade.result ===
-        "CREDITED"
+        isFinalGrade(grade) &&
+        grade?.result ===
+            "CREDITED"
     ) {
         return "CREDITED";
     }
 
+    if (isPassedGrade(grade)) {
+        return "COMPLETED";
+    }
+
+    if (isFailedGrade(grade)) {
+        const prerequisitesSatisfied =
+            missingPrerequisiteCodes
+                .length === 0;
+
+        const recommendedTermReached =
+            recommendedTrimester <=
+            enlistmentSequence;
+
+        return (
+            prerequisitesSatisfied &&
+            recommendedTermReached
+        )
+            ? "CAN_BE_ENLISTED"
+            : "CANNOT_YET_BE_ENLISTED";
+    }
+
     if (
-        gradeContext?.grade.result ===
-        "PASSED"
+        enrollmentContext
+            ?.enrollment.status ===
+            "COMPLETED"
     ) {
         return "COMPLETED";
     }
@@ -451,15 +530,7 @@ function deriveStatus({
     if (
         enrollmentContext
             ?.enrollment.status ===
-        "COMPLETED"
-    ) {
-        return "COMPLETED";
-    }
-
-    if (
-        enrollmentContext
-            ?.enrollment.status ===
-        "ENROLLED"
+            "ENROLLED"
     ) {
         return "IN_PROGRESS";
     }
@@ -467,35 +538,39 @@ function deriveStatus({
     if (
         enrollmentContext
             ?.enrollment.status ===
-        "REGISTERED"
+            "REGISTERED"
     ) {
         return "REGISTERED";
     }
 
-    if (selectionStatus === "SUBMITTED") {
+    if (
+        selectionStatus ===
+        "SUBMITTED"
+    ) {
         return "IN_PROGRESS";
     }
 
-    if (selectionStatus === "DRAFT") {
+    if (
+        selectionStatus ===
+        "DRAFT"
+    ) {
         return "REGISTERED";
     }
 
     const prerequisitesSatisfied =
-        missingPrerequisiteCodes.length ===
-        0;
+        missingPrerequisiteCodes
+            .length === 0;
 
     const recommendedTermReached =
         recommendedTrimester <=
         enlistmentSequence;
 
-    if (
+    return (
         prerequisitesSatisfied &&
         recommendedTermReached
-    ) {
-        return "CAN_BE_ENLISTED";
-    }
-
-    return "CANNOT_YET_BE_ENLISTED";
+    )
+        ? "CAN_BE_ENLISTED"
+        : "CANNOT_YET_BE_ENLISTED";
 }
 
 function getRecordAcademicPeriod({
@@ -887,6 +962,13 @@ export async function getStudentRecords(
                 sectionId: {
                     $in: sectionIds,
                 },
+
+                status: {
+                    $in: [
+                        "SUBMITTED",
+                        "VERIFIED",
+                    ],
+                },
             })
             .toArray(),
     ]);
@@ -1084,12 +1166,9 @@ export async function getStudentRecords(
         const hasSatisfiedGrade =
             contexts.some(
                 (context) =>
-                    context
-                        .grade.result ===
-                        "PASSED" ||
-                    context
-                        .grade.result ===
-                        "CREDITED",
+                    isPassedGrade(
+                        context.grade,
+                    ),
             );
 
         if (hasSatisfiedGrade) {
@@ -1124,7 +1203,23 @@ export async function getStudentRecords(
                     "COMPLETED",
             );
 
-        if (completed) {
+        const finalGradeContexts =
+            gradeContextsByCourseId.get(
+                courseId,
+            ) ?? [];
+
+        const hasFinalGrade =
+            finalGradeContexts.some(
+                (context) =>
+                    isFinalGrade(
+                        context.grade,
+                    ),
+            );
+
+        if (
+            completed &&
+            !hasFinalGrade
+        ) {
             satisfiedCourseCodes.add(
                 course.courseCode,
             );

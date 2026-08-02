@@ -96,7 +96,7 @@ export interface AnnouncementItem {
     id: string;
     title: string;
     message: string;
-    publishedAt: ISODateString;
+    publishedAt: string;
 }
 
 export interface StudentDashboardResponse {

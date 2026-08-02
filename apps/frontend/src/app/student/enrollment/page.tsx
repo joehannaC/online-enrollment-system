@@ -500,6 +500,20 @@ export default function StudentEnrollmentPage() {
                     .length > 0,
         );
 
+    const isEnrollmentComingSoon =
+        Boolean(
+            data &&
+                !data.term.isEnrollmentOpen &&
+                data.enrollment.items.length === 0 &&
+                data.availableSections.length === 0,
+        );
+
+    const selectedAcademicUnits =
+        isEnrollmentComingSoon
+            ? 0
+            : data?.enrollment
+                  .totalAcademicUnits ?? 0;
+
 
     if (
         isLoading &&
@@ -588,9 +602,9 @@ export default function StudentEnrollmentPage() {
                     </h1>
 
                     <p className="mt-1 text-sm text-neutral-600">
-                        Browse available courses
-                        and enroll while slots
-                        are open.
+                        {isEnrollmentComingSoon
+                            ? "Enrollment for the next academic term is coming soon."
+                            : "Browse available courses and enroll while slots are open."}
                     </p>
                 </header>
 
@@ -615,9 +629,7 @@ export default function StudentEnrollmentPage() {
                                     <p>
                                         Selected:{" "}
                                         {
-                                            data
-                                                .enrollment
-                                                .totalAcademicUnits
+                                            selectedAcademicUnits
                                         }{" "}
                                         units
                                     </p>
@@ -635,14 +647,15 @@ export default function StudentEnrollmentPage() {
 
                             <div className="flex flex-col gap-3 lg:items-end">
                                 <p className="text-sm font-semibold text-[#35822E]">
-                                    Enrollment closes{" "}
-                                    {formatDate(
-                                        data.term
-                                            .enrollmentEnd,
-                                    )}
+                                    {isEnrollmentComingSoon
+                                        ? "Enrollment coming soon"
+                                        : `Enrollment closes ${formatDate(
+                                              data.term.enrollmentEnd,
+                                          )}`}
                                 </p>
 
-                                <div className="flex flex-col gap-2 sm:flex-row">
+                                {!isEnrollmentComingSoon ? (
+                                    <div className="flex flex-col gap-2 sm:flex-row">
                                     <Link
                                         href="/student/enrollment/summary"
                                         className="
@@ -682,9 +695,23 @@ export default function StudentEnrollmentPage() {
                                             Edit Enrollment
                                         </Link>
                                     ) : null}
-                                </div>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
+                    </section>
+                ) : null}
+
+                {isEnrollmentComingSoon ? (
+                    <section className="rounded-xl border border-neutral-200 bg-white px-5 py-16 text-center shadow-sm">
+                        <CircleAlert className="mx-auto h-10 w-10 text-[#35822E]" />
+                        <h2 className="mt-4 text-lg font-semibold text-neutral-900">
+                            No courses to show yet
+                        </h2>
+                        <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-600">
+                            Enrollment for Term 2, A.Y. 2026–2027 is coming soon.
+                            Please wait for further announcements.
+                        </p>
                     </section>
                 ) : null}
 

@@ -257,53 +257,42 @@ export default function LoginPage() {
                                 />
 
                                 <input
-                                    id="usernameOrEmail"
-                                    name="usernameOrEmail"
-                                    type="text"
-                                    autoComplete="username"
-                                    value={
-                                        usernameOrEmail
-                                    }
-                                    onChange={(
-                                        event,
-                                    ) => {
-                                        setUsernameOrEmail(
-                                            event
-                                                .target
-                                                .value,
-                                        );
+                                suppressHydrationWarning
+                                id="usernameOrEmail"
+                                name="usernameOrEmail"
+                                type="text"
+                                autoComplete="username"
+                                value={usernameOrEmail}
+                                onChange={(event) => {
+                                    setUsernameOrEmail(
+                                        event.target.value,
+                                    );
 
-                                        if (
-                                            errorMessage
-                                        ) {
-                                            setErrorMessage(
-                                                "",
-                                            );
-                                        }
-                                    }}
-                                    disabled={
-                                        isSubmitting
+                                    if (errorMessage) {
+                                        setErrorMessage("");
                                     }
-                                    required
-                                    placeholder="Enter username or email"
-                                    className="
-                                        h-12 w-full
-                                        rounded-lg
-                                        border
-                                        border-neutral-300
-                                        bg-white
-                                        pl-11 pr-4
-                                        text-neutral-900
-                                        outline-none
-                                        transition
-                                        placeholder:text-neutral-400
-                                        focus:border-[#35822E]
-                                        focus:ring-4
-                                        focus:ring-[#35822E]/15
-                                        disabled:cursor-not-allowed
-                                        disabled:opacity-70
-                                    "
-                                />
+                                }}
+                                disabled={isSubmitting}
+                                required
+                                placeholder="Enter username or email"
+                                className="
+                                    h-12 w-full
+                                    rounded-lg
+                                    border
+                                    border-neutral-300
+                                    bg-white
+                                    pl-11 pr-4
+                                    text-neutral-900
+                                    outline-none
+                                    transition
+                                    placeholder:text-neutral-400
+                                    focus:border-[#35822E]
+                                    focus:ring-4
+                                    focus:ring-[#35822E]/15
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-70
+                                "
+                            />
                             </div>
                         </div>
 
@@ -334,85 +323,64 @@ export default function LoginPage() {
                                 />
 
                                 <input
-                                    id="password"
-                                    name="password"
-                                    type={
-                                        showPassword
-                                            ? "text"
-                                            : "password"
-                                    }
-                                    autoComplete="current-password"
-                                    value={
-                                        password
-                                    }
-                                    onChange={(
-                                        event,
-                                    ) => {
-                                        setPassword(
-                                            event
-                                                .target
-                                                .value,
-                                        );
+                                suppressHydrationWarning
+                                id="password"
+                                name="password"
+                                type={
+                                    showPassword
+                                        ? "text"
+                                        : "password"
+                                }
+                                autoComplete="current-password"
+                                value={password}
+                                onChange={(event) => {
+                                    setPassword(
+                                        event.target.value,
+                                    );
 
-                                        if (
-                                            errorMessage
-                                        ) {
-                                            setErrorMessage(
-                                                "",
-                                            );
-                                        }
-                                    }}
-                                    disabled={
-                                        isSubmitting
+                                    if (errorMessage) {
+                                        setErrorMessage("");
                                     }
-                                    required
-                                    placeholder="Enter password"
-                                    className="
-                                        h-12 w-full
-                                        rounded-lg
-                                        border
-                                        border-neutral-300
-                                        bg-white
-                                        pl-11 pr-12
-                                        text-neutral-900
-                                        outline-none
-                                        transition
-                                        placeholder:text-neutral-400
-                                        focus:border-[#35822E]
-                                        focus:ring-4
-                                        focus:ring-[#35822E]/15
-                                        disabled:cursor-not-allowed
-                                        disabled:opacity-70
-                                    "
-                                />
+                                }}
+                                disabled={isSubmitting}
+                                required
+                                placeholder="Enter password"
+                                className="
+                                    h-12 w-full
+                                    rounded-lg
+                                    border
+                                    border-neutral-300
+                                    bg-white
+                                    pl-11 pr-12
+                                    text-neutral-900
+                                    outline-none
+                                    transition
+                                    placeholder:text-neutral-400
+                                    focus:border-[#35822E]
+                                    focus:ring-4
+                                    focus:ring-[#35822E]/15
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-70
+                                "
+                            />
 
                                 <button
+                                    suppressHydrationWarning
                                     type="button"
-                                    disabled={
-                                        isSubmitting
-                                    }
+                                    disabled={isSubmitting}
                                     onClick={() => {
-                                        setShowPassword(
-                                            (
-                                                current,
-                                            ) =>
-                                                !current,
-                                        );
+                                        setShowPassword((current) => !current);
                                     }}
                                     aria-label={
                                         showPassword
                                             ? "Hide password"
                                             : "Show password"
                                     }
-                                    aria-pressed={
-                                        showPassword
-                                    }
+                                    aria-pressed={showPassword}
                                     className="
-                                        absolute
-                                        right-3 top-1/2
+                                        absolute right-3 top-1/2
                                         -translate-y-1/2
-                                        rounded-md
-                                        p-1
+                                        rounded-md p-1
                                         text-neutral-500
                                         transition
                                         hover:bg-neutral-100

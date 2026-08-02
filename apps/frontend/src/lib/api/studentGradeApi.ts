@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import {
     getAccessToken,
 } from "@/lib/auth/tokenStorage";
@@ -113,9 +114,9 @@ export async function getStudentGrades(
 
     try {
         response = await fetch(
-            `/api/students/grades${buildQueryString(
+            buildApiUrl(`/api/students/grades${buildQueryString(
                 query,
-            )}`,
+            )}`),
             {
                 method: "GET",
 

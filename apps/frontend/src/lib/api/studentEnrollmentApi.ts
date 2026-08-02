@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import {
     getAccessToken,
 } from "@/lib/auth/tokenStorage";
@@ -139,7 +140,7 @@ export async function getStudentEnrollment(
 
     try {
         response = await fetch(
-            `/api/students/enrollment?${parameters.toString()}`,
+            buildApiUrl(`/api/students/enrollment?${parameters.toString()}`),
             {
                 method: "GET",
 
@@ -180,7 +181,7 @@ export async function addEnrollmentDraftItem(
 ): Promise<void> {
     const response =
         await fetch(
-            "/api/students/enrollment/draft/items",
+            buildApiUrl("/api/students/enrollment/draft/items"),
             {
                 method: "POST",
 
@@ -205,7 +206,7 @@ export async function removeEnrollmentDraftItem(
 ): Promise<void> {
     const response =
         await fetch(
-            `/api/students/enrollment/draft/items/${itemId}`,
+            buildApiUrl(`/api/students/enrollment/draft/items/${itemId}`),
             {
                 method: "DELETE",
 
@@ -228,7 +229,7 @@ export async function submitStudentEnrollment(
 ): Promise<SubmitEnrollmentResult> {
     const response =
         await fetch(
-            "/api/students/enrollment/submit",
+            buildApiUrl("/api/students/enrollment/submit"),
             {
                 method: "POST",
 

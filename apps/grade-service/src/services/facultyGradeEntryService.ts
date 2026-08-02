@@ -1116,6 +1116,450 @@ export async function saveGradeDraft(
     };
 }
 
+
+async function synchronizeStudentAcademicState(
+    db: Db,
+    session: ClientSession,
+    studentId: ObjectId,
+    academicTermId: ObjectId,
+    now: Date,
+): Promise<void> {
+    const submittedHeaders =
+        await db
+            .collection("studentEnrollments")
+            .find(
+                {
+                    studentId,
+                    academicTermId,
+                    status: "SUBMITTED",
+                },
+                { session },
+            )
+            .toArray();
+
+    const headerIds = submittedHeaders.map(
+        (header) => header._id,
+    );
+
+    const termItems =
+        headerIds.length > 0
+            ? await db
+                  .collection("studentEnrollmentItems")
+                  .find(
+                      {
+                          enrollmentId: { $in: headerIds },
+                          studentId,
+                          academicTermId,
+                      },
+                      { session },
+                  )
+                  .toArray()
+            : [];
+
+    const termSectionIds = termItems.map(
+        (item) => item.sectionId,
+    );
+
+    const submittedTermGrades =
+        termSectionIds.length > 0
+            ? await db
+                  .collection("grades")
+                  .find(
+                      {
+                          studentId,
+                          academicTermId,
+                          sectionId: { $in: termSectionIds },
+                          status: { $in: ["SUBMITTED", "VERIFIED"] },
+                      },
+                      { session },
+                  )
+                  .toArray()
+            : [];
+
+    const termGradeBySection = new Map(
+        submittedTermGrades.map((grade) => [
+            grade.sectionId.toString(),
+            grade,
+        ]),
+    );
+
+    for (const item of termItems) {
+        const grade = termGradeBySection.get(
+            item.sectionId.toString(),
+        );
+
+        if (!grade) {
+            continue;
+        }
+
+        const finalGradeValue =
+            typeof grade.finalGradeValue === "number"
+                ? grade.finalGradeValue
+                : 0;
+
+        const result =
+            finalGradeValue > 1.0
+                ? "PASSED"
+                : "FAILED";
+
+        await db
+            .collection("studentEnrollmentItems")
+            .updateOne(
+                { _id: item._id },
+                {
+                    $set: {
+                        academicStatus: "COMPLETED",
+                        result,
+                        finalGradeValue,
+                        completedAt: grade.submittedAt ?? now,
+                        updatedAt: now,
+                    },
+                },
+                { session },
+            );
+    }
+
+    const allTermGradesSubmitted =
+        termItems.length > 0 &&
+        termItems.every((item) =>
+            termGradeBySection.has(
+                item.sectionId.toString(),
+            ),
+        );
+
+    if (allTermGradesSubmitted && headerIds.length > 0) {
+        await db
+            .collection("studentEnrollments")
+            .updateMany(
+                { _id: { $in: headerIds } },
+                {
+                    $set: {
+                        isTermFinalized: true,
+                        termFinalizedAt: now,
+                        totalAcademicUnits: 0,
+                        totalNonAcademicUnits: 0,
+                        updatedAt: now,
+                    },
+                },
+                { session },
+            );
+    }
+
+    const allSubmittedGrades =
+        await db
+            .collection("grades")
+            .find(
+                {
+                    studentId,
+                    status: { $in: ["SUBMITTED", "VERIFIED"] },
+                },
+                { session },
+            )
+            .toArray();
+
+    const allSectionIds = Array.from(
+        new Map(
+            allSubmittedGrades.map((grade) => [
+                grade.sectionId.toString(),
+                grade.sectionId,
+            ]),
+        ).values(),
+    );
+
+    const allSections =
+        allSectionIds.length > 0
+            ? await db
+                  .collection("sections")
+                  .find(
+                      { _id: { $in: allSectionIds } },
+                      { session },
+                  )
+                  .toArray()
+            : [];
+
+    const sectionMap = new Map(
+        allSections.map((section) => [
+            section._id.toString(),
+            section,
+        ]),
+    );
+
+    const allCourseIds = Array.from(
+        new Map(
+            allSections.map((section) => [
+                section.courseId.toString(),
+                section.courseId,
+            ]),
+        ).values(),
+    );
+
+    const allCourses =
+        allCourseIds.length > 0
+            ? await db
+                  .collection("courses")
+                  .find(
+                      { _id: { $in: allCourseIds } },
+                      { session },
+                  )
+                  .toArray()
+            : [];
+
+    const courseMap = new Map(
+        allCourses.map((course) => [
+            course._id.toString(),
+            course,
+        ]),
+    );
+
+    const latestGradeByCourse = new Map<string, Document>();
+
+    for (const grade of allSubmittedGrades) {
+        const section = sectionMap.get(
+            grade.sectionId.toString(),
+        );
+        if (!section) continue;
+
+        const key = section.courseId.toString();
+        const existing = latestGradeByCourse.get(key);
+        const currentTime = new Date(
+            grade.submittedAt ?? grade.updatedAt ?? grade.createdAt ?? 0,
+        ).getTime();
+        const existingTime = existing
+            ? new Date(
+                  existing.submittedAt ??
+                      existing.updatedAt ??
+                      existing.createdAt ??
+                      0,
+              ).getTime()
+            : -1;
+
+        if (!existing || currentTime >= existingTime) {
+            latestGradeByCourse.set(key, grade);
+        }
+    }
+
+    let earnedUnits = 0;
+    let earnedNonAcademicUnits = 0;
+
+    for (const [courseId, grade] of latestGradeByCourse) {
+        const course = courseMap.get(courseId);
+        if (!course) continue;
+
+        const passed =
+            grade.result === "CREDITED" ||
+            (typeof grade.finalGradeValue === "number" &&
+                grade.finalGradeValue > 1.0);
+
+        if (!passed) continue;
+
+        earnedUnits += Number(
+            course.academicUnits ?? course.units ?? 0,
+        );
+        earnedNonAcademicUnits += Number(
+            course.nonAcademicUnits ?? 0,
+        );
+    }
+
+    const pendingTermItems = termItems.filter(
+        (item) =>
+            !termGradeBySection.has(
+                item.sectionId.toString(),
+            ),
+    );
+
+    const enrolledUnits = pendingTermItems.reduce(
+        (total, item) =>
+            total + Number(item.academicUnits ?? 0),
+        0,
+    );
+
+    const enrolledNonAcademicUnits = pendingTermItems.reduce(
+        (total, item) =>
+            total + Number(item.nonAcademicUnits ?? 0),
+        0,
+    );
+
+    const student = await db
+        .collection("students")
+        .findOne({ _id: studentId }, { session });
+
+    if (student) {
+        const requiredUnits = Number(student.requiredUnits ?? 0);
+        const requiredNonAcademicUnits = Number(
+            student.requiredNonAcademicUnits ?? 0,
+        );
+
+        await db
+            .collection("students")
+            .updateOne(
+                { _id: studentId },
+                {
+                    $set: {
+                        earnedUnits,
+                        earnedNonAcademicUnits,
+                        remainingUnits: Math.max(
+                            requiredUnits - earnedUnits,
+                            0,
+                        ),
+                        remainingNonAcademicUnits: Math.max(
+                            requiredNonAcademicUnits -
+                                earnedNonAcademicUnits,
+                            0,
+                        ),
+                        enrolledUnits,
+                        enrolledNonAcademicUnits,
+                        enlistedUnits: 0,
+                        enlistedNonAcademicUnits: 0,
+                        updatedAt: now,
+                    },
+                },
+                { session },
+            );
+    }
+}
+
+async function createStudentGradeAnnouncements(
+    db: Db,
+    session: ClientSession,
+    studentIds: ObjectId[],
+    section: Document,
+    academicTerm: Document,
+    now: Date,
+): Promise<void> {
+    const course = await db
+        .collection("courses")
+        .findOne(
+            {
+                _id: section.courseId,
+            },
+            {
+                session,
+            },
+        );
+
+    if (
+        !course ||
+        studentIds.length === 0
+    ) {
+        return;
+    }
+
+    const uniqueStudentIds =
+        Array.from(
+            new Map(
+                studentIds.map(
+                    (studentId) => [
+                        studentId.toHexString(),
+                        studentId,
+                    ],
+                ),
+            ).values(),
+        );
+
+    for (
+        const studentId of
+        uniqueStudentIds
+    ) {
+        const eventKey =
+            `GRADE_SUBMITTED:${section._id.toString()}:${studentId.toHexString()}`;
+
+        await db
+            .collection("announcements")
+            .updateOne(
+                {
+                    studentId,
+                    eventKey,
+                },
+                {
+                    $setOnInsert: {
+                        audience:
+                            "STUDENT",
+                        studentId,
+                        eventKey,
+                        relatedSectionId:
+                            section._id,
+                        relatedCourseId:
+                            course._id,
+                        relatedAcademicTermId:
+                            academicTerm._id,
+                        title:
+                            `Grade submitted for ${String(
+                                course.courseCode ??
+                                    "course",
+                            )}`,
+                        message:
+                            `Your final grade for ${String(
+                                course.courseName ??
+                                    course.courseCode ??
+                                    "the course",
+                            )} is now available on the Grades page.`,
+                        status:
+                            "PUBLISHED",
+                        publishedAt:
+                            now,
+                        createdAt:
+                            now,
+                        updatedAt:
+                            now,
+                    },
+                },
+                {
+                    upsert: true,
+                    session,
+                },
+            );
+    }
+}
+
+async function createCurriculumUpdateAnnouncement(
+    db: Db,
+    session: ClientSession,
+    studentId: ObjectId,
+    section: Document,
+    academicTerm: Document,
+    now: Date,
+): Promise<void> {
+    const eventKey =
+        `CURRICULUM_UPDATED:${section._id.toString()}:${studentId.toHexString()}`;
+
+    await db
+        .collection("announcements")
+        .updateOne(
+            {
+                studentId,
+                eventKey,
+            },
+            {
+                $setOnInsert: {
+                    audience:
+                        "STUDENT",
+                    studentId,
+                    eventKey,
+                    relatedSectionId:
+                        section._id,
+                    relatedAcademicTermId:
+                        academicTerm._id,
+                    title:
+                        "Curriculum audit and grades updated",
+                    message:
+                        "Your curriculum audit, academic records, earned units, remaining units, enrolled units, and grades have been updated based on the submitted final grade.",
+                    status:
+                        "PUBLISHED",
+                    publishedAt:
+                        now,
+                    createdAt:
+                        now,
+                    updatedAt:
+                        now,
+                },
+            },
+            {
+                upsert: true,
+                session,
+            },
+        );
+}
+
 export async function submitGrades(
     authenticatedUserId: string,
     sectionIdValue: string,
@@ -1336,6 +1780,28 @@ export async function submitGrades(
                     const now =
                         new Date();
 
+                    for (const grade of completeGrades) {
+                        const finalGradeValue =
+                            typeof grade.finalGradeValue === "number"
+                                ? grade.finalGradeValue
+                                : 0;
+
+                        await db
+                            .collection("grades")
+                            .updateOne(
+                                { _id: grade._id },
+                                {
+                                    $set: {
+                                        result:
+                                            finalGradeValue > 1.0
+                                                ? "PASSED"
+                                                : "FAILED",
+                                    },
+                                },
+                                { session },
+                            );
+                    }
+
                     await db
                         .collection(
                             "grades",
@@ -1405,6 +1871,49 @@ export async function submitGrades(
                                 session,
                             },
                         );
+
+                    await createStudentGradeAnnouncements(
+                        db,
+                        session,
+                        studentIds,
+                        section,
+                        term,
+                        now,
+                    );
+
+                    const uniqueStudentIds =
+                        Array.from(
+                            new Map(
+                                studentIds.map(
+                                    (studentId) => [
+                                        studentId.toHexString(),
+                                        studentId,
+                                    ],
+                                ),
+                            ).values(),
+                        );
+
+                    for (
+                        const studentId of
+                        uniqueStudentIds
+                    ) {
+                        await synchronizeStudentAcademicState(
+                            db,
+                            session,
+                            studentId,
+                            term._id,
+                            now,
+                        );
+
+                        await createCurriculumUpdateAnnouncement(
+                            db,
+                            session,
+                            studentId,
+                            section,
+                            term,
+                            now,
+                        );
+                    }
 
                     return {
                         sectionId:

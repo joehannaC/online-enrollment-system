@@ -63,13 +63,28 @@ function getDisplayGradeStatus(
         return "COMPLETE";
     }
 
+    const values = [
+        student.components
+            .activitiesScore,
+
+        student.components
+            .majorOutput1Score,
+
+        student.components
+            .majorOutput2Score,
+
+        student.components
+            .midtermExamScore,
+
+        student.components
+            .finalExamScore,
+    ];
+
     const hasAnyInput =
-        Object.values(
-            student.components,
-        ).some(
+        values.some(
             (value) =>
-                value !==
-                undefined,
+                typeof value ===
+                "number",
         );
 
     return hasAnyInput

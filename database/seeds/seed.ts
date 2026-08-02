@@ -8,6 +8,7 @@ import {
 } from "mongodb";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
     calculateAcademicSummary,
@@ -15,21 +16,76 @@ import {
     type AcademicGradeInput,
 } from "../../packages/shared/src/index.js";
 
+const currentFilePath =
+    fileURLToPath(import.meta.url);
+
+const currentDirectory =
+    path.dirname(currentFilePath);
+
+const projectRoot =
+    path.resolve(
+        currentDirectory,
+        "../..",
+    );
+
+const authEnvironmentPath =
+    path.resolve(
+        projectRoot,
+        "apps/auth-service/.env",
+    );
+
+const seedEnvironmentPath =
+    path.resolve(
+        projectRoot,
+        "database/seeds/.env",
+    );
+
+/*
+ * The authentication service environment is the source of truth
+ * for the MongoDB connection used by the seed. The seed-specific
+ * environment file is loaded only as a fallback and does not
+ * overwrite values already loaded from auth-service/.env.
+ */
 dotenv.config({
-    path: path.resolve(process.cwd(), "database/seeds/.env"),
+    path: authEnvironmentPath,
 });
 
-const mongoUri = process.env.MONGODB_URI;
+dotenv.config({
+    path: seedEnvironmentPath,
+    override: false,
+});
+
+const mongoUri =
+    process.env.MONGODB_URI?.trim();
 
 if (!mongoUri) {
     throw new Error(
-        "MONGODB_URI is missing from database/seeds/.env",
+        `MONGODB_URI is missing. Add it to ${authEnvironmentPath} or ${seedEnvironmentPath}.`,
     );
 }
 
-const databaseName = "online_enrollment";
-const resetRequested = process.argv.includes("--reset");
-const seedTag = "CS-ST18-2021-DEMO";
+const databaseName =
+    process.env.MONGODB_DATABASE?.trim() ||
+    process.env.MONGODB_DB_NAME?.trim() ||
+    "online_enrollment";
+
+const resetRequested =
+    process.argv.includes("--reset");
+
+const seedTag =
+    "CS-ST18-2021-DEMO";
+
+const demoPassword =
+    process.env.SEED_DEMO_PASSWORD?.trim() ||
+    "Password123!";
+
+function normalizeEmail(
+    value: string,
+): string {
+    return value
+        .trim()
+        .toLowerCase();
+}
 
 type CourseCategory =
     | "GENERAL_EDUCATION"
@@ -620,16 +676,27 @@ async function seedDatabase(): Promise<void> {
 
         await createIndexes(db);
 
-        const passwordHash = await bcrypt.hash(
-            "Password123!",
-            12,
-        );
+        const passwordHash =
+            await bcrypt.hash(
+                demoPassword,
+                12,
+            );
 
         const now = new Date();
         const session = client.startSession();
 
         try {
-            await session.withTransaction(async () => {
+            /*
+             * The local development database may be a standalone
+             * MongoDB server. Standalone servers do not support
+             * multi-document transactions, so the seed runs the
+             * same idempotent upsert operations without starting
+             * a transaction.
+             *
+             * The ClientSession is still passed to the operations;
+             * it simply is not placed inside withTransaction().
+             */
+            await (async () => {
                 if (resetRequested) {
                     console.log(
                         "Removing existing demo seed records...",
@@ -674,8 +741,25 @@ async function seedDatabase(): Promise<void> {
                         "users",
                         {
                             ...user,
+                            email:
+                                normalizeEmail(
+                                    user.email,
+                                ),
+                            username:
+                                user.username
+                                    .trim()
+                                    .toLowerCase(),
                             passwordHash,
-                            accountStatus: "ACTIVE",
+                            accountStatus:
+                                "ACTIVE",
+                            status:
+                                "ACTIVE",
+                            requiresPasswordChange:
+                                false,
+                            failedLoginAttempts:
+                                0,
+                            lockedUntil:
+                                null,
                             seedTag,
                             updatedAt: now,
                         },
@@ -1716,32 +1800,10 @@ async function seedDatabase(): Promise<void> {
                         title:
                             "Enrollment period is now open",
                         message:
-                            "Students may enroll in available sections from August 1 through August 15, 2026.",
+                            "Students may enroll in available sections from August 1 to August 15, 2026.",
                         audience: "STUDENT",
                         publishedAt: new Date(
                             "2026-07-28",
-                        ),
-                    },
-                    {
-                        key: "curriculum-audit",
-                        title:
-                            "Curriculum audit has been updated",
-                        message:
-                            "Review completed, remaining, enrolled, and enlisted units in Academic Records.",
-                        audience: "STUDENT",
-                        publishedAt: new Date(
-                            "2026-07-25",
-                        ),
-                    },
-                    {
-                        key: "grade-deadline",
-                        title:
-                            "Grade submission deadline",
-                        message:
-                            "Faculty members must submit final grades on or before November 10, 2026.",
-                        audience: "FACULTY",
-                        publishedAt: new Date(
-                            "2026-07-24",
                         ),
                     },
                 ];
@@ -1771,10 +1833,76 @@ async function seedDatabase(): Promise<void> {
                         session,
                     );
                 }
-            });
+            })();
         } finally {
             await session.endSession();
         }
+
+
+        const seededUsers =
+            await db
+                .collection<{
+                    email: string;
+                    username: string;
+                    passwordHash?: string;
+                    accountStatus?: string;
+                    status?: string;
+                }>("users")
+                .find({
+                    seedTag,
+                })
+                .toArray();
+
+        if (
+            seededUsers.length === 0
+        ) {
+            throw new Error(
+                "Seed verification failed: no demo users were written to the users collection.",
+            );
+        }
+
+        for (
+            const seededUser of
+            seededUsers
+        ) {
+            if (
+                typeof seededUser.passwordHash !==
+                    "string" ||
+                seededUser.passwordHash.length ===
+                    0
+            ) {
+                throw new Error(
+                    `Seed verification failed: ${seededUser.email} has no passwordHash.`,
+                );
+            }
+
+            const passwordMatches =
+                await bcrypt.compare(
+                    demoPassword,
+                    seededUser.passwordHash,
+                );
+
+            if (!passwordMatches) {
+                throw new Error(
+                    `Seed verification failed: the password hash for ${seededUser.email} does not match the configured demo password.`,
+                );
+            }
+
+            if (
+                seededUser.accountStatus !==
+                    "ACTIVE" &&
+                seededUser.status !==
+                    "ACTIVE"
+            ) {
+                throw new Error(
+                    `Seed verification failed: ${seededUser.email} is not active.`,
+                );
+            }
+        }
+
+        console.log(
+            `Verified ${seededUsers.length} seeded login account(s) in ${databaseName}.`,
+        );
 
         const curriculumAcademicTotal = curriculum.reduce(
             (sum, course) =>
@@ -1798,7 +1926,7 @@ async function seedDatabase(): Promise<void> {
             "  Email: student@university.edu",
         );
         console.log("  Username: student.demo");
-        console.log("  Password: Password123!");
+        console.log(`  Password: ${demoPassword}`);
         console.log(
             "  Student enrolled units start at 0 until enrollment is submitted.",
         );
@@ -1823,7 +1951,7 @@ async function seedDatabase(): Promise<void> {
             "  ST and other: prof.reyes / faculty@university.edu",
         );
         console.log(
-            "  Password for all accounts: Password123!",
+            `  Password for all accounts: ${demoPassword}`,
         );
     } finally {
         await client.close();

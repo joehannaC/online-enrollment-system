@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import type {
     ApiErrorResponse,
     ApiResponse,
@@ -40,7 +41,7 @@ export async function getStudentDashboard(
 
     try {
         response = await fetch(
-            "/api/students/dashboard",
+            buildApiUrl("/api/students/dashboard"),
             {
                 method: "GET",
 

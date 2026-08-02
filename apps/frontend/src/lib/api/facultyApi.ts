@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import type {
     ApiErrorResponse,
     ApiResponse,
@@ -46,7 +47,7 @@ export async function getFacultyDashboard(
 
     try {
         response = await fetch(
-            "/api/faculty/dashboard",
+            buildApiUrl("/api/faculty/dashboard"),
             {
                 method: "GET",
 
@@ -133,7 +134,7 @@ export async function getFacultySubjects(
 
     try {
         response = await fetch(
-            "/api/faculty/subjects",
+            buildApiUrl("/api/faculty/subjects"),
             {
                 method: "GET",
 
@@ -228,7 +229,7 @@ export async function getFacultyGradeEntry(
 
     try {
         response = await fetch(
-            `/api/faculty/grade-entry${query}`,
+            buildApiUrl(`/api/faculty/grade-entry${query}`),
             {
                 method: "GET",
 
@@ -316,7 +317,7 @@ export async function saveFacultyGradeDraft(
 
     try {
         response = await fetch(
-            "/api/faculty/grade-entry/draft",
+            buildApiUrl("/api/faculty/grade-entry/draft"),
             {
                 method: "PUT",
 
@@ -403,7 +404,7 @@ export async function submitFacultyGrades(
 
     try {
         response = await fetch(
-            "/api/faculty/grade-entry/submit",
+            buildApiUrl("/api/faculty/grade-entry/submit"),
             {
                 method: "POST",
 
@@ -490,7 +491,7 @@ export async function getFacultyRecords(
 
     try {
         response = await fetch(
-            "/api/faculty/records",
+            buildApiUrl("/api/faculty/records"),
             {
                 method: "GET",
                 headers: {

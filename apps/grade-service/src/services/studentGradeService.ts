@@ -13,10 +13,6 @@ import type {
     StudentGradeQuery,
 } from "../validators/studentGradeQuerySchema.js";
 
-import {
-    calculateAcademicSummary,
-    type AcademicGradeInput,
-} from "@online-enrollment/shared";
 
 interface StudentDocument {
     _id: ObjectId;
@@ -95,6 +91,27 @@ interface GradeDocument {
     updatedAt?: Date;
 }
 
+interface EnrollmentHeaderDocument {
+    _id: ObjectId;
+    studentId: ObjectId;
+    academicTermId: ObjectId;
+    status:
+        | "DRAFT"
+        | "SUBMITTED"
+        | "CANCELLED";
+}
+
+interface EnrollmentItemDocument {
+    _id: ObjectId;
+    enrollmentId: ObjectId;
+    studentId: ObjectId;
+    academicTermId: ObjectId;
+    sectionId: ObjectId;
+    courseId: ObjectId;
+    academicUnits: number;
+    nonAcademicUnits: number;
+}
+
 export class StudentGradeServiceError
     extends Error {
     constructor(
@@ -138,18 +155,6 @@ function formatGrade(
 
     return grade.finalGradeValue
         .toFixed(1);
-}
-
-function getLatestTimestamp(
-    grade: GradeDocument,
-): number {
-    return (
-        grade.verifiedAt?.getTime() ??
-        grade.submittedAt?.getTime() ??
-        grade.updatedAt?.getTime() ??
-        grade.createdAt?.getTime() ??
-        0
-    );
 }
 
 function buildAcademicPeriods(
@@ -265,8 +270,12 @@ export async function getStudentGrades(
                 studentId:
                     student._id,
 
-                status:
-                    "VERIFIED",
+                status: {
+                    $in: [
+                        "SUBMITTED",
+                        "VERIFIED",
+                    ],
+                },
             })
             .toArray();
 
@@ -398,11 +407,8 @@ export async function getStudentGrades(
             ),
         );
 
-    const latestGradeByCourseId =
-        new Map<
-            string,
-            GradeDocument
-        >();
+    const gradeItems:
+        StudentGradeItem[] = [];
 
     for (
         const grade of
@@ -422,42 +428,6 @@ export async function getStudentGrades(
             section.courseId
                 .toHexString();
 
-        const existing =
-            latestGradeByCourseId.get(
-                courseId,
-            );
-
-        if (
-            !existing ||
-            getLatestTimestamp(
-                grade,
-            ) >
-                getLatestTimestamp(
-                    existing,
-                )
-        ) {
-            latestGradeByCourseId.set(
-                courseId,
-                grade,
-            );
-        }
-    }
-
-    const gradeItems:
-        StudentGradeItem[] = [];
-
-    for (
-        const [
-            courseId,
-            grade,
-        ] of latestGradeByCourseId
-    ) {
-        const section =
-            sectionsById.get(
-                grade.sectionId
-                    .toHexString(),
-            );
-
         const course =
             coursesById.get(
                 courseId,
@@ -470,12 +440,31 @@ export async function getStudentGrades(
             );
 
         if (
-            !section ||
             !course ||
             !academicTerm
         ) {
             continue;
         }
+
+        const numericGrade =
+            typeof grade.finalGradeValue ===
+                    "number" &&
+                Number.isFinite(
+                    grade.finalGradeValue,
+                )
+                ? grade.finalGradeValue
+                : undefined;
+
+        const gradeStatus:
+            StudentGradeStatus =
+            grade.result ===
+            "CREDITED"
+                ? "CREDITED"
+                : numericGrade !==
+                        undefined &&
+                    numericGrade >= 1.0
+                  ? "PASSED"
+                  : "FAILED";
 
         gradeItems.push({
             id:
@@ -509,14 +498,13 @@ export async function getStudentGrades(
                 ),
 
             numericGrade:
-                grade.result ===
-                    "CREDITED"
+                gradeStatus ===
+                "CREDITED"
                     ? undefined
-                    : grade
-                          .finalGradeValue,
+                    : numericGrade,
 
             status:
-                grade.result,
+                gradeStatus,
         });
     }
 
@@ -568,8 +556,11 @@ export async function getStudentGrades(
             (grade) =>
                 grade.status !==
                     "CREDITED" &&
-                grade.numericGrade !==
-                    undefined &&
+                typeof grade.numericGrade ===
+                    "number" &&
+                Number.isFinite(
+                    grade.numericGrade,
+                ) &&
                 grade.units > 0,
         );
 
@@ -585,10 +576,7 @@ export async function getStudentGrades(
         gpaEligibleGrades.reduce(
             (total, grade) =>
                 total +
-                (
-                    grade.numericGrade ??
-                    0
-                ) *
+                grade.numericGrade! *
                     grade.units,
             0,
         );

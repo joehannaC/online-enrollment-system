@@ -507,7 +507,7 @@ export default function StudentGradesPage() {
                                     ? data.summary.currentGpa.toFixed(
                                           2,
                                       )
-                                    : "N/A"}
+                                    : "-.--"}
                             </p>
                         </div>
                     </section>

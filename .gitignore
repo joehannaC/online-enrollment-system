@@ -11,6 +11,8 @@ out/
 .env
 .env.*
 !.env.example
+apps/*/.env
+apps/frontend/.env.local
 
 # Logs
 *.log

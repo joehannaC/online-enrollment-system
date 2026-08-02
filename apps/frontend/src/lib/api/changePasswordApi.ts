@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import type {
     ApiErrorResponse,
     ApiResponse,
@@ -44,7 +45,7 @@ export async function changePassword(
 
     try {
         response = await fetch(
-            "/api/auth/change-password",
+            buildApiUrl("/api/auth/change-password"),
             {
                 method: "PATCH",
 

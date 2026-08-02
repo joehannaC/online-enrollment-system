@@ -1,3 +1,4 @@
+import { buildApiUrl } from "@/lib/api/apiBase";
 import type {
     LoginApiResponse,
     LoginRequest,
@@ -38,7 +39,7 @@ export async function login(
 
     try {
         response = await fetch(
-            "/api/auth/login",
+            buildApiUrl("/api/auth/login"),
             {
                 method: "POST",
 

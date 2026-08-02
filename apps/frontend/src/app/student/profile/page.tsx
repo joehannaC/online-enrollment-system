@@ -31,8 +31,12 @@ import {
 import {
     clearAuthSession,
 } from "@/lib/auth/tokenStorage";
+import {
+    getStudentRecords,
+} from "@/lib/api/studentRecordApi";
 import type {
     StudentProfileData,
+    StudentRecordSummary,
 } from "@/types";
 
 interface InformationRowProps {
@@ -84,6 +88,14 @@ export default function StudentProfilePage() {
     const router = useRouter();
 
     const [
+        academicSummary,
+        setAcademicSummary,
+    ] =
+        useState<StudentRecordSummary | null>(
+            null,
+        );
+
+    const [
         student,
         setStudent,
     ] = useState<StudentProfileData | null>(
@@ -113,8 +125,20 @@ export default function StudentProfilePage() {
             setErrorMessage("");
 
             try {
-                const response =
-                    await getMyProfile(signal);
+                const [
+                    response,
+                    recordsResponse,
+                ] = await Promise.all([
+                    getMyProfile(signal),
+
+                    getStudentRecords(
+                        {
+                            page: 1,
+                            limit: 1,
+                        },
+                        signal,
+                    ),
+                ]);
 
                 if (
                     response.profile.role !==
@@ -129,6 +153,9 @@ export default function StudentProfilePage() {
 
                 setStudent(
                     response.profile,
+                );
+                setAcademicSummary(
+                    recordsResponse.summary,
                 );
             } catch (error) {
                 if (
@@ -190,6 +217,39 @@ export default function StudentProfilePage() {
 
         return () => {
             controller.abort();
+        };
+    }, [loadProfile]);
+
+    useEffect(() => {
+        function refreshProfile(): void {
+            if (
+                document.visibilityState ===
+                "visible"
+            ) {
+                void loadProfile();
+            }
+        }
+
+        window.addEventListener(
+            "focus",
+            refreshProfile,
+        );
+
+        document.addEventListener(
+            "visibilitychange",
+            refreshProfile,
+        );
+
+        return () => {
+            window.removeEventListener(
+                "focus",
+                refreshProfile,
+            );
+
+            document.removeEventListener(
+                "visibilitychange",
+                refreshProfile,
+            );
         };
     }, [loadProfile]);
 
@@ -387,6 +447,8 @@ export default function StudentProfilePage() {
                                         <InformationRow
                                             label="Earned Units"
                                             value={
+                                                academicSummary
+                                                    ?.earnedUnits ??
                                                 student.earnedUnits
                                             }
                                         />
@@ -394,6 +456,8 @@ export default function StudentProfilePage() {
                                         <InformationRow
                                             label="Earned Non-Academic Units"
                                             value={
+                                                academicSummary
+                                                    ?.earnedNonAcademicUnits ??
                                                 student.earnedNonAcademicUnits
                                             }
                                         />
@@ -401,6 +465,8 @@ export default function StudentProfilePage() {
                                         <InformationRow
                                             label="Remaining Units"
                                             value={
+                                                academicSummary
+                                                    ?.remainingUnits ??
                                                 student.remainingUnits
                                             }
                                         />
@@ -408,16 +474,18 @@ export default function StudentProfilePage() {
                                         <InformationRow
                                             label="Enrolled Units"
                                             value={
+                                                academicSummary
+                                                    ?.enrolledUnits ??
                                                 student.enrolledUnits
                                             }
                                         />
 
-                                        <InformationRow
+                                            {/*<InformationRow
                                             label="Enlisted Units"
                                             value={
                                                 student.enlistedUnits
                                             }
-                                        />
+                                        />*/}
                                     </dl>
                                 </section>
                             </div>

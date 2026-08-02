@@ -128,6 +128,7 @@ interface GradeDocument {
     studentId: ObjectId;
     sectionId: ObjectId;
     academicTermId: ObjectId;
+    finalGradeValue?: number;
     result:
         | "PASSED"
         | "FAILED"
@@ -1420,20 +1421,77 @@ export async function getStudentEnrollment(
           )
         : [];
 
+    const submittedGradeDocuments =
+        items.length > 0
+            ? await db
+                  .collection<GradeDocument>(
+                      "grades",
+                  )
+                  .find({
+                      studentId:
+                          student._id,
+
+                      academicTermId:
+                          term._id,
+
+                      sectionId: {
+                          $in:
+                              items.map(
+                                  (item) =>
+                                      item.sectionId,
+                              ),
+                      },
+
+                      status: {
+                          $in: [
+                              "SUBMITTED",
+                              "VERIFIED",
+                          ],
+                      },
+
+                      finalGradeValue: {
+                          $type:
+                              "number",
+                      },
+                  })
+                  .toArray()
+            : [];
+
+    const submittedSectionIds =
+        new Set(
+            submittedGradeDocuments.map(
+                (grade) =>
+                    grade.sectionId.toHexString(),
+            ),
+        );
+
+    const termGradesFinalized =
+        enrollment?.status ===
+            "SUBMITTED" &&
+        items.length > 0 &&
+        items.every(
+            (item) =>
+                submittedSectionIds.has(
+                    item.sectionId.toHexString(),
+                ),
+        );
+
     const sections =
-        await db
-            .collection<SectionDocument>(
-                "sections",
-            )
-            .find({
-                academicTermId:
-                    term._id,
-                status: "OPEN",
-            })
-            .sort({
-                sectionCode: 1,
-            })
-            .toArray();
+        termGradesFinalized
+            ? []
+            : await db
+                  .collection<SectionDocument>(
+                      "sections",
+                  )
+                  .find({
+                      academicTermId:
+                          term._id,
+                      status: "OPEN",
+                  })
+                  .sort({
+                      sectionCode: 1,
+                  })
+                  .toArray();
 
     const courseIds =
         sections.map(
@@ -2022,6 +2080,7 @@ export async function getStudentEnrollment(
     }
 
     const mode =
+        termGradesFinalized ||
         !open
             ? "READ_ONLY"
             : enrollment?.status ===
@@ -2052,7 +2111,8 @@ export async function getStudentEnrollment(
             maximumAcademicUnits:
                 MAXIMUM_ACADEMIC_UNITS,
             isEnrollmentOpen:
-                open,
+                open &&
+                !termGradesFinalized,
         },
 
         enrollment: {
@@ -2069,13 +2129,19 @@ export async function getStudentEnrollment(
                 enrollment?.submittedAt
                     ?.toISOString(),
             totalAcademicUnits:
-                enrollment?.totalAcademicUnits ??
-                0,
+                termGradesFinalized
+                    ? 0
+                    : enrollment?.totalAcademicUnits ??
+                      0,
             totalNonAcademicUnits:
-                enrollment?.totalNonAcademicUnits ??
-                0,
+                termGradesFinalized
+                    ? 0
+                    : enrollment?.totalNonAcademicUnits ??
+                      0,
             items:
-                summaryItems,
+                termGradesFinalized
+                    ? []
+                    : summaryItems,
         },
 
         availableSections:
@@ -2643,6 +2709,54 @@ export async function removeDraftItem(
     }
 }
 
+
+async function createEnrollmentAnnouncement(
+    db: Db,
+    session: ClientSession,
+    studentId: ObjectId,
+    enrollmentId: ObjectId,
+    term: AcademicTermDocument,
+    publishedAt: Date,
+): Promise<void> {
+    const eventKey =
+        `ENROLLMENT_SUBMITTED:${enrollmentId.toHexString()}`;
+
+    await db
+        .collection("announcements")
+        .updateOne(
+            {
+                studentId,
+                eventKey,
+            },
+            {
+                $setOnInsert: {
+                    audience: "STUDENT",
+                    studentId,
+                    eventKey,
+                    relatedEnrollmentId:
+                        enrollmentId,
+                    relatedAcademicTermId:
+                        term._id,
+                    title:
+                        "Enrollment submitted",
+                    message:
+                        `Your enrollment for Term ${term.termNumber}, A.Y. ${term.academicYear} was submitted successfully.`,
+                    status:
+                        "PUBLISHED",
+                    publishedAt,
+                    createdAt:
+                        publishedAt,
+                    updatedAt:
+                        publishedAt,
+                },
+            },
+            {
+                upsert: true,
+                session,
+            },
+        );
+}
+
 export async function submitEnrollment(
     authenticatedUserId: string,
     input: SubmitEnrollmentInput,
@@ -2915,9 +3029,9 @@ export async function submitEnrollment(
 
                             const includesPracticum =
                                 firstCourse?.category ===
-                                    "PRACTICUM" ||
+                                "PRACTICUM" ||
                                 secondCourse?.category ===
-                                    "PRACTICUM";
+                                "PRACTICUM";
 
                             if (
                                 !includesPracticum &&
@@ -3064,6 +3178,17 @@ export async function submitEnrollment(
                         });
                     }
 
+
+                    {/*await createEnrollmentAnnouncement(
+                        db,
+                        session,
+                        student._id,
+                        enrollment._id,
+                        term,
+                        now,
+                    );*/
+                }
+
                     if (
                         rejectedSections.length >
                         0
@@ -3151,12 +3276,10 @@ export async function submitEnrollment(
                             0,
                         );
 
-                    const now =
-                        new Date();
+                    const now = new Date();
 
                     if (
-                        acceptedItems.length ===
-                        0
+                        acceptedItems.length === 0
                     ) {
                         const updated =
                             await db
@@ -3182,8 +3305,7 @@ export async function submitEnrollment(
                                                 now,
                                         },
                                         $inc: {
-                                            version:
-                                                1,
+                                            version: 1,
                                         },
                                     },
                                     {
@@ -3192,8 +3314,7 @@ export async function submitEnrollment(
                                 );
 
                         if (
-                            updated.modifiedCount !==
-                            1
+                            updated.modifiedCount !== 1
                         ) {
                             throw new StudentEnrollmentServiceError(
                                 "ENROLLMENT_VERSION_CONFLICT",
@@ -3243,8 +3364,7 @@ export async function submitEnrollment(
                                             input.idempotencyKey,
                                     },
                                     $inc: {
-                                        version:
-                                            1,
+                                        version: 1,
                                     },
                                 },
                                 {
@@ -3253,8 +3373,7 @@ export async function submitEnrollment(
                             );
 
                     if (
-                        updated.modifiedCount !==
-                        1
+                        updated.modifiedCount !== 1
                     ) {
                         throw new StudentEnrollmentServiceError(
                             "ENROLLMENT_VERSION_CONFLICT",
@@ -3291,9 +3410,17 @@ export async function submitEnrollment(
                             },
                         );
 
+                    await createEnrollmentAnnouncement(
+                        db,
+                        session,
+                        student._id,
+                        enrollment._id,
+                        term,
+                        now,
+                    );
+
                     if (
-                        rejectedSections.length >
-                        0
+                        rejectedSections.length > 0
                     ) {
                         const rejectedCourseCodes =
                             rejectedSections
@@ -3317,16 +3444,14 @@ export async function submitEnrollment(
                     }
 
                     return {
-                        outcome:
-                            "SUCCESS",
+                        outcome: "SUCCESS",
                         message:
                             "Enrollment submitted successfully.",
                         submittedCourseCount:
                             acceptedItems.length,
                         rejectedCourseCount:
                             0,
-                        rejectedSections:
-                            [],
+                        rejectedSections: [],
                     };
                 },
                 {
