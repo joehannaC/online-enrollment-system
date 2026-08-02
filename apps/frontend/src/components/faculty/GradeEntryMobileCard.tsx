@@ -15,49 +15,115 @@ import type {
 } from "@/types";
 
 interface GradeEntryMobileCardProps {
-    student: GradeEntryStudent;
+    student:
+        GradeEntryStudent;
     disabled?: boolean;
+    errors?: Record<
+        string,
+        string
+    >;
     onChange: (
         studentId: string,
-        components: GradeComponents,
+        components:
+            GradeComponents,
     ) => void;
 }
 
 function toNumberOrUndefined(
     value: string,
 ): number | undefined {
-    if (value.trim() === "") {
+    if (
+        value.trim() === ""
+    ) {
         return undefined;
     }
 
-    const parsedValue = Number(value);
+    const parsed =
+        Number(value);
 
-    return Number.isNaN(parsedValue)
-        ? undefined
-        : parsedValue;
+    return Number.isFinite(
+        parsed,
+    )
+        ? parsed
+        : undefined;
 }
 
 export default function GradeEntryMobileCard({
     student,
     disabled = false,
+    errors = {},
     onChange,
 }: GradeEntryMobileCardProps) {
-    const isComplete =
-        student.components.activitiesScore !==
-            undefined &&
-        student.components.midtermScore !==
-            undefined &&
-        student.components.finalScore !==
-            undefined;
+    const fields: Array<{
+        key:
+            keyof GradeComponents;
+        label: string;
+    }> = [
+        {
+            key:
+                "activitiesScore",
+            label:
+                "Activities 20%",
+        },
+        {
+            key:
+                "majorOutput1Score",
+            label:
+                "Major Output 1 20%",
+        },
+        {
+            key:
+                "majorOutput2Score",
+            label:
+                "Major Output 2 20%",
+        },
+        {
+            key:
+                "midtermExamScore",
+            label:
+                "Midterm Exam 20%",
+        },
+        {
+            key:
+                "finalExamScore",
+            label:
+                "Final Exam 20%",
+        },
+    ];
+
+    const hasAnyInput =
+        Object.values(
+            student.components,
+        ).some(
+            (value) =>
+                value !==
+                undefined,
+        );
+
+    const displayStatus =
+        student.status ===
+        "SUBMITTED"
+            ? "COMPLETE"
+            : hasAnyInput
+              ? "DRAFT"
+              : "INCOMPLETE";
+
 
     function updateComponent(
-        key: keyof GradeComponents,
+        key:
+            keyof GradeComponents,
         value: string,
     ): void {
-        onChange(student.studentId, {
-            ...student.components,
-            [key]: toNumberOrUndefined(value),
-        });
+        onChange(
+            student.studentId,
+            {
+                ...student.components,
+                [key]:
+                    toNumberOrUndefined(
+                        value,
+                    ),
+            },
+        );
     }
 
     return (
@@ -70,101 +136,114 @@ export default function GradeEntryMobileCard({
 
                     <div className="min-w-0">
                         <h3 className="truncate font-semibold text-neutral-900">
-                            {student.fullName}
+                            {
+                                student.fullName
+                            }
                         </h3>
 
                         <p className="mt-1 text-xs text-neutral-500">
-                            {student.studentNumber}
+                            {
+                                student.studentNumber
+                            }
                         </p>
                     </div>
                 </div>
 
                 <StatusBadge
                     variant={
-                        isComplete
+                        displayStatus ===
+                        "COMPLETE"
                             ? "success"
-                            : "warning"
+                            : displayStatus ===
+                                "DRAFT"
+                              ? "primary"
+                              : "warning"
                     }
                 >
-                    {isComplete
+                    {displayStatus ===
+                    "COMPLETE"
                         ? "Complete"
-                        : "Incomplete"}
+                        : displayStatus ===
+                            "DRAFT"
+                          ? "Draft"
+                          : "Incomplete"}
                 </StatusBadge>
             </header>
 
             <div className="mt-5 grid grid-cols-1 gap-4">
-                <Input
-                    label="Activities 30%"
-                    type="number"
-                    min={0}
-                    max={30}
-                    step="0.01"
-                    value={
-                        student.components
-                            .activitiesScore ?? ""
-                    }
-                    disabled={disabled}
-                    onChange={(event) =>
-                        updateComponent(
-                            "activitiesScore",
-                            event.target.value,
-                        )
-                    }
-                />
+                {fields.map(
+                    (field) => {
+                        const errorKey =
+                            `${student.studentId}.${field.key}`;
 
-                <Input
-                    label="Midterm 30%"
-                    type="number"
-                    min={0}
-                    max={30}
-                    step="0.01"
-                    value={
-                        student.components
-                            .midtermScore ?? ""
-                    }
-                    disabled={disabled}
-                    onChange={(event) =>
-                        updateComponent(
-                            "midtermScore",
-                            event.target.value,
-                        )
-                    }
-                />
-
-                <Input
-                    label="Final 40%"
-                    type="number"
-                    min={0}
-                    max={40}
-                    step="0.01"
-                    value={
-                        student.components
-                            .finalScore ?? ""
-                    }
-                    disabled={disabled}
-                    onChange={(event) =>
-                        updateComponent(
-                            "finalScore",
-                            event.target.value,
-                        )
-                    }
-                />
+                        return (
+                            <Input
+                                key={
+                                    field.key
+                                }
+                                label={
+                                    field.label
+                                }
+                                type="number"
+                                min={
+                                    0
+                                }
+                                max={
+                                    100
+                                }
+                                step="0.01"
+                                value={
+                                    student
+                                        .components[
+                                        field
+                                            .key
+                                    ] ??
+                                    ""
+                                }
+                                disabled={
+                                    disabled
+                                }
+                                error={
+                                    errors[
+                                        errorKey
+                                    ]
+                                }
+                                onChange={(
+                                    event,
+                                ) => {
+                                    updateComponent(
+                                        field.key,
+                                        event
+                                            .target
+                                            .value,
+                                    );
+                                }}
+                            />
+                        );
+                    },
+                )}
             </div>
 
             <footer className="mt-5 flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3">
                 <div>
                     <p className="text-xs text-neutral-500">
-                        Computed Score
+                        Final Grade
                     </p>
 
                     <p className="mt-1 font-semibold text-[#35822E]">
-                        {student.computedScore ??
-                            "—"}{" "}
-                        / 100
+                        {student.rawFinalGrade !==
+                        undefined
+                            ? `${student.rawFinalGrade.toFixed(
+                                  2,
+                              )} (${student.finalGradeValue?.toFixed(
+                                  1,
+                              )})`
+                            : "—"}
                     </p>
                 </div>
 
-                {isComplete ? (
+                {displayStatus ===
+                "COMPLETE" ? (
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
                 ) : null}
             </footer>

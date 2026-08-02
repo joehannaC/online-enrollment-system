@@ -1,3 +1,7 @@
+import type {
+    CourseEligibilityCode,
+} from "./common.types";
+
 export type StudentEnrollmentStatus =
     | "DRAFT"
     | "SUBMITTED"
@@ -7,19 +11,6 @@ export type EnrollmentPageMode =
     | "EDITABLE_DRAFT"
     | "EDITABLE_SUBMITTED"
     | "READ_ONLY";
-
-export type CourseEligibilityCode =
-    | "ELIGIBLE"
-    | "MISSING_PREREQUISITES"
-    | "ALREADY_COMPLETED"
-    | "ALREADY_SELECTED"
-    | "SECTION_FULL"
-    | "MAXIMUM_LOAD_EXCEEDED"
-    | "ENROLLMENT_NOT_OPEN"
-    | "ENROLLMENT_CLOSED"
-    | "ENROLLMENT_SUBMITTED"
-    | "FAILED_COURSE_RETAKE_NOT_ALLOWED"
-    | "SCHEDULE_CONFLICT";
 
 export interface EnrollmentSectionOption {
     sectionId: string;

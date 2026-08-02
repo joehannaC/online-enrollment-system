@@ -1,8 +1,6 @@
 import type {
     AccountStatus,
     AcademicTermSummary,
-    GradeStatus,
-    ISODateString,
     ScheduleItem,
 } from "./common.types";
 
@@ -20,6 +18,26 @@ export interface FacultyProfileSummary {
     college: string;
 }
 
+export interface FacultySubjectStudent {
+    studentId: string;
+    studentNumber: string;
+    fullName: string;
+
+    activity: number | null;
+    majorOutput1: number | null;
+    majorOutput2: number | null;
+    midtermExam: number | null;
+    finalExam: number | null;
+
+    rawFinalGrade: number | null;
+    finalGradeValue: number | null;
+
+    gradeStatus:
+        | "INCOMPLETE"
+        | "DRAFT"
+        | "SUBMITTED";
+}
+
 export interface FacultySubject {
     sectionId: string;
     sectionCode: string;
@@ -31,32 +49,18 @@ export interface FacultySubject {
     schedule: ScheduleItem[];
 
     enrolledStudents: number;
+    submittedGrades: number;
     gradedStudents: number;
     pendingGrades: number;
+    submissionPercentage: number;
 
-    submissionStatus: GradeStatus;
-}
+    submissionStatus:
+        | "DRAFT"
+        | "SUBMITTED"
+        | "VERIFIED"
+        | "RETURNED";
 
-export interface FacultyDashboardResponse {
-    faculty: FacultyProfileSummary;
-    currentTerm: AcademicTermSummary;
-
-    summary: {
-        handledSubjectCount: number;
-        enrolledStudentCount: number;
-        pendingGradeCount: number;
-        submissionPercentage: number;
-    };
-
-    handledSubjects: FacultySubject[];
-
-    upcomingDeadlines: Array<{
-        id: string;
-        title: string;
-        deadline: ISODateString;
-        daysRemaining: number;
-        status: "UPCOMING" | "DUE_SOON" | "OVERDUE";
-    }>;
+    students: FacultySubjectStudent[];
 }
 
 export interface FacultySubjectsResponse {
@@ -69,33 +73,6 @@ export interface FacultySubjectsResponse {
     };
 
     subjects: FacultySubject[];
-}
-
-export interface FacultyGradeRecordsResponse {
-    summary: {
-        submittedClasses: number;
-        studentRecords: number;
-        drafts: number;
-        returned: number;
-    };
-
-    submissions: Array<{
-        id: string;
-        sectionId: string;
-
-        courseCode: string;
-        courseName: string;
-        sectionCode: string;
-
-        gradeType: string;
-        submittedAt?: ISODateString;
-
-        completedCount: number;
-        totalStudents: number;
-
-        status: GradeStatus;
-        returnReason?: string;
-    }>;
 }
 
 export interface FacultyProfileResponse {
@@ -111,7 +88,7 @@ export interface FacultyProfileResponse {
 
         email: string;
         address?: string;
-        birthday?: ISODateString;
+        birthday?: string;
 
         department: string;
         college: string;

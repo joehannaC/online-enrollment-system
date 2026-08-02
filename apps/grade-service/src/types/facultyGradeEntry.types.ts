@@ -1,7 +1,3 @@
-import type {
-    ISODateString,
-} from "./common.types";
-
 export interface GradeComponents {
     activitiesScore?: number;
     majorOutput1Score?: number;
@@ -16,8 +12,7 @@ export interface GradeEntryStudent {
     studentNumber: string;
     fullName: string;
 
-    components:
-        GradeComponents;
+    components: GradeComponents;
 
     rawFinalGrade?: number;
     finalGradeValue?: number;
@@ -54,33 +49,32 @@ export interface GradeEntryPageResponse {
     students:
         GradeEntryStudent[];
 
-    lastSavedAt?: ISODateString;
+    lastSavedAt?: string;
 }
 
-export interface SaveGradeDraftRequest {
+export interface GradeDraftInput {
     sectionId: string;
     grades: Array<{
         gradeId?: string;
         studentId: string;
         expectedVersion: number;
-        components:
-            GradeComponents;
+        components: GradeComponents;
     }>;
 }
 
-export interface SaveGradeDraftResponse {
+export interface GradeDraftResult {
     sectionId: string;
     savedCount: number;
     completedCount: number;
     totalStudents: number;
     status: "DRAFT";
-    savedAt: ISODateString;
+    savedAt: string;
 }
 
-export interface SubmitGradesResponse {
+export interface SubmitGradesResult {
     sectionId: string;
     completedCount: number;
     totalStudents: number;
     status: "SUBMITTED";
-    submittedAt: ISODateString;
+    submittedAt: string;
 }

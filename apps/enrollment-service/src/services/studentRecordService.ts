@@ -221,15 +221,22 @@ function getCourseNonAcademicUnits(
 function formatGrade(
     grade?: GradeDocument,
 ): string | undefined {
+    const finalGradeValue =
+        grade?.finalGradeValue;
+
     if (
-        grade?.finalGradeValue ===
-        undefined
+        typeof finalGradeValue !==
+            "number" ||
+        !Number.isFinite(
+            finalGradeValue,
+        )
     ) {
         return undefined;
     }
 
-    return grade.finalGradeValue
-        .toFixed(1);
+    return finalGradeValue.toFixed(
+        1,
+    );
 }
 
 function getEnrollmentPriority(

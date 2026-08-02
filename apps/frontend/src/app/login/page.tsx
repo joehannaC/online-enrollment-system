@@ -166,19 +166,16 @@ export default function LoginPage() {
                         w-full max-w-md
                         translate-y-4
                         rounded-3xl
-                        bg-white/95
+                        border border-white/30
+                        bg-white/15
                         p-6
+                        text-white
                         shadow-2xl
-                        backdrop-blur-sm
+                        shadow-black/20
+                        backdrop-blur-xl
                         sm:p-8
                         lg:max-w-[400px]
                         lg:translate-y-8
-                        lg:rounded-none
-                        lg:bg-transparent
-                        lg:p-0
-                        lg:text-white
-                        lg:shadow-none
-                        lg:backdrop-blur-none
                     "
                 >
                     <div className="mb-8">

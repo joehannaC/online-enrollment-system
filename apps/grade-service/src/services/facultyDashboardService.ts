@@ -3,12 +3,15 @@ import {
     type Document,
 } from "mongodb";
 
-import { getDatabase } from "../config/database.js";
+import {
+    getDatabase,
+} from "../config/database.js";
 import type {
     AcademicTermSummary,
     FacultyDashboardResponse,
     FacultyProfileSummary,
     FacultySubject,
+    FacultySubjectStudent,
     GradeStatus,
     ScheduleItem,
 } from "../types/facultyDashboard.types.js";
@@ -20,8 +23,18 @@ export class FacultyDashboardError extends Error {
         public readonly statusCode: number,
     ) {
         super(message);
-        this.name = "FacultyDashboardError";
+        this.name =
+            "FacultyDashboardError";
     }
+}
+
+function getNumberOrNull(
+    value: unknown,
+): number | null {
+    return typeof value === "number" &&
+        Number.isFinite(value)
+        ? value
+        : null;
 }
 
 function toObjectId(
@@ -40,13 +53,13 @@ function toObjectId(
 }
 
 function buildFullName(
-    faculty: Document,
+    person: Document,
 ): string {
     return [
-        faculty.title,
-        faculty.firstName,
-        faculty.middleName,
-        faculty.lastName,
+        person.title,
+        person.firstName,
+        person.middleName,
+        person.lastName,
     ]
         .filter(Boolean)
         .join(" ");
@@ -56,21 +69,56 @@ function mapFaculty(
     faculty: Document,
 ): FacultyProfileSummary {
     return {
-        id: faculty._id.toString(),
+        id:
+            faculty._id.toString(),
         employeeNumber:
-            faculty.employeeNumber,
-        title: faculty.title,
+            String(
+                faculty.employeeNumber ??
+                    "",
+            ),
+        title:
+            faculty.title
+                ? String(
+                      faculty.title,
+                  )
+                : undefined,
 
-        firstName: faculty.firstName,
-        middleName: faculty.middleName,
-        lastName: faculty.lastName,
+        firstName:
+            String(
+                faculty.firstName ??
+                    "",
+            ),
+        middleName:
+            faculty.middleName
+                ? String(
+                      faculty.middleName,
+                  )
+                : undefined,
+        lastName:
+            String(
+                faculty.lastName ??
+                    "",
+            ),
 
         fullName:
-            faculty.fullName ??
-            buildFullName(faculty),
+            faculty.fullName
+                ? String(
+                      faculty.fullName,
+                  )
+                : buildFullName(
+                      faculty,
+                  ),
 
-        department: faculty.department,
-        college: faculty.college,
+        department:
+            String(
+                faculty.department ??
+                    "",
+            ),
+        college:
+            String(
+                faculty.college ??
+                    "",
+            ),
     };
 }
 
@@ -78,13 +126,35 @@ function mapAcademicTerm(
     term: Document,
 ): AcademicTermSummary {
     return {
-        id: term._id.toString(),
-        code: term.code,
-        name: term.name,
-        academicYear: term.academicYear,
-        termNumber: term.termNumber,
-        status: term.status,
-        isCurrent: term.isCurrent,
+        id:
+            term._id.toString(),
+        code:
+            String(
+                term.code ?? "",
+            ),
+        name:
+            String(
+                term.name ?? "",
+            ),
+        academicYear:
+            String(
+                term.academicYear ??
+                    "",
+            ),
+        termNumber:
+            Number(
+                term.termNumber ??
+                    0,
+            ),
+        status:
+            String(
+                term.status ??
+                    "ACTIVE",
+            ) as AcademicTermSummary["status"],
+        isCurrent:
+            Boolean(
+                term.isCurrent,
+            ),
     };
 }
 
@@ -95,21 +165,36 @@ function normalizeSchedule(
         return [];
     }
 
-    return value.map((item) => ({
-        days: Array.isArray(item.days)
-            ? item.days.map(String)
-            : [],
-        startTime: String(
-            item.startTime ?? "",
-        ),
-        endTime: String(
-            item.endTime ?? "",
-        ),
-        room: String(item.room ?? "TBA"),
-    }));
+    return value.map(
+        (item) => ({
+            days:
+                Array.isArray(
+                    item.days,
+                )
+                    ? item.days.map(
+                          String,
+                      )
+                    : [],
+            startTime:
+                String(
+                    item.startTime ??
+                        "",
+                ),
+            endTime:
+                String(
+                    item.endTime ??
+                        "",
+                ),
+            room:
+                String(
+                    item.room ??
+                        "TBA",
+                ),
+        }),
+    );
 }
 
-function normalizeGradeStatus(
+function normalizeSubmissionStatus(
     value: unknown,
 ): GradeStatus {
     switch (value) {
@@ -124,32 +209,106 @@ function normalizeGradeStatus(
     }
 }
 
+function hasAnyGradeInput(
+    grade: Document | undefined,
+): boolean {
+    if (!grade) {
+        return false;
+    }
+
+    return [
+        grade.activitiesScore,
+        grade.majorOutput1Score,
+        grade.majorOutput2Score,
+        grade.midtermExamScore,
+        grade.finalExamScore,
+    ].some(
+        (value) =>
+            typeof value ===
+                "number" &&
+            Number.isFinite(
+                value,
+            ),
+    );
+}
+
+function isSubmittedGrade(
+    grade: Document | undefined,
+): boolean {
+    return (
+        grade?.status ===
+            "SUBMITTED" ||
+        grade?.status ===
+            "VERIFIED"
+    );
+}
+
+function getStudentGradeStatus(
+    grade: Document | undefined,
+): FacultySubjectStudent["gradeStatus"] {
+    if (
+        isSubmittedGrade(
+            grade,
+        )
+    ) {
+        return "SUBMITTED";
+    }
+
+    return hasAnyGradeInput(
+        grade,
+    )
+        ? "DRAFT"
+        : "INCOMPLETE";
+}
+
+function getFinalGradeValue(
+    grade: Document | undefined,
+): number | null {
+    return typeof grade
+        ?.finalGradeValue ===
+        "number" &&
+        Number.isFinite(
+            grade.finalGradeValue,
+        )
+        ? grade.finalGradeValue
+        : null;
+}
+
 function getDaysRemaining(
     deadline: Date,
 ): number {
-    const today = new Date();
+    const today =
+        new Date();
 
-    const startOfToday = Date.UTC(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-    );
+    const startOfToday =
+        Date.UTC(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+        );
 
-    const startOfDeadline = Date.UTC(
-        deadline.getFullYear(),
-        deadline.getMonth(),
-        deadline.getDate(),
-    );
+    const startOfDeadline =
+        Date.UTC(
+            deadline.getFullYear(),
+            deadline.getMonth(),
+            deadline.getDate(),
+        );
 
     return Math.ceil(
-        (startOfDeadline - startOfToday) /
+        (
+            startOfDeadline -
+            startOfToday
+        ) /
             86_400_000,
     );
 }
 
 function getDeadlineStatus(
     daysRemaining: number,
-): "UPCOMING" | "DUE_SOON" | "OVERDUE" {
+):
+    | "UPCOMING"
+    | "DUE_SOON"
+    | "OVERDUE" {
     if (daysRemaining < 0) {
         return "OVERDUE";
     }
@@ -164,29 +323,25 @@ function getDeadlineStatus(
 export async function getFacultyDashboard(
     authenticatedUserId: string,
 ): Promise<FacultyDashboardResponse> {
-    const database = getDatabase();
+    const database =
+        getDatabase();
 
-    const userId = toObjectId(
-        authenticatedUserId,
-        "Authenticated user ID",
-    );
+    const userId =
+        toObjectId(
+            authenticatedUserId,
+            "Authenticated user ID",
+        );
 
-    const [faculty, currentTerm] =
-        await Promise.all([
-            database
-                .collection("faculty")
-                .findOne({
-                    userId,
-                    status: "ACTIVE",
-                }),
-
-            database
-                .collection("academicTerms")
-                .findOne({
-                    isCurrent: true,
-                    status: "ACTIVE",
-                }),
-        ]);
+    const faculty =
+        await database
+            .collection(
+                "faculty",
+            )
+            .findOne({
+                userId,
+                status:
+                    "ACTIVE",
+            });
 
     if (!faculty) {
         throw new FacultyDashboardError(
@@ -196,6 +351,36 @@ export async function getFacultyDashboard(
         );
     }
 
+    /*
+     * Successful enrollment currently belongs to the configured
+     * enrollment term. Fall back to the active current term.
+     */
+    const currentTerm =
+        (await database
+            .collection(
+                "academicTerms",
+            )
+            .findOne({
+                isEnrollmentTerm:
+                    true,
+                status: {
+                    $in: [
+                        "UPCOMING",
+                        "ACTIVE",
+                    ],
+                },
+            })) ??
+        (await database
+            .collection(
+                "academicTerms",
+            )
+            .findOne({
+                isCurrent:
+                    true,
+                status:
+                    "ACTIVE",
+            }));
+
     if (!currentTerm) {
         throw new FacultyDashboardError(
             "CURRENT_TERM_NOT_FOUND",
@@ -204,219 +389,466 @@ export async function getFacultyDashboard(
         );
     }
 
-    const sections = await database
-        .collection("sections")
-        .find({
-            facultyId: faculty._id,
-            academicTermId: currentTerm._id,
-            status: {
-                $in: ["OPEN", "CLOSED"],
-            },
-        })
-        .sort({
-            sectionCode: 1,
-        })
-        .toArray();
+    const sections =
+        await database
+            .collection(
+                "sections",
+            )
+            .find({
+                facultyId:
+                    faculty._id,
+                academicTermId:
+                    currentTerm._id,
+                status: {
+                    $in: [
+                        "OPEN",
+                        "CLOSED",
+                    ],
+                },
+            })
+            .sort({
+                courseId: 1,
+                sectionCode: 1,
+            })
+            .toArray();
 
-    const courseIds = sections.map(
-        (section) => section.courseId,
-    );
+    const sectionIds =
+        sections.map(
+            (section) =>
+                section._id,
+        );
 
-    const sectionIds = sections.map(
-        (section) => section._id,
-    );
+    const courseIds =
+        Array.from(
+            new Map(
+                sections.map(
+                    (section) => [
+                        section.courseId.toString(),
+                        section.courseId,
+                    ],
+                ),
+            ).values(),
+        );
+
+    const submittedEnrollments =
+        await database
+            .collection(
+                "studentEnrollments",
+            )
+            .find({
+                academicTermId:
+                    currentTerm._id,
+                status:
+                    "SUBMITTED",
+            })
+            .toArray();
+
+    const enrollmentIds =
+        submittedEnrollments.map(
+            (enrollment) =>
+                enrollment._id,
+        );
 
     const [
         courses,
-        enrollments,
+        enrollmentItems,
         grades,
         submissions,
-    ] = await Promise.all([
-        courseIds.length > 0
-            ? database
-                  .collection("courses")
-                  .find({
-                      _id: {
-                          $in: courseIds,
-                      },
-                  })
-                  .toArray()
-            : [],
+    ] =
+        await Promise.all([
+            courseIds.length > 0
+                ? database
+                      .collection(
+                          "courses",
+                      )
+                      .find({
+                          _id: {
+                              $in:
+                                  courseIds,
+                          },
+                      })
+                      .toArray()
+                : [],
 
-        sectionIds.length > 0
-            ? database
-                  .collection("enrollments")
-                  .find({
-                      sectionId: {
-                          $in: sectionIds,
-                      },
-                      academicTermId:
-                          currentTerm._id,
-                      status: "ENROLLED",
-                  })
-                  .toArray()
-            : [],
+            sectionIds.length >
+                    0 &&
+            enrollmentIds.length >
+                    0
+                ? database
+                      .collection(
+                          "studentEnrollmentItems",
+                      )
+                      .find({
+                          enrollmentId: {
+                              $in:
+                                  enrollmentIds,
+                          },
+                          sectionId: {
+                              $in:
+                                  sectionIds,
+                          },
+                      })
+                      .toArray()
+                : [],
 
-        sectionIds.length > 0
-            ? database
-                  .collection("grades")
-                  .find({
-                      sectionId: {
-                          $in: sectionIds,
-                      },
-                      academicTermId:
-                          currentTerm._id,
-                      facultyId: faculty._id,
-                  })
-                  .toArray()
-            : [],
+            sectionIds.length > 0
+                ? database
+                      .collection(
+                          "grades",
+                      )
+                      .find({
+                          sectionId: {
+                              $in:
+                                  sectionIds,
+                          },
+                          academicTermId:
+                              currentTerm._id,
+                          facultyId:
+                              faculty._id,
+                      })
+                      .toArray()
+                : [],
 
-        sectionIds.length > 0
-            ? database
+            sectionIds.length > 0
+                ? database
+                      .collection(
+                          "gradeSubmissions",
+                      )
+                      .find({
+                          sectionId: {
+                              $in:
+                                  sectionIds,
+                          },
+                          academicTermId:
+                              currentTerm._id,
+                          facultyId:
+                              faculty._id,
+                          gradeType:
+                              "FINAL",
+                      })
+                      .toArray()
+                : [],
+        ]);
+
+    const enrollmentMap =
+        new Map(
+            submittedEnrollments.map(
+                (enrollment) => [
+                    enrollment._id.toString(),
+                    enrollment,
+                ],
+            ),
+        );
+
+    const studentIds =
+        Array.from(
+            new Map(
+                enrollmentItems.flatMap(
+                    (item) => {
+                        const enrollment =
+                            enrollmentMap.get(
+                                item.enrollmentId.toString(),
+                            );
+
+                        return enrollment
+                            ? [
+                                  [
+                                      enrollment.studentId.toString(),
+                                      enrollment.studentId,
+                                  ] as const,
+                              ]
+                            : [];
+                    },
+                ),
+            ).values(),
+        );
+
+    const students =
+        studentIds.length > 0
+            ? await database
                   .collection(
-                      "gradeSubmissions",
+                      "students",
                   )
                   .find({
-                      sectionId: {
-                          $in: sectionIds,
+                      _id: {
+                          $in:
+                              studentIds,
                       },
-                      academicTermId:
-                          currentTerm._id,
-                      facultyId: faculty._id,
-                      gradeType: "FINAL",
                   })
                   .toArray()
-            : [],
-    ]);
+            : [];
 
-    const courseMap = new Map(
-        courses.map((course) => [
-            course._id.toString(),
-            course,
-        ]),
-    );
-
-    const enrollmentsBySection = new Map<
-        string,
-        number
-    >();
-
-    for (const enrollment of enrollments) {
-        const sectionId =
-            enrollment.sectionId.toString();
-
-        enrollmentsBySection.set(
-            sectionId,
-            (enrollmentsBySection.get(
-                sectionId,
-            ) ?? 0) + 1,
-        );
-    }
-
-    const gradedBySection = new Map<
-        string,
-        number
-    >();
-
-    for (const grade of grades) {
-        const hasCompleteGrade =
-            grade.result !== "PENDING" &&
-            grade.result !== "INCOMPLETE" &&
-            grade.status !== "DRAFT";
-
-        if (!hasCompleteGrade) {
-            continue;
-        }
-
-        const sectionId =
-            grade.sectionId.toString();
-
-        gradedBySection.set(
-            sectionId,
-            (gradedBySection.get(
-                sectionId,
-            ) ?? 0) + 1,
-        );
-    }
-
-    const submissionMap = new Map(
-        submissions.map((submission) => [
-            submission.sectionId.toString(),
-            submission,
-        ]),
-    );
-
-    const handledSubjects: FacultySubject[] =
-    sections.flatMap((section) => {
-        const course = courseMap.get(
-            section.courseId.toString(),
-        );
-
-        if (!course) {
-            return [];
-        }
-
-        const sectionId =
-            section._id.toString();
-
-        const enrolledStudents =
-            enrollmentsBySection.get(
-                sectionId,
-            ) ?? 0;
-
-        if (enrolledStudents === 0) {
-            return [];
-        }
-
-        const gradedStudents =
-            gradedBySection.get(
-                sectionId,
-            ) ?? 0;
-
-        const submission =
-            submissionMap.get(sectionId);
-
-        return [
-            {
-                sectionId,
-                sectionCode:
-                    section.sectionCode,
-
-                courseId:
+    const courseMap =
+        new Map(
+            courses.map(
+                (course) => [
                     course._id.toString(),
-                courseCode:
-                    course.courseCode,
-                courseName:
-                    course.courseName,
+                    course,
+                ],
+            ),
+        );
 
-                schedule:
-                    normalizeSchedule(
-                        section.schedule,
-                    ),
+    const studentMap =
+        new Map(
+            students.map(
+                (student) => [
+                    student._id.toString(),
+                    student,
+                ],
+            ),
+        );
 
-                enrolledStudents,
-                gradedStudents,
+    const itemsBySection =
+        new Map<
+            string,
+            Document[]
+        >();
 
-                pendingGrades: Math.max(
-                    enrolledStudents -
-                        gradedStudents,
-                    0,
-                ),
+    for (
+        const item of
+        enrollmentItems
+    ) {
+        const sectionId =
+            item.sectionId.toString();
 
-                submissionStatus:
-                    normalizeGradeStatus(
-                        submission?.status,
-                    ),
+        const items =
+            itemsBySection.get(
+                sectionId,
+            ) ?? [];
+
+        items.push(
+            item,
+        );
+
+        itemsBySection.set(
+            sectionId,
+            items,
+        );
+    }
+
+    const gradeMap =
+        new Map(
+            grades.map(
+                (grade) => [
+                    `${grade.sectionId.toString()}:${grade.studentId.toString()}`,
+                    grade,
+                ],
+            ),
+        );
+
+    const submissionMap =
+        new Map(
+            submissions.map(
+                (submission) => [
+                    submission.sectionId.toString(),
+                    submission,
+                ],
+            ),
+        );
+
+    const handledSubjects:
+        FacultySubject[] =
+        sections.flatMap(
+            (section) => {
+                const course =
+                    courseMap.get(
+                        section.courseId.toString(),
+                    );
+
+                const sectionItems =
+                    itemsBySection.get(
+                        section._id.toString(),
+                    ) ?? [];
+
+                if (
+                    !course ||
+                    sectionItems.length ===
+                        0
+                ) {
+                    return [];
+                }
+
+                const roster:
+                    FacultySubjectStudent[] =
+                    sectionItems.flatMap(
+                        (item) => {
+                            const enrollment =
+                                enrollmentMap.get(
+                                    item.enrollmentId.toString(),
+                                );
+
+                            if (!enrollment) {
+                                return [];
+                            }
+
+                            const student =
+                                studentMap.get(
+                                    enrollment.studentId.toString(),
+                                );
+
+                            if (!student) {
+                                return [];
+                            }
+
+                            const grade =
+                                gradeMap.get(
+                                    `${section._id.toString()}:${student._id.toString()}`,
+                                );
+
+                            return [
+                                {
+                                    studentId:
+                                        student._id.toString(),
+
+                                    studentNumber:
+                                        String(
+                                            student.studentNumber ??
+                                                "",
+                                        ),
+
+                                    fullName:
+                                        buildFullName(
+                                            student,
+                                        ),
+
+                                    activity:
+                                        getNumberOrNull(
+                                            grade?.activitiesScore,
+                                        ),
+
+                                    majorOutput1:
+                                        getNumberOrNull(
+                                            grade?.majorOutput1Score,
+                                        ),
+
+                                    majorOutput2:
+                                        getNumberOrNull(
+                                            grade?.majorOutput2Score,
+                                        ),
+
+                                    midtermExam:
+                                        getNumberOrNull(
+                                            grade?.midtermExamScore,
+                                        ),
+
+                                    finalExam:
+                                        getNumberOrNull(
+                                            grade?.finalExamScore,
+                                        ),
+
+                                    rawFinalGrade:
+                                        getNumberOrNull(
+                                            grade?.rawFinalGrade,
+                                        ),
+
+                                    finalGradeValue:
+                                        getNumberOrNull(
+                                            grade?.finalGradeValue,
+                                        ),
+
+                                    gradeStatus:
+                                        getStudentGradeStatus(
+                                            grade,
+                                        ),
+                                },
+                            ];
+                        },
+                    )
+                    .sort(
+                        (
+                            first,
+                            second,
+                        ) =>
+                            first.fullName.localeCompare(
+                                second.fullName,
+                            ),
+                    );
+
+                const submittedGrades =
+                    roster.filter(
+                        (student) =>
+                            student.gradeStatus ===
+                            "SUBMITTED",
+                    ).length;
+
+                const pendingGrades =
+                    Math.max(
+                        roster.length -
+                            submittedGrades,
+                        0,
+                    );
+
+                const submissionPercentage =
+                    roster.length ===
+                    0
+                        ? 0
+                        : Math.round(
+                              (
+                                  submittedGrades /
+                                  roster.length
+                              ) *
+                                  100,
+                          );
+
+                return [
+                    {
+                        sectionId:
+                            section._id.toString(),
+                        sectionCode:
+                            String(
+                                section.sectionCode ??
+                                    "",
+                            ),
+
+                        courseId:
+                            course._id.toString(),
+                        courseCode:
+                            String(
+                                course.courseCode ??
+                                    "",
+                            ),
+                        courseName:
+                            String(
+                                course.courseName ??
+                                    "",
+                            ),
+
+                        schedule:
+                            normalizeSchedule(
+                                section.schedule,
+                            ),
+
+                        enrolledStudents:
+                            roster.length,
+                        submittedGrades,
+                        gradedStudents:
+                            submittedGrades,
+                        pendingGrades,
+                        submissionPercentage,
+
+                        submissionStatus:
+                            normalizeSubmissionStatus(
+                                submissionMap.get(
+                                    section._id.toString(),
+                                )?.status,
+                            ),
+
+                        students:
+                            roster,
+                    },
+                ];
             },
-        ];
-    });
+        );
 
     const handledSubjectCount =
         handledSubjects.length;
 
     const enrolledStudentCount =
         handledSubjects.reduce(
-            (total, subject) =>
+            (
+                total,
+                subject,
+            ) =>
                 total +
                 subject.enrolledStudents,
             0,
@@ -424,62 +856,57 @@ export async function getFacultyDashboard(
 
     const pendingGradeCount =
         handledSubjects.reduce(
-            (total, subject) =>
-                total + subject.pendingGrades,
+            (
+                total,
+                subject,
+            ) =>
+                total +
+                subject.pendingGrades,
             0,
         );
 
-    const gradedStudentCount =
+    const submittedGradeCount =
         handledSubjects.reduce(
-            (total, subject) =>
-                total + subject.gradedStudents,
+            (
+                total,
+                subject,
+            ) =>
+                total +
+                subject.submittedGrades,
             0,
         );
 
     const submissionPercentage =
-        enrolledStudentCount === 0
+        enrolledStudentCount ===
+        0
             ? 0
             : Math.round(
-                  (gradedStudentCount /
-                      enrolledStudentCount) *
+                  (
+                      submittedGradeCount /
+                      enrolledStudentCount
+                  ) *
                       100,
               );
 
-    const upcomingDeadlines: FacultyDashboardResponse["upcomingDeadlines"] =
-        [];
+    const deadline =
+        new Date(
+            "2026-08-16T23:59:59+08:00",
+        );
 
-    if (
-        currentTerm.gradeSubmissionDeadline
-    ) {
-        const deadline =
-            currentTerm.gradeSubmissionDeadline instanceof
-            Date
-                ? currentTerm.gradeSubmissionDeadline
-                : new Date(
-                      currentTerm.gradeSubmissionDeadline,
-                  );
-
-        const daysRemaining =
-            getDaysRemaining(deadline);
-
-        upcomingDeadlines.push({
-            id: `${currentTerm._id.toString()}-final-grades`,
-            title:
-                "Final grade submission",
-            deadline:
-                deadline.toISOString(),
-            daysRemaining,
-            status:
-                getDeadlineStatus(
-                    daysRemaining,
-                ),
-        });
-    }
+    const daysRemaining =
+        getDaysRemaining(
+            deadline,
+        );
 
     return {
-        faculty: mapFaculty(faculty),
+        faculty:
+            mapFaculty(
+                faculty,
+            ),
         currentTerm:
-            mapAcademicTerm(currentTerm),
+            mapAcademicTerm(
+                currentTerm,
+            ),
 
         summary: {
             handledSubjectCount,
@@ -489,6 +916,48 @@ export async function getFacultyDashboard(
         },
 
         handledSubjects,
-        upcomingDeadlines,
+
+        upcomingDeadlines: [
+            {
+                id:
+                    `${currentTerm._id.toString()}-midterm-grades`,
+                title:
+                    "Midterm grades",
+                deadline:
+                    deadline.toISOString(),
+                daysRemaining,
+                status:
+                    getDeadlineStatus(
+                        daysRemaining,
+                    ),
+            },
+            {
+                id:
+                    `${currentTerm._id.toString()}-final-grade-encoding`,
+                title:
+                    "Final grade encoding",
+                deadline:
+                    deadline.toISOString(),
+                daysRemaining,
+                status:
+                    getDeadlineStatus(
+                        daysRemaining,
+                    ),
+            },
+            {
+                id:
+                    `${currentTerm._id.toString()}-record-verification`,
+                title:
+                    "Record verification",
+                deadline:
+                    deadline.toISOString(),
+                daysRemaining,
+                status:
+                    getDeadlineStatus(
+                        daysRemaining,
+                    ),
+            },
+        ],
     };
 }
+

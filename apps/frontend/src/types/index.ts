@@ -9,3 +9,6 @@ export * from "./profile.types";
 export * from "./studentRecord.types";
 export * from "./studentGrade.types";
 export * from "./studentEnrollment.types";
+export * from "./facultySubject.types";
+export * from "./facultyRecord.types";
+export * from "./facultyDashboard.types";

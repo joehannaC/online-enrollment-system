@@ -41,6 +41,19 @@ export type GradeType =
     | "FINAL"
     | "PROGRESS";
 
+export type CourseEligibilityCode =
+    | "ELIGIBLE"
+    | "MISSING_PREREQUISITES"
+    | "ALREADY_COMPLETED"
+    | "ALREADY_SELECTED"
+    | "SECTION_FULL"
+    | "MAXIMUM_LOAD_EXCEEDED"
+    | "ENROLLMENT_NOT_OPEN"
+    | "ENROLLMENT_CLOSED"
+    | "ENROLLMENT_SUBMITTED"
+    | "FAILED_COURSE_RETAKE_NOT_ALLOWED"
+    | "SCHEDULE_CONFLICT";
+
 export interface ApiResponse<T> {
     success: true;
     data: T;

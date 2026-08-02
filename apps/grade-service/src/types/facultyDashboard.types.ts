@@ -40,6 +40,26 @@ export interface FacultyProfileSummary {
     college: string;
 }
 
+export interface FacultySubjectStudent {
+    studentId: string;
+    studentNumber: string;
+    fullName: string;
+
+    activity: number | null;
+    majorOutput1: number | null;
+    majorOutput2: number | null;
+    midtermExam: number | null;
+    finalExam: number | null;
+
+    rawFinalGrade: number | null;
+    finalGradeValue: number | null;
+
+    gradeStatus:
+        | "INCOMPLETE"
+        | "DRAFT"
+        | "SUBMITTED";
+}
+
 export interface FacultySubject {
     sectionId: string;
     sectionCode: string;
@@ -51,10 +71,28 @@ export interface FacultySubject {
     schedule: ScheduleItem[];
 
     enrolledStudents: number;
+
+    /*
+     * submittedGrades counts only students whose grade
+     * record has status SUBMITTED or VERIFIED.
+     */
+    submittedGrades: number;
+
+    /*
+     * Kept for existing UI compatibility. It has the same
+     * value as submittedGrades.
+     */
     gradedStudents: number;
+
+    /*
+     * Draft and incomplete grades are both pending.
+     */
     pendingGrades: number;
 
+    submissionPercentage: number;
     submissionStatus: GradeStatus;
+
+    students: FacultySubjectStudent[];
 }
 
 export interface FacultyDashboardResponse {
