@@ -29,11 +29,11 @@ import {
     ProfileApiError,
 } from "@/lib/api/profileApi";
 import {
-    clearAuthSession,
-} from "@/lib/auth/tokenStorage";
-import {
     getStudentRecords,
 } from "@/lib/api/studentRecordApi";
+import {
+    clearAuthSession,
+} from "@/lib/auth/tokenStorage";
 import type {
     StudentProfileData,
     StudentRecordSummary,
@@ -68,9 +68,15 @@ function formatBirthday(
         return "Not provided";
     }
 
-    const date = new Date(birthday);
+    const date = new Date(
+        birthday,
+    );
 
-    if (Number.isNaN(date.getTime())) {
+    if (
+        Number.isNaN(
+            date.getTime(),
+        )
+    ) {
         return birthday;
     }
 
@@ -85,7 +91,8 @@ function formatBirthday(
 }
 
 export default function StudentProfilePage() {
-    const router = useRouter();
+    const router =
+        useRouter();
 
     const [
         academicSummary,
@@ -98,114 +105,187 @@ export default function StudentProfilePage() {
     const [
         student,
         setStudent,
-    ] = useState<StudentProfileData | null>(
-        null,
-    );
+    ] =
+        useState<StudentProfileData | null>(
+            null,
+        );
 
     const [
         isLoading,
         setIsLoading,
-    ] = useState(true);
+    ] =
+        useState(true);
 
     const [
         errorMessage,
         setErrorMessage,
-    ] = useState("");
+    ] =
+        useState("");
+
+    const [
+        academicErrorMessage,
+        setAcademicErrorMessage,
+    ] =
+        useState("");
 
     const [
         isPasswordModalOpen,
         setIsPasswordModalOpen,
-    ] = useState(false);
+    ] =
+        useState(false);
 
-    const loadProfile = useCallback(
-        async (
-            signal?: AbortSignal,
-        ): Promise<void> => {
-            setIsLoading(true);
-            setErrorMessage("");
-
-            try {
-                const [
-                    response,
-                    recordsResponse,
-                ] = await Promise.all([
-                    getMyProfile(signal),
-
-                    getStudentRecords(
-                        {
-                            page: 1,
-                            limit: 1,
-                        },
-                        signal,
-                    ),
-                ]);
-
-                if (
-                    response.profile.role !==
-                    "STUDENT"
-                ) {
-                    router.replace(
-                        "/faculty/profile",
-                    );
-
-                    return;
-                }
-
-                setStudent(
-                    response.profile,
+    const loadProfile =
+        useCallback(
+            async (
+                signal?: AbortSignal,
+            ): Promise<void> => {
+                setIsLoading(
+                    true,
                 );
-                setAcademicSummary(
-                    recordsResponse.summary,
-                );
-            } catch (error) {
-                if (
-                    error instanceof
-                        DOMException &&
-                    error.name ===
-                        "AbortError"
-                ) {
-                    return;
-                }
-
-                if (
-                    error instanceof
-                        ProfileApiError &&
-                    error.status === 401
-                ) {
-                    clearAuthSession();
-
-                    router.replace(
-                        "/login",
-                    );
-
-                    return;
-                }
-
-                if (
-                    error instanceof
-                        ProfileApiError &&
-                    error.status === 403
-                ) {
-                    router.replace(
-                        "/faculty/profile",
-                    );
-
-                    return;
-                }
 
                 setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : "The student profile could not be loaded.",
+                    "",
                 );
-            } finally {
-                if (!signal?.aborted) {
-                    setIsLoading(false);
+
+                setAcademicErrorMessage(
+                    "",
+                );
+
+                try {
+                    /*
+                     * Load profile-owned information first.
+                     *
+                     * The profile page should remain available
+                     * even when the student records or
+                     * enrollment-related service is unavailable.
+                     */
+                    const response =
+                        await getMyProfile(
+                            signal,
+                        );
+
+                    if (
+                        response.profile
+                            .role !==
+                        "STUDENT"
+                    ) {
+                        router.replace(
+                            "/faculty/profile",
+                        );
+
+                        return;
+                    }
+
+                    setStudent(
+                        response.profile,
+                    );
+
+                    /*
+                     * Load academic summary independently.
+                     *
+                     * Failure here must not make the entire
+                     * profile page unavailable.
+                     */
+                    try {
+                        const recordsResponse =
+                            await getStudentRecords(
+                                {
+                                    page: 1,
+                                    limit: 1,
+                                },
+                                signal,
+                            );
+
+                        setAcademicSummary(
+                            recordsResponse
+                                .summary,
+                        );
+                    } catch (
+                        recordsError
+                    ) {
+                        if (
+                            recordsError instanceof
+                                DOMException &&
+                            recordsError.name ===
+                                "AbortError"
+                        ) {
+                            return;
+                        }
+
+                        console.warn(
+                            "[student-profile] Academic records unavailable:",
+                            recordsError instanceof
+                                Error
+                                ? recordsError.message
+                                : String(
+                                    recordsError,
+                                ),
+                        );
+
+                        setAcademicSummary(
+                            null,
+                        );
+
+                        setAcademicErrorMessage(
+                            "Academic records are temporarily unavailable. Earned Units, Earned Non-academic Units, Remaining Units, and Enrolled Units cannot be displayed at this time.",
+                        );
+                    }
+                } catch (error) {
+                    if (
+                        error instanceof
+                            DOMException &&
+                        error.name ===
+                            "AbortError"
+                    ) {
+                        return;
+                    }
+
+                    if (
+                        error instanceof
+                            ProfileApiError &&
+                        error.status ===
+                            401
+                    ) {
+                        clearAuthSession();
+
+                        router.replace(
+                            "/login",
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        error instanceof
+                            ProfileApiError &&
+                        error.status ===
+                            403
+                    ) {
+                        router.replace(
+                            "/faculty/profile",
+                        );
+
+                        return;
+                    }
+
+                    setErrorMessage(
+                        error instanceof
+                            Error
+                            ? error.message
+                            : "The student profile could not be loaded.",
+                    );
+                } finally {
+                    if (
+                        !signal?.aborted
+                    ) {
+                        setIsLoading(
+                            false,
+                        );
+                    }
                 }
-            }
-        },
-        [router],
-    );
+            },
+            [router],
+        );
 
     useEffect(() => {
         const controller =
@@ -389,6 +469,23 @@ export default function StudentProfilePage() {
                                         </h2>
                                     </div>
 
+                                    {academicErrorMessage ? (
+                                        <div
+                                            role="alert"
+                                            className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+                                        >
+                                                {/*<p className="text-sm font-medium text-amber-800">
+                                                Academic information unavailable
+                                            </p>*/}
+
+                                            <p className="mt-1 text-sm text-amber-700">
+                                                {
+                                                    academicErrorMessage
+                                                }
+                                            </p>
+                                        </div>
+                                    ) : null}
+
                                     <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
                                         <InformationRow
                                             label="Program"
@@ -444,48 +541,41 @@ export default function StudentProfilePage() {
                                             }
                                         />
 
-                                        <InformationRow
-                                            label="Earned Units"
-                                            value={
-                                                academicSummary
-                                                    ?.earnedUnits ??
-                                                student.earnedUnits
-                                            }
-                                        />
+                                        {academicSummary ? (
+                                            <>
+                                                <InformationRow
+                                                    label="Earned Units"
+                                                    value={
+                                                        academicSummary
+                                                            .earnedUnits
+                                                    }
+                                                />
 
-                                        <InformationRow
-                                            label="Earned Non-Academic Units"
-                                            value={
-                                                academicSummary
-                                                    ?.earnedNonAcademicUnits ??
-                                                student.earnedNonAcademicUnits
-                                            }
-                                        />
+                                                <InformationRow
+                                                    label="Earned Non-Academic Units"
+                                                    value={
+                                                        academicSummary
+                                                            .earnedNonAcademicUnits
+                                                    }
+                                                />
 
-                                        <InformationRow
-                                            label="Remaining Units"
-                                            value={
-                                                academicSummary
-                                                    ?.remainingUnits ??
-                                                student.remainingUnits
-                                            }
-                                        />
+                                                <InformationRow
+                                                    label="Remaining Units"
+                                                    value={
+                                                        academicSummary
+                                                            .remainingUnits
+                                                    }
+                                                />
 
-                                        <InformationRow
-                                            label="Enrolled Units"
-                                            value={
-                                                academicSummary
-                                                    ?.enrolledUnits ??
-                                                student.enrolledUnits
-                                            }
-                                        />
-
-                                            {/*<InformationRow
-                                            label="Enlisted Units"
-                                            value={
-                                                student.enlistedUnits
-                                            }
-                                        />*/}
+                                                <InformationRow
+                                                    label="Enrolled Units"
+                                                    value={
+                                                        academicSummary
+                                                            .enrolledUnits
+                                                    }
+                                                />
+                                            </>
+                                        ) : null}
                                     </dl>
                                 </section>
                             </div>
@@ -536,7 +626,7 @@ function StudentProfileSkeleton() {
 
                 <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {Array.from({
-                        length: 13,
+                        length: 12,
                     }).map(
                         (_, index) => (
                             <div key={index}>

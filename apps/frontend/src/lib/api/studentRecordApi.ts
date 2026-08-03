@@ -1,14 +1,16 @@
-import { buildApiUrl } from "@/lib/api/apiBase";
+import {
+    buildApiUrl,
+} from "@/lib/api/apiBase";
+import {
+    getAccessToken,
+} from "@/lib/auth/tokenStorage";
+
 import type {
     ApiErrorResponse,
     ApiResponse,
     StudentRecordResponse,
     StudentRecordStatus,
 } from "@/types";
-
-import {
-    getAccessToken,
-} from "@/lib/auth/tokenStorage";
 
 export interface StudentRecordQuery {
     search?: string;
@@ -31,6 +33,11 @@ export class StudentRecordApiError
 
         this.name =
             "StudentRecordApiError";
+
+        Object.setPrototypeOf(
+            this,
+            StudentRecordApiError.prototype,
+        );
     }
 }
 
@@ -40,17 +47,23 @@ function buildQueryString(
     const searchParameters =
         new URLSearchParams();
 
-    if (query.search?.trim()) {
+    const normalizedSearch =
+        query.search?.trim();
+
+    if (normalizedSearch) {
         searchParameters.set(
             "search",
-            query.search.trim(),
+            normalizedSearch,
         );
     }
 
-    if (query.academicYear) {
+    if (
+        query.academicYear
+            ?.trim()
+    ) {
         searchParameters.set(
             "academicYear",
-            query.academicYear,
+            query.academicYear.trim(),
         );
     }
 
@@ -61,33 +74,119 @@ function buildQueryString(
         );
     }
 
-    if (query.page) {
+    if (
+        typeof query.page ===
+            "number" &&
+        Number.isInteger(
+            query.page,
+        ) &&
+        query.page > 0
+    ) {
         searchParameters.set(
             "page",
             String(query.page),
         );
     }
 
-    if (query.limit) {
+    if (
+        typeof query.limit ===
+            "number" &&
+        Number.isInteger(
+            query.limit,
+        ) &&
+        query.limit > 0
+    ) {
         searchParameters.set(
             "limit",
             String(query.limit),
         );
     }
 
-    if (query.termNumber) {
+    if (
+        typeof query.termNumber ===
+            "number" &&
+        Number.isInteger(
+            query.termNumber,
+        ) &&
+        query.termNumber > 0
+    ) {
         searchParameters.set(
             "termNumber",
-            String(query.termNumber),
+            String(
+                query.termNumber,
+            ),
         );
     }
 
-    const value =
+    const queryString =
         searchParameters.toString();
 
-    return value
-        ? `?${value}`
+    return queryString
+        ? `?${queryString}`
         : "";
+}
+
+function isAbortError(
+    error: unknown,
+): boolean {
+    return (
+        error instanceof
+            DOMException &&
+        error.name ===
+            "AbortError"
+    );
+}
+
+function isApiErrorResponse(
+    value: unknown,
+): value is ApiErrorResponse {
+    if (
+        typeof value !==
+            "object" ||
+        value === null
+    ) {
+        return false;
+    }
+
+    const candidate =
+        value as Partial<ApiErrorResponse>;
+
+    return (
+        candidate.success ===
+            false &&
+        typeof candidate.error ===
+            "object" &&
+        candidate.error !==
+            null &&
+        typeof candidate.error
+            .code ===
+            "string" &&
+        typeof candidate.error
+            .message ===
+            "string"
+    );
+}
+
+function getFallbackErrorMessage(
+    status: number,
+): string {
+    if (status === 401) {
+        return "Your login session has expired.";
+    }
+
+    if (status === 403) {
+        return "You do not have permission to view these academic records.";
+    }
+
+    if (status === 404) {
+        return "The student academic record could not be found.";
+    }
+
+    if (status >= 500) {
+        return "The Enrollment Service is unavailable.";
+    }
+
+    return "The student academic records could not be loaded.";
 }
 
 export async function getStudentRecords(
@@ -106,34 +205,42 @@ export async function getStudentRecords(
         );
     }
 
+    const url =
+        buildApiUrl(
+            `/api/students/records${buildQueryString(
+                query,
+            )}`,
+        );
+
     let response: Response;
 
     try {
-        response = await fetch(
-            buildApiUrl(`/api/students/records${buildQueryString(
-                query,
-            )}`),
-            {
-                method: "GET",
+        response =
+            await fetch(
+                url,
+                {
+                    method:
+                        "GET",
 
-                headers: {
-                    Accept:
-                        "application/json",
+                    headers: {
+                        Accept:
+                            "application/json",
 
-                    Authorization:
-                        `Bearer ${token}`,
+                        Authorization:
+                            `Bearer ${token}`,
+                    },
+
+                    cache:
+                        "no-store",
+
+                    signal,
                 },
-
-                cache: "no-store",
-                signal,
-            },
-        );
+            );
     } catch (error) {
         if (
-            error instanceof
-                DOMException &&
-            error.name ===
-                "AbortError"
+            isAbortError(
+                error,
+            )
         ) {
             throw error;
         }
@@ -146,38 +253,66 @@ export async function getStudentRecords(
         );
     }
 
-    let body:
-        | ApiResponse<StudentRecordResponse>
-        | ApiErrorResponse;
+    let body: unknown;
 
     try {
         body =
-            (await response.json()) as
-                | ApiResponse<StudentRecordResponse>
-                | ApiErrorResponse;
+            await response.json();
     } catch {
         throw new StudentRecordApiError(
             "INVALID_SERVICE_RESPONSE",
-            "The Enrollment Service returned an invalid response.",
-            response.status || 502,
+            response.ok
+                ? "The Enrollment Service returned an invalid response."
+                : getFallbackErrorMessage(
+                      response.status,
+                  ),
+            response.status ||
+                502,
             "enrollment-service",
         );
     }
 
-    if (
-        !response.ok ||
-        body.success === false
-    ) {
-        const errorBody =
-            body as ApiErrorResponse;
+    if (!response.ok) {
+        if (
+            isApiErrorResponse(
+                body,
+            )
+        ) {
+            throw new StudentRecordApiError(
+                body.error.code,
+                body.error.message,
+                response.status,
+                body.error.service,
+            );
+        }
 
         throw new StudentRecordApiError(
-            errorBody.error.code,
-            errorBody.error.message,
+            response.status >= 500
+                ? "ENROLLMENT_SERVICE_UNAVAILABLE"
+                : "STUDENT_RECORD_REQUEST_FAILED",
+            getFallbackErrorMessage(
+                response.status,
+            ),
             response.status,
-            errorBody.error.service,
+            "enrollment-service",
         );
     }
 
-    return body.data;
+    const apiResponse =
+        body as ApiResponse<StudentRecordResponse>;
+
+    if (
+        apiResponse.success !==
+            true ||
+        !apiResponse.data
+    ) {
+        throw new StudentRecordApiError(
+            "INVALID_SERVICE_RESPONSE",
+            "The Enrollment Service returned an invalid response.",
+            502,
+            "enrollment-service",
+        );
+    }
+
+    return apiResponse.data;
 }

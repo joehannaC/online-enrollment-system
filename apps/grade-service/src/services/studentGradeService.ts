@@ -9,10 +9,10 @@ import type {
     StudentGradeResponse,
     StudentGradeStatus,
 } from "../types/studentGrade.types.js";
+
 import type {
     StudentGradeQuery,
 } from "../validators/studentGradeQuerySchema.js";
-
 
 interface StudentDocument {
     _id: ObjectId;
@@ -25,6 +25,14 @@ interface StudentDocument {
 
     campus: string;
     college: string;
+
+    /*
+     * Cumulative academic record before
+     * the latest academic term.
+     */
+    previousGpa?: number;
+    previousGradedUnits?: number;
+    previousGradePoints?: number;
 
     status: string;
 }
@@ -91,25 +99,10 @@ interface GradeDocument {
     updatedAt?: Date;
 }
 
-interface EnrollmentHeaderDocument {
-    _id: ObjectId;
-    studentId: ObjectId;
-    academicTermId: ObjectId;
-    status:
-        | "DRAFT"
-        | "SUBMITTED"
-        | "CANCELLED";
-}
-
-interface EnrollmentItemDocument {
-    _id: ObjectId;
-    enrollmentId: ObjectId;
-    studentId: ObjectId;
-    academicTermId: ObjectId;
-    sectionId: ObjectId;
-    courseId: ObjectId;
-    academicUnits: number;
-    nonAcademicUnits: number;
+interface GradePointCalculation {
+    gradedUnits: number;
+    gradePoints: number;
+    gpa: number | null;
 }
 
 export class StudentGradeServiceError
@@ -147,14 +140,30 @@ function formatGrade(
     }
 
     if (
-        grade.finalGradeValue ===
-        undefined
+        typeof grade.finalGradeValue !==
+            "number" ||
+        !Number.isFinite(
+            grade.finalGradeValue,
+        )
     ) {
         return "—";
     }
 
     return grade.finalGradeValue
         .toFixed(1);
+}
+
+function getAcademicYearStart(
+    academicYear: string,
+): number {
+    const matchedYear =
+        academicYear.match(
+            /\d{4}/,
+        )?.[0];
+
+    return Number(
+        matchedYear ?? 0,
+    );
 }
 
 function buildAcademicPeriods(
@@ -191,17 +200,13 @@ function buildAcademicPeriods(
     ).sort(
         (first, second) => {
             const firstYear =
-                Number(
-                    first.academicYear
-                        .match(/\d{4}/)?.[0] ??
-                    0,
+                getAcademicYearStart(
+                    first.academicYear,
                 );
 
             const secondYear =
-                Number(
-                    second.academicYear
-                        .match(/\d{4}/)?.[0] ??
-                    0,
+                getAcademicYearStart(
+                    second.academicYear,
                 );
 
             if (
@@ -219,6 +224,117 @@ function buildAcademicPeriods(
                 second.termNumber
             );
         },
+    );
+}
+
+function normalizeNonNegativeNumber(
+    value: unknown,
+): number {
+    if (
+        typeof value !==
+            "number" ||
+        !Number.isFinite(
+            value,
+        ) ||
+        value < 0
+    ) {
+        return 0;
+    }
+
+    return value;
+}
+
+function isNumericGpaGrade(
+    grade: StudentGradeItem,
+): boolean {
+    return (
+        grade.status !==
+            "CREDITED" &&
+        typeof grade.numericGrade ===
+            "number" &&
+        Number.isFinite(
+            grade.numericGrade,
+        ) &&
+        grade.units > 0
+    );
+}
+
+function contributesGpaUnits(
+    grade: StudentGradeItem,
+): boolean {
+    return (
+        isNumericGpaGrade(
+            grade,
+        ) &&
+        grade.status !==
+            "FAILED" &&
+        grade.numericGrade! >
+            0
+    );
+}
+
+function calculateGradePoints(
+    grades: StudentGradeItem[],
+): GradePointCalculation {
+    const numericGrades =
+        grades.filter(
+            isNumericGpaGrade,
+        );
+
+    const gradePoints =
+        numericGrades.reduce(
+            (total, grade) =>
+                total +
+                grade.numericGrade! *
+                    grade.units,
+            0,
+        );
+
+    const gradedUnits =
+        numericGrades
+            .filter(
+                contributesGpaUnits,
+            )
+            .reduce(
+                (total, grade) =>
+                    total +
+                    grade.units,
+                0,
+            );
+
+    const gpa =
+        gradedUnits > 0
+            ? Number(
+                  (
+                      gradePoints /
+                      gradedUnits
+                  ).toFixed(2),
+              )
+            : null;
+
+    return {
+        gradedUnits,
+        gradePoints,
+        gpa,
+    };
+}
+
+function getLatestTermGrades(
+    grades: StudentGradeItem[],
+): StudentGradeItem[] {
+    const latestGrade =
+        grades[0];
+
+    if (!latestGrade) {
+        return [];
+    }
+
+    return grades.filter(
+        (grade) =>
+            grade.academicYear ===
+                latestGrade.academicYear &&
+            grade.termNumber ===
+                latestGrade.termNumber,
     );
 }
 
@@ -250,7 +366,8 @@ export async function getStudentGrades(
                         authenticatedUserId,
                     ),
 
-                status: "ACTIVE",
+                status:
+                    "ACTIVE",
             });
 
     if (!student) {
@@ -327,12 +444,10 @@ export async function getStudentGrades(
             new Map(
                 gradeDocuments.map(
                     (grade) => [
-                        grade
-                            .academicTermId
+                        grade.academicTermId
                             .toHexString(),
 
-                        grade
-                            .academicTermId,
+                        grade.academicTermId,
                     ],
                 ),
             ).values(),
@@ -462,7 +577,8 @@ export async function getStudentGrades(
                 ? "CREDITED"
                 : numericGrade !==
                         undefined &&
-                    numericGrade >= 1.0
+                    numericGrade >=
+                        1.0
                   ? "PASSED"
                   : "FAILED";
 
@@ -508,20 +624,19 @@ export async function getStudentGrades(
         });
     }
 
+    /*
+     * Sort newest academic period first.
+     */
     gradeItems.sort(
         (first, second) => {
             const firstYear =
-                Number(
-                    first.academicYear
-                        .match(/\d{4}/)?.[0] ??
-                    0,
+                getAcademicYearStart(
+                    first.academicYear,
                 );
 
             const secondYear =
-                Number(
-                    second.academicYear
-                        .match(/\d{4}/)?.[0] ??
-                    0,
+                getAcademicYearStart(
+                    second.academicYear,
                 );
 
             if (
@@ -551,45 +666,90 @@ export async function getStudentGrades(
         },
     );
 
-    const gpaEligibleGrades =
-        gradeItems.filter(
-            (grade) =>
-                grade.status !==
-                    "CREDITED" &&
-                typeof grade.numericGrade ===
-                    "number" &&
-                Number.isFinite(
-                    grade.numericGrade,
-                ) &&
-                grade.units > 0,
+    /*
+     * Previous cumulative academic record.
+     */
+    const previousGpaValue =
+        normalizeNonNegativeNumber(
+            student.previousGpa,
         );
 
-    const gradedUnits =
-        gpaEligibleGrades.reduce(
-            (total, grade) =>
-                total +
-                grade.units,
-            0,
+    const previousGpa =
+        student.previousGpa !==
+            undefined &&
+        Number.isFinite(
+            student.previousGpa,
+        ) &&
+        student.previousGpa >= 0
+            ? previousGpaValue
+            : null;
+
+    const previousGradedUnits =
+        normalizeNonNegativeNumber(
+            student.previousGradedUnits,
         );
 
-    const weightedGradeTotal =
-        gpaEligibleGrades.reduce(
-            (total, grade) =>
-                total +
-                grade.numericGrade! *
-                    grade.units,
-            0,
+    const hasPreviousGradePoints =
+        typeof student.previousGradePoints ===
+            "number" &&
+        Number.isFinite(
+            student.previousGradePoints,
+        ) &&
+        student.previousGradePoints >= 0;
+
+    /*
+     * Exact grade points are preferred.
+     *
+     * A rounded GPA multiplied by units can
+     * introduce cumulative rounding errors.
+     */
+    const previousGradePoints =
+        hasPreviousGradePoints
+            ? student.previousGradePoints!
+            : previousGpaValue *
+              previousGradedUnits;
+
+    /*
+     * Calculate only the newest term because
+     * previous values already represent all
+     * earlier academic terms.
+     */
+    const latestTermGrades =
+        getLatestTermGrades(
+            gradeItems,
         );
+
+    const latestTermCalculation =
+        calculateGradePoints(
+            latestTermGrades,
+        );
+
+    const totalGradedUnits =
+        previousGradedUnits +
+        latestTermCalculation
+            .gradedUnits;
+
+    const totalGradePoints =
+        previousGradePoints +
+        latestTermCalculation
+            .gradePoints;
 
     const currentGpa =
-        gradedUnits > 0
+        totalGradedUnits > 0
             ? Number(
                   (
-                      weightedGradeTotal /
-                      gradedUnits
+                      totalGradePoints /
+                      totalGradedUnits
                   ).toFixed(2),
               )
             : null;
+
+    /*
+     * Current GPA and cumulative GPA refer
+     * to the same updated cumulative value.
+     */
+    const cumulativeGpa =
+        currentGpa;
 
     const creditedUnits =
         gradeItems
@@ -681,10 +841,43 @@ export async function getStudentGrades(
 
     const statuses:
         StudentGradeStatus[] = [
-        "PASSED",
-        "FAILED",
-        "CREDITED",
-    ];
+            "PASSED",
+            "FAILED",
+            "CREDITED",
+        ];
+
+    /*
+     * Temporary diagnostic output.
+     * Remove after confirming the GPA.
+     */
+    console.log(
+        "[grade-service] GPA calculation",
+        {
+            studentNumber:
+                student.studentNumber,
+
+            previousGpa,
+            previousGradedUnits,
+            previousGradePoints,
+
+            latestTermGradePoints:
+                latestTermCalculation
+                    .gradePoints,
+
+            latestTermGradedUnits:
+                latestTermCalculation
+                    .gradedUnits,
+
+            latestTermGpa:
+                latestTermCalculation
+                    .gpa,
+
+            totalGradePoints,
+            totalGradedUnits,
+
+            currentGpa,
+        },
+    );
 
     return {
         summary: {
@@ -703,8 +896,30 @@ export async function getStudentGrades(
             college:
                 student.college,
 
+            previousGpa,
+            previousGradedUnits,
+            previousGradePoints,
+
+            latestTermGpa:
+                latestTermCalculation
+                    .gpa,
+
+            latestTermGradedUnits:
+                latestTermCalculation
+                    .gradedUnits,
+
+            latestTermGradePoints:
+                latestTermCalculation
+                    .gradePoints,
+
             currentGpa,
-            gradedUnits,
+            cumulativeGpa,
+
+            gradedUnits:
+                totalGradedUnits,
+
+            totalGradePoints,
+
             creditedUnits,
         },
 
@@ -722,8 +937,10 @@ export async function getStudentGrades(
 
         pagination: {
             page,
+
             limit:
                 query.limit,
+
             totalItems,
             totalPages,
         },

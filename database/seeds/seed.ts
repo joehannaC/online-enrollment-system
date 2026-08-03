@@ -280,6 +280,28 @@ const studentCurrentCourses = {
     ]),
 } as const;
 
+interface PreviousAcademicRecord {
+    previousGpa: number;
+    previousGradedUnits: number;
+    previousGradePoints: number;
+}
+
+const previousAcademicRecords:
+    Partial<
+        Record<
+            "student1" |
+                "student2" |
+                "student3",
+            PreviousAcademicRecord
+        >
+    > = {
+        student1: {
+            previousGpa: 1.88,
+            previousGradedUnits: 161,
+            previousGradePoints: 302.68,
+        },
+    };
+
 const facultyProfiles = [
     {
         key: "facultyCC",
@@ -1286,32 +1308,48 @@ async function seedDatabase(): Promise<void> {
                     0,
                 );
 
-                for (const rule of studentCompletionRules) {
+                for (
+                    const rule of
+                    studentCompletionRules
+                ) {
                     const academicGradeInputs:
                         AcademicGradeInput[] = [];
 
-                    let earnedNonAcademicUnits = 0;
+                    let earnedNonAcademicUnits =
+                        0;
 
-                    for (const course of curriculum) {
-                        if (!rule.completed(course)) {
+                    for (
+                        const course of
+                        curriculum
+                    ) {
+                        if (
+                            !rule.completed(
+                                course,
+                            )
+                        ) {
                             continue;
                         }
 
                         earnedNonAcademicUnits +=
                             course.nonAcademicUnits;
 
-                        if (course.academicUnits === 0) {
+                        if (
+                            course.academicUnits ===
+                            0
+                        ) {
                             continue;
                         }
 
                         const isCredited =
-                            rule.studentKey === "student1" &&
+                            rule.studentKey ===
+                                "student1" &&
                             student1CreditedCourses.has(
                                 course.code,
                             );
 
                         const isFailed =
-                            rule.studentKey === "student2" &&
+                            rule.studentKey ===
+                                "student2" &&
                             student2FailedCourses.has(
                                 course.code,
                             );
@@ -1330,32 +1368,60 @@ async function seedDatabase(): Promise<void> {
                                 isCredited
                                     ? null
                                     : isFailed
-                                      ? 59
-                                      : score.computedScore,
+                                    ? 59
+                                    : score.computedScore,
 
                             finalGradeValue:
                                 isCredited
                                     ? 3.5
                                     : isFailed
-                                      ? 0
-                                      : score.finalGradeValue,
+                                    ? 0
+                                    : score.finalGradeValue,
 
                             result:
                                 isCredited
                                     ? "CREDITED"
                                     : isFailed
-                                      ? "FAILED"
-                                      : "PASSED",
+                                    ? "FAILED"
+                                    : "PASSED",
 
                             status:
                                 "VERIFIED",
                         });
                     }
 
+                    /*
+                    * This summary represents all completed
+                    * courses before the current/latest term.
+                    */
                     const academicSummary =
                         calculateAcademicSummary(
                             academicGradeInputs,
                         );
+
+                    const storedPreviousRecord =
+                        previousAcademicRecords[
+                            rule.studentKey as
+                                keyof typeof previousAcademicRecords
+                        ];
+
+                    const previousGpa =
+                        storedPreviousRecord
+                            ?.previousGpa ??
+                        academicSummary
+                            .currentGpa;
+
+                    const previousGradedUnits =
+                        storedPreviousRecord
+                            ?.previousGradedUnits ??
+                        academicSummary
+                            .gpaAcademicUnits;
+
+                    const previousGradePoints =
+                        storedPreviousRecord
+                            ?.previousGradePoints ??
+                        academicSummary
+                            .totalGradePoints;
 
                     await db
                         .collection(
@@ -1388,25 +1454,45 @@ async function seedDatabase(): Promise<void> {
                                                     .earnedAcademicUnits,
                                         ),
 
-                                    enrolledUnits: 0,
+                                    enrolledUnits:
+                                        0,
 
-                                    enrolledNonAcademicUnits: 0,
+                                    enrolledNonAcademicUnits:
+                                        0,
 
-                                    enlistedUnits: 0,
+                                    enlistedUnits:
+                                        0,
 
-                                    enlistedNonAcademicUnits: 0,
+                                    enlistedNonAcademicUnits:
+                                        0,
 
+                                    /*
+                                    * Values before the latest term.
+                                    * These are consumed by the
+                                    * student grade service.
+                                    */
+                                    previousGpa,
+
+                                    previousGradedUnits,
+
+                                    previousGradePoints,
+
+                                    /*
+                                    * Keep the existing field names
+                                    * for other services that may
+                                    * still use them.
+                                    */
                                     currentGpa:
-                                        academicSummary
-                                            .currentGpa,
+                                        previousGpa,
+
+                                    cumulativeGpa:
+                                        previousGpa,
 
                                     gpaAcademicUnits:
-                                        academicSummary
-                                            .gpaAcademicUnits,
+                                        previousGradedUnits,
 
                                     totalGradePoints:
-                                        academicSummary
-                                            .totalGradePoints,
+                                        previousGradePoints,
 
                                     creditedAcademicUnits:
                                         academicSummary
@@ -1416,13 +1502,23 @@ async function seedDatabase(): Promise<void> {
                                         academicSummary
                                             .failedAcademicUnits,
 
-                                    updatedAt: now,
+                                    updatedAt:
+                                        now,
                                 },
                             },
                             {
                                 session,
                             },
                         );
+
+                    console.log(
+                        `[seed] Previous GPA record for ${rule.studentKey}`,
+                        {
+                            previousGpa,
+                            previousGradedUnits,
+                            previousGradePoints,
+                        },
+                    );
                 }
 
                 const currentSectionDefinitions = [

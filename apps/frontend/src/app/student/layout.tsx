@@ -20,7 +20,7 @@ export default function StudentLayout({
         <AuthGuard allowedRole="STUDENT">
             <>
                 <AppSidebar role="STUDENT" />
-
+                
                 {children}
 
                 <MobileNavigation role="STUDENT" />

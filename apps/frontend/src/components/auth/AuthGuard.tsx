@@ -84,11 +84,14 @@ export default function AuthGuard({
                     flex min-h-screen
                     items-center
                     justify-center
+                    bg-[#35822E]
                 "
             >
-                <p className="text-sm text-neutral-500">
-                    Checking your session...
-                </p>
+                <div
+                    role="status"
+                    aria-label="Checking your session"
+                    className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white"
+                />
             </main>
         );
     }

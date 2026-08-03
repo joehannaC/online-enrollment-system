@@ -25,11 +25,24 @@ export interface StudentGradeSummary {
     programName: string;
     curriculumCode: string;
     studentNumber: string;
+
     campus: string;
     college: string;
 
+    previousGpa: number | null;
+    previousGradedUnits: number;
+    previousGradePoints: number;
+
+    latestTermGpa: number | null;
+    latestTermGradedUnits: number;
+    latestTermGradePoints: number;
+
     currentGpa: number | null;
+    cumulativeGpa: number | null;
+
     gradedUnits: number;
+    totalGradePoints: number;
+
     creditedUnits: number;
 }
 

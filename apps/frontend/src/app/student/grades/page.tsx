@@ -270,6 +270,13 @@ export default function StudentGradesPage() {
     ] = useState("");
 
     const [
+        errorStatus,
+        setErrorStatus,
+    ] = useState<number | null>(
+        null,
+    );
+
+    const [
         retryKey,
         setRetryKey,
     ] = useState(0);
@@ -320,6 +327,7 @@ export default function StudentGradesPage() {
         async function loadGrades(): Promise<void> {
             setIsLoading(true);
             setErrorMessage("");
+            setErrorStatus(null);
 
             try {
                 const result =
@@ -369,12 +377,18 @@ export default function StudentGradesPage() {
                         return;
                     }
 
+                    setErrorStatus(
+                        error.status,
+                    );
+
                     setErrorMessage(
                         error.message,
                     );
 
                     return;
                 }
+
+                setErrorStatus(null);
 
                 setErrorMessage(
                     "The student grades could not be loaded.",
@@ -401,6 +415,135 @@ export default function StudentGradesPage() {
         setSelectedPeriod("");
         setStatus("");
         setPage(1);
+    }
+
+    if (
+        isLoading &&
+        !data
+    ) {
+        return (
+            <PageContainer>
+                <div className="mx-auto w-full max-w-[1440px] space-y-5">
+                    <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="space-y-3">
+                                <LoadingSkeleton className="h-5 w-72 max-w-full" />
+                                <LoadingSkeleton className="h-4 w-64 max-w-full" />
+                                <LoadingSkeleton className="h-4 w-52 max-w-full" />
+                            </div>
+
+                            <LoadingSkeleton className="h-24 w-full rounded-lg lg:w-48" />
+                        </div>
+                    </section>
+
+                    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+                        <div className="flex flex-col gap-4 border-b border-neutral-200 p-5 xl:flex-row xl:items-center">
+                            <div className="space-y-3 xl:mr-auto">
+                                <LoadingSkeleton className="h-10 w-40" />
+                                <LoadingSkeleton className="h-4 w-64 max-w-full" />
+                            </div>
+
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[260px]" />
+                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[190px]" />
+                            <LoadingSkeleton className="h-11 w-24 rounded-lg" />
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                            {Array.from({
+                                length: 7,
+                            }).map((_, index) => (
+                                <div
+                                    key={index}
+                                    className="grid grid-cols-1 gap-3 border-b border-neutral-100 pb-4 lg:grid-cols-5"
+                                >
+                                    {Array.from({
+                                        length: 5,
+                                    }).map((__, cellIndex) => (
+                                        <LoadingSkeleton
+                                            key={cellIndex}
+                                            className="h-5 w-full"
+                                        />
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            </PageContainer>
+        );
+    }
+
+    if (
+        errorStatus === 503 &&
+        !data
+    ) {
+        return (
+            <ServiceUnavailable
+                title="Grades unavailable"
+                description={
+                    errorMessage ||
+                    "The Grade Service is temporarily unavailable."
+                }
+                serviceName="Grade Service"
+                onRetry={() => {
+                    setRetryKey(
+                        (current) =>
+                            current + 1,
+                    );
+                }}
+            />
+        );
+    }
+
+    if (
+        errorMessage &&
+        !data
+    ) {
+        return (
+            <PageContainer>
+                <div className="mx-auto w-full max-w-[1440px]">
+                    <div
+                        role="alert"
+                        className="
+                            rounded-xl border
+                            border-red-200
+                            bg-red-50
+                            px-5 py-4
+                            text-sm text-red-700
+                        "
+                    >
+                        <p className="font-semibold">
+                            Grades could not be loaded
+                        </p>
+
+                        <p className="mt-1">
+                            {errorMessage}
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setRetryKey(
+                                    (current) =>
+                                        current + 1,
+                                );
+                            }}
+                            className="
+                                mt-4 rounded-lg
+                                border border-red-300
+                                bg-white px-4 py-2
+                                font-medium
+                                text-red-700
+                                transition
+                                hover:bg-red-100
+                            "
+                        >
+                            Try again
+                        </button>
+                    </div>
+                </div>
+            </PageContainer>
+        );
     }
 
     return (
@@ -603,99 +746,19 @@ export default function StudentGradesPage() {
                                         Academic Session
                                     </option>
 
-                                    {data?.filters
-                                        .academicPeriods
-                                        .map((period) => {
-                                            const value =
-                                                `${period.academicYear}|${period.termNumber}`;
+                                    {data?.filters.academicPeriods.map((period) => {
+                                        const value =
+                                            `${period.academicYear}|${period.termNumber}`;
 
-                                        
-    if (
-        isLoading &&
-        !data
-    ) {
-        return (
-            <PageContainer>
-                <div className="mx-auto w-full max-w-[1440px] space-y-5">
-                    <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="space-y-3">
-                                <LoadingSkeleton className="h-5 w-72 max-w-full" />
-                                <LoadingSkeleton className="h-4 w-64 max-w-full" />
-                                <LoadingSkeleton className="h-4 w-52 max-w-full" />
-                            </div>
-
-                            <LoadingSkeleton className="h-24 w-full rounded-lg lg:w-48" />
-                        </div>
-                    </section>
-
-                    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
-                        <div className="flex flex-col gap-4 border-b border-neutral-200 p-5 xl:flex-row xl:items-center">
-                            <div className="space-y-3 xl:mr-auto">
-                                <LoadingSkeleton className="h-10 w-40" />
-                                <LoadingSkeleton className="h-4 w-64 max-w-full" />
-                            </div>
-
-                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[260px]" />
-                            <LoadingSkeleton className="h-11 w-full rounded-lg sm:w-[190px]" />
-                            <LoadingSkeleton className="h-11 w-24 rounded-lg" />
-                        </div>
-
-                        <div className="space-y-4 p-5">
-                            {Array.from({
-                                length: 7,
-                            }).map((_, index) => (
-                                <div
-                                    key={index}
-                                    className="grid grid-cols-1 gap-3 border-b border-neutral-100 pb-4 lg:grid-cols-5"
-                                >
-                                    {Array.from({
-                                        length: 5,
-                                    }).map((__, cellIndex) => (
-                                        <LoadingSkeleton
-                                            key={cellIndex}
-                                            className="h-5 w-full"
-                                        />
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                </div>
-            </PageContainer>
-        );
-    }
-
-    if (
-        errorMessage &&
-        !data
-    ) {
-        return (
-            <PageContainer>
-                <ServiceUnavailable
-                    title="Grades unavailable"
-                    description={errorMessage}
-                    serviceName="Grade Service"
-                    onRetry={() => {
-                        setRetryKey(
-                            (current) =>
-                                current + 1,
-                        );
-                    }}
-                />
-            </PageContainer>
-        );
-    }
-
-    return (
-                                                <option
-                                                    key={value}
-                                                    value={value}
-                                                >
-                                                    {period.label}
-                                                </option>
-                                            );
-                                        })}
+                                        return (
+                                            <option
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {period.label}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
 
                                 <select
