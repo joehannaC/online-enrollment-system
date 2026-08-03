@@ -9,6 +9,7 @@ import express, {
 import helmet from "helmet";
 
 import { env } from "./config/env.js";
+import { authenticateRequest } from "./middleware/auth.js";
 import { proxyRoutes } from "./routes/proxyRoutes.js";
 
 export const app =
@@ -139,6 +140,11 @@ app.get(
             });
     },
 );
+
+app.use("/api/students", authenticateRequest);
+app.use("/api/faculty", authenticateRequest);
+app.use("/api/grades", authenticateRequest);
+app.use("/api/profiles", authenticateRequest);
 
 /*
  * Proxy middleware must run before Express body

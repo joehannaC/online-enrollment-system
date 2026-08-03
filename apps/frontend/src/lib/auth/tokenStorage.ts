@@ -1,4 +1,6 @@
-import type { AuthUser } from "@/types";
+import type {
+    AuthUser,
+} from "@/types";
 
 const ACCESS_TOKEN_KEY =
     "online-enrollment-access-token";
@@ -10,7 +12,10 @@ export function saveAuthSession(
     accessToken: string,
     user: AuthUser,
 ): void {
-    if (typeof window === "undefined") {
+    if (
+        typeof window ===
+        "undefined"
+    ) {
         return;
     }
 
@@ -28,7 +33,10 @@ export function saveAuthSession(
 export function getAccessToken():
     | string
     | null {
-    if (typeof window === "undefined") {
+    if (
+        typeof window ===
+        "undefined"
+    ) {
         return null;
     }
 
@@ -40,34 +48,52 @@ export function getAccessToken():
 export function getStoredAuthUser():
     | AuthUser
     | null {
-    if (typeof window === "undefined") {
+    if (
+        typeof window ===
+        "undefined"
+    ) {
         return null;
     }
 
-    const storedUser =
+    const value =
         sessionStorage.getItem(
             AUTH_USER_KEY,
         );
 
-    if (!storedUser) {
+    if (!value) {
         return null;
     }
 
     try {
-        return JSON.parse(
-            storedUser,
-        ) as AuthUser;
+        const user =
+            JSON.parse(
+                value,
+            ) as AuthUser;
+
+        if (
+            !user ||
+            typeof user !==
+                "object" ||
+            !user.role
+        ) {
+            throw new Error(
+                "Invalid stored user.",
+            );
+        }
+
+        return user;
     } catch {
-        sessionStorage.removeItem(
-            AUTH_USER_KEY,
-        );
+        clearTabAuthSession();
 
         return null;
     }
 }
 
-export function clearAuthSession(): void {
-    if (typeof window === "undefined") {
+export function clearTabAuthSession(): void {
+    if (
+        typeof window ===
+        "undefined"
+    ) {
         return;
     }
 
@@ -78,4 +104,8 @@ export function clearAuthSession(): void {
     sessionStorage.removeItem(
         AUTH_USER_KEY,
     );
+}
+
+export function clearAuthSession(): void {
+    clearTabAuthSession();
 }

@@ -60,7 +60,7 @@ export function authenticate(
     try {
         const payload = jwt.verify(
             token,
-            env.JWT_SECRET,
+            env.JWT_ACCESS_SECRET,
         ) as AccessTokenPayload;
 
         const userId =

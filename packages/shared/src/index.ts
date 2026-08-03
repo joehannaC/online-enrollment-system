@@ -9,3 +9,4 @@ export interface JwtPayload {
 }
 
 export * from "./academics/calculateAcademicSummary.js";
+export * from "./auth/index.js";

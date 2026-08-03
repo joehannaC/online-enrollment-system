@@ -14,6 +14,7 @@ import studentRecordRouter
 import {
     errorHandler,
 } from "./middleware/errorHandler.js";
+import { authenticateRequest, requireRole } from "./middleware/auth.js";
 
 import studentEnrollmentRouter
     from "./routes/studentEnrollmentRoutes.js";
@@ -46,6 +47,12 @@ app.get(
             },
         });
     },
+);
+
+app.use(
+    "/api/students",
+    authenticateRequest,
+    requireRole("STUDENT"),
 );
 
 app.use(

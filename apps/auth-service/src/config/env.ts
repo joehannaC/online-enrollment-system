@@ -50,11 +50,11 @@ const environmentSchema = z.object({
         .min(1)
         .default("online_enrollment"),
 
-    JWT_SECRET: z
+    JWT_ACCESS_SECRET: z
         .string()
         .min(
             1,
-            "JWT_SECRET is required",
+            "JWT_ACCESS_SECRET is required",
         ),
 
     JWT_EXPIRES_IN: z

@@ -21,7 +21,7 @@ import {
 } from "react";
 
 import {
-    clearAuthSession,
+    clearTabAuthSession,
     getStoredAuthUser,
 } from "@/lib/auth/tokenStorage";
 import type {
@@ -153,7 +153,7 @@ export default function AppSidebar({
         getUserInitials(loggedInUser);
 
     function handleSignOut(): void {
-        clearAuthSession();
+        clearTabAuthSession();
         router.replace("/login");
     }
 

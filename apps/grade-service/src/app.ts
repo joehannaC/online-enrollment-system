@@ -11,6 +11,7 @@ import {
     isDatabaseConnected,
 } from "./config/database.js";
 import { env } from "./config/env.js";
+import { authenticateRequest, requireRole } from "./middleware/auth.js";
 import facultyRouter from "./routes/facultyRoutes.js";
 
 import studentGradeRouter
@@ -91,11 +92,15 @@ app.get(
  */
 app.use(
     "/api/faculty",
+    authenticateRequest,
+    requireRole("FACULTY"),
     facultyRouter,
 );
 
 app.use(
     "/api/students",
+    authenticateRequest,
+    requireRole("STUDENT"),
     studentGradeRouter,
 );
 

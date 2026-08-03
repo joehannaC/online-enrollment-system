@@ -6,7 +6,9 @@ import {
     LockKeyhole,
     UserRound,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import {
+    useRouter,
+} from "next/navigation";
 import {
     type FormEvent,
     useState,
@@ -16,12 +18,14 @@ import {
     ApiRequestError,
     login,
 } from "@/lib/api/authApi";
+
 import {
     saveAuthSession,
 } from "@/lib/auth/tokenStorage";
 
 export default function LoginPage() {
-    const router = useRouter();
+    const router =
+        useRouter();
 
     const [
         usernameOrEmail,
@@ -58,8 +62,6 @@ export default function LoginPage() {
             return;
         }
 
-        setErrorMessage("");
-
         const normalizedUsernameOrEmail =
             usernameOrEmail.trim();
 
@@ -74,49 +76,69 @@ export default function LoginPage() {
             return;
         }
 
+        setErrorMessage("");
         setIsSubmitting(true);
 
         try {
-            const result = await login({
-                usernameOrEmail:
-                    normalizedUsernameOrEmail,
-                password,
-            });
+            const result =
+                await login({
+                    usernameOrEmail:
+                        normalizedUsernameOrEmail,
+                    password,
+                });
 
             saveAuthSession(
                 result.accessToken,
                 result.user,
             );
 
-            if (
-                result.user.role ===
-                "STUDENT"
-            ) {
-                router.replace(
-                    "/student/dashboard",
-                );
+            const destination =
+                result.user.role === "STUDENT"
+                    ? "/student/dashboard"
+                    : "/faculty/dashboard";
 
-                router.refresh();
-
-                return;
-            }
-
-            router.replace(
-                "/faculty/dashboard",
+            /*
+            * Use a full browser navigation.
+            *
+            * This ensures the destination layout and
+            * AuthGuard initialize after sessionStorage
+            * has already been updated.
+            */
+            window.location.replace(
+                destination,
             );
-
-            router.refresh();
         } catch (error) {
             if (
                 error instanceof
                 ApiRequestError
             ) {
+                if (
+                    error.status === 503 ||
+                    error.code ===
+                        "SERVICE_UNAVAILABLE" ||
+                    error.code ===
+                        "AUTH_SERVICE_UNAVAILABLE" ||
+                    error.code ===
+                        "UPSTREAM_SERVICE_UNAVAILABLE"
+                ) {
+                    setErrorMessage(
+                        "The authentication service is currently unavailable. Please try again later.",
+                    );
+
+                    return;
+                }
+
                 setErrorMessage(
                     error.message,
                 );
 
                 return;
             }
+
+            console.error(
+                "[LoginPage] Login failed:",
+                error,
+            );
 
             setErrorMessage(
                 "An unexpected error occurred. Please try again.",
@@ -190,7 +212,8 @@ export default function LoginPage() {
                                 lg:text-white/80
                             "
                         >
-                            Online Enrollment System
+                            Online Enrollment
+                            System
                         </p>
 
                         <h1
@@ -257,42 +280,54 @@ export default function LoginPage() {
                                 />
 
                                 <input
-                                suppressHydrationWarning
-                                id="usernameOrEmail"
-                                name="usernameOrEmail"
-                                type="text"
-                                autoComplete="username"
-                                value={usernameOrEmail}
-                                onChange={(event) => {
-                                    setUsernameOrEmail(
-                                        event.target.value,
-                                    );
-
-                                    if (errorMessage) {
-                                        setErrorMessage("");
+                                    suppressHydrationWarning
+                                    id="usernameOrEmail"
+                                    name="usernameOrEmail"
+                                    type="text"
+                                    autoComplete="username"
+                                    value={
+                                        usernameOrEmail
                                     }
-                                }}
-                                disabled={isSubmitting}
-                                required
-                                placeholder="Enter username or email"
-                                className="
-                                    h-12 w-full
-                                    rounded-lg
-                                    border
-                                    border-neutral-300
-                                    bg-white
-                                    pl-11 pr-4
-                                    text-neutral-900
-                                    outline-none
-                                    transition
-                                    placeholder:text-neutral-400
-                                    focus:border-[#35822E]
-                                    focus:ring-4
-                                    focus:ring-[#35822E]/15
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-70
-                                "
-                            />
+                                    onChange={(
+                                        event,
+                                    ) => {
+                                        setUsernameOrEmail(
+                                            event
+                                                .target
+                                                .value,
+                                        );
+
+                                        if (
+                                            errorMessage
+                                        ) {
+                                            setErrorMessage(
+                                                "",
+                                            );
+                                        }
+                                    }}
+                                    disabled={
+                                        isSubmitting
+                                    }
+                                    required
+                                    placeholder="Enter username or email"
+                                    className="
+                                        h-12 w-full
+                                        rounded-lg
+                                        border
+                                        border-neutral-300
+                                        bg-white
+                                        pl-11 pr-4
+                                        text-neutral-900
+                                        outline-none
+                                        transition
+                                        placeholder:text-neutral-400
+                                        focus:border-[#35822E]
+                                        focus:ring-4
+                                        focus:ring-[#35822E]/15
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-70
+                                    "
+                                />
                             </div>
                         </div>
 
@@ -323,62 +358,84 @@ export default function LoginPage() {
                                 />
 
                                 <input
-                                suppressHydrationWarning
-                                id="password"
-                                name="password"
-                                type={
-                                    showPassword
-                                        ? "text"
-                                        : "password"
-                                }
-                                autoComplete="current-password"
-                                value={password}
-                                onChange={(event) => {
-                                    setPassword(
-                                        event.target.value,
-                                    );
-
-                                    if (errorMessage) {
-                                        setErrorMessage("");
+                                    suppressHydrationWarning
+                                    id="password"
+                                    name="password"
+                                    type={
+                                        showPassword
+                                            ? "text"
+                                            : "password"
                                     }
-                                }}
-                                disabled={isSubmitting}
-                                required
-                                placeholder="Enter password"
-                                className="
-                                    h-12 w-full
-                                    rounded-lg
-                                    border
-                                    border-neutral-300
-                                    bg-white
-                                    pl-11 pr-12
-                                    text-neutral-900
-                                    outline-none
-                                    transition
-                                    placeholder:text-neutral-400
-                                    focus:border-[#35822E]
-                                    focus:ring-4
-                                    focus:ring-[#35822E]/15
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-70
-                                "
-                            />
+                                    autoComplete="current-password"
+                                    value={
+                                        password
+                                    }
+                                    onChange={(
+                                        event,
+                                    ) => {
+                                        setPassword(
+                                            event
+                                                .target
+                                                .value,
+                                        );
+
+                                        if (
+                                            errorMessage
+                                        ) {
+                                            setErrorMessage(
+                                                "",
+                                            );
+                                        }
+                                    }}
+                                    disabled={
+                                        isSubmitting
+                                    }
+                                    required
+                                    placeholder="Enter password"
+                                    className="
+                                        h-12 w-full
+                                        rounded-lg
+                                        border
+                                        border-neutral-300
+                                        bg-white
+                                        pl-11 pr-12
+                                        text-neutral-900
+                                        outline-none
+                                        transition
+                                        placeholder:text-neutral-400
+                                        focus:border-[#35822E]
+                                        focus:ring-4
+                                        focus:ring-[#35822E]/15
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-70
+                                    "
+                                />
 
                                 <button
                                     suppressHydrationWarning
                                     type="button"
-                                    disabled={isSubmitting}
+                                    disabled={
+                                        isSubmitting
+                                    }
                                     onClick={() => {
-                                        setShowPassword((current) => !current);
+                                        setShowPassword(
+                                            (
+                                                current,
+                                            ) =>
+                                                !current,
+                                        );
                                     }}
                                     aria-label={
                                         showPassword
                                             ? "Hide password"
                                             : "Show password"
                                     }
-                                    aria-pressed={showPassword}
+                                    aria-pressed={
+                                        showPassword
+                                    }
                                     className="
-                                        absolute right-3 top-1/2
+                                        absolute
+                                        right-3 top-1/2
                                         -translate-y-1/2
                                         rounded-md p-1
                                         text-neutral-500
@@ -421,7 +478,9 @@ export default function LoginPage() {
                                     text-red-700
                                 "
                             >
-                                {errorMessage}
+                                {
+                                    errorMessage
+                                }
                             </div>
                         ) : null}
 
@@ -465,8 +524,8 @@ export default function LoginPage() {
                             lg:text-white/70
                         "
                     >
-                        Use your assigned university
-                        credentials.
+                        Use your assigned
+                        university credentials.
                     </p>
                 </section>
             </div>

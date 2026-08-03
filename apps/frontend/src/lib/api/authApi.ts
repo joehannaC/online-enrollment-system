@@ -1,10 +1,14 @@
-import { buildApiUrl } from "@/lib/api/apiBase";
+import {
+    buildApiUrl,
+} from "@/lib/api/apiBase";
+
 import type {
     LoginApiResponse,
     LoginRequest,
 } from "@/types/auth.types";
 
-export class ApiRequestError extends Error {
+export class ApiRequestError
+    extends Error {
     public readonly status: number;
     public readonly code?: string;
 
@@ -15,9 +19,14 @@ export class ApiRequestError extends Error {
     ) {
         super(message);
 
-        this.name = "ApiRequestError";
-        this.status = status;
-        this.code = code;
+        this.name =
+            "ApiRequestError";
+
+        this.status =
+            status;
+
+        this.code =
+            code;
     }
 }
 
@@ -35,29 +44,49 @@ interface LoginResponseBody {
 export async function login(
     credentials: LoginRequest,
 ): Promise<LoginApiResponse["data"]> {
+    const url =
+        buildApiUrl(
+            "/api/auth/login",
+        );
+
+    console.log(
+        "[authApi] Login request:",
+        url,
+    );
+
     let response: Response;
 
     try {
-        response = await fetch(
-            buildApiUrl("/api/auth/login"),
-            {
-                method: "POST",
+        response =
+            await fetch(
+                url,
+                {
+                    method:
+                        "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
-                    Accept:
-                        "application/json",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        Accept:
+                            "application/json",
+                    },
+
+                    body:
+                        JSON.stringify(
+                            credentials,
+                        ),
+
+                    cache:
+                        "no-store",
                 },
-
-                body: JSON.stringify(
-                    credentials,
-                ),
-
-                cache: "no-store",
-            },
+            );
+    } catch (error) {
+        console.error(
+            "[authApi] Network error:",
+            error,
         );
-    } catch {
+
         throw new ApiRequestError(
             "The authentication service is unavailable.",
             503,
@@ -65,7 +94,8 @@ export async function login(
         );
     }
 
-    let body: LoginResponseBody;
+    let body:
+        LoginResponseBody;
 
     try {
         body =
@@ -73,8 +103,9 @@ export async function login(
                 LoginResponseBody;
     } catch {
         throw new ApiRequestError(
-            "The authentication service returned an invalid response.",
-            response.status || 502,
+            `The authentication service returned an invalid response with status ${response.status}.`,
+            response.status ||
+                502,
             "INVALID_SERVICE_RESPONSE",
         );
     }
@@ -84,11 +115,27 @@ export async function login(
         !body.success ||
         !body.data
     ) {
+        const code =
+            body.error?.code;
+
+        if (
+            response.status ===
+                503 ||
+            code ===
+                "UPSTREAM_SERVICE_UNAVAILABLE"
+        ) {
+            throw new ApiRequestError(
+                "The authentication service is unavailable.",
+                503,
+                code,
+            );
+        }
+
         throw new ApiRequestError(
             body.error?.message ??
-                "Login failed.",
+                `Login failed with status ${response.status}.`,
             response.status,
-            body.error?.code,
+            code,
         );
     }
 

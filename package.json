@@ -7,23 +7,19 @@
     "packages/*"
   ],
   "scripts": {
+    "build:shared": "npm run build -w packages/shared",
     "dev": "concurrently --kill-others-on-fail -n frontend,gateway,auth,enrollment,grade,profile \"npm run dev:frontend\" \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:enrollment\" \"npm run dev:grade\" \"npm run dev:profile\"",
-
     "dev:frontend": "npm run dev -w @enrollment/frontend",
     "dev:gateway": "npm run dev -w @enrollment/api-gateway",
     "dev:auth": "npm run dev -w @enrollment/auth-service",
     "dev:enrollment": "npm run dev -w @enrollment/enrollment-service",
     "dev:grade": "npm run dev -w @enrollment/grade-service",
     "dev:profile": "npm run dev -w @enrollment/profile-service",
-
     "dev:services": "concurrently --kill-others-on-fail -n gateway,auth,enrollment,grade,profile \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:enrollment\" \"npm run dev:grade\" \"npm run dev:profile\"",
-
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-
     "build:profile": "npm run build -w @enrollment/profile-service",
     "typecheck:gateway": "npm run typecheck -w @enrollment/api-gateway",
-
     "mongo:up": "docker compose up -d",
     "mongo:down": "docker compose down",
     "mongo:reset": "docker compose down -v",
@@ -31,15 +27,18 @@
     "mongo:logs": "docker compose logs -f mongo1 mongo2 mongo3",
     "mongo:shell": "docker exec -it enrollment-mongo1 mongosh --port 27117",
     "mongo:replica-status": "docker exec enrollment-mongo1 mongosh --port 27117 --quiet --eval \"rs.status().members.map(m => ({ name: m.name, state: m.stateStr }))\"",
-
     "seed": "tsx database/seeds/seed.ts",
     "seed:reset": "tsx database/seeds/seed.ts --reset"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^3.0.3",
     "concurrently": "^9.2.4",
     "dotenv": "^17.4.2",
     "mongodb": "^6.21.0",
     "tsx": "^4.23.1"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
   }
 }

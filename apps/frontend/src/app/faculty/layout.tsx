@@ -1,4 +1,8 @@
-import type { ReactNode } from "react";
+import type {
+    ReactNode,
+} from "react";
+
+import AuthGuard from "@/components/auth/AuthGuard";
 
 import {
     AppSidebar,
@@ -13,12 +17,14 @@ export default function FacultyLayout({
     children,
 }: FacultyLayoutProps) {
     return (
-        <>
-            <AppSidebar role="FACULTY" />
+        <AuthGuard allowedRole="FACULTY">
+            <>
+                <AppSidebar role="FACULTY" />
 
-            {children}
+                {children}
 
-            <MobileNavigation role="FACULTY" />
-        </>
+                <MobileNavigation role="FACULTY" />
+            </>
+        </AuthGuard>
     );
 }

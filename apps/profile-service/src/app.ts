@@ -7,6 +7,7 @@ import {
     getDatabaseStatus,
 } from "./config/database.js";
 import { env } from "./config/env.js";
+import { authenticateRequest } from "./middleware/auth.js";
 import {
     errorHandler,
     notFoundHandler,
@@ -74,6 +75,7 @@ app.get(
 
 app.use(
     "/api/profiles",
+    authenticateRequest,
     profileRouter,
 );
 

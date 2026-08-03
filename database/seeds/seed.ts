@@ -248,6 +248,7 @@ const curriculum: CurriculumCourse[] = [
 const exactStudentMissingCourses = new Set([
     "PRCCSST",
     "STDISCM",
+    "CSADPRG",
 ]);
 
 const student1CreditedCourses = new Set([
@@ -270,10 +271,10 @@ const studentCurrentCourses = {
     student2: new Set([
         "STINTSY",
         "STDISCM",
-        "CCAPDEV",
+        "CSADPRG",
     ]),
     student3: new Set([
-        "CCAPDEV",
+        "CSADPRG",
         "CSSECDV",
         "GEWORLD",
     ]),
@@ -1430,30 +1431,19 @@ async function seedDatabase(): Promise<void> {
                         sectionCode: "O01",
                         schedule: [
                             {
-                                days: ["FRIDAY"],
-                                startTime: "09:00",
-                                endTime: "12:00",
-                                room: "Online",
+                                days: ["ARRANGED"],
+                                startTime: "",
+                                endTime: "",
+                                room: "Off Campus",
                             },
                         ],
                         capacity: 30,
                     },
-                    {
-                        courseCode: "STINTSY",
-                        sectionCode: "S11",
-                        schedule: [
-                            {
-                                days: [
-                                    "TUESDAY",
-                                    "THURSDAY",
-                                ],
-                                startTime: "10:00",
-                                endTime: "11:30",
-                                room: "G205",
-                            },
-                        ],
-                        capacity: 30,
-                    },
+
+                    /*
+                    * Same schedule:
+                    * STDISCM and CSADPRG
+                    */
                     {
                         courseCode: "STDISCM",
                         sectionCode: "S12",
@@ -1461,7 +1451,7 @@ async function seedDatabase(): Promise<void> {
                             {
                                 days: [
                                     "MONDAY",
-                                    "WEDNESDAY",
+                                    "THURSDAY",
                                 ],
                                 startTime: "08:00",
                                 endTime: "09:30",
@@ -1471,29 +1461,37 @@ async function seedDatabase(): Promise<void> {
                         capacity: 45,
                     },
                     {
-                        courseCode: "THS-ST3",
-                        sectionCode: "T01",
-                        schedule: [
-                            {
-                                days: ["SATURDAY"],
-                                startTime: "13:00",
-                                endTime: "15:00",
-                                room: "G301",
-                            },
-                        ],
-                        capacity: 20,
-                    },
-                    {
-                        courseCode: "CCAPDEV",
+                        courseCode: "CSADPRG",
                         sectionCode: "S13",
                         schedule: [
                             {
                                 days: [
                                     "MONDAY",
-                                    "WEDNESDAY",
+                                    "THURSDAY",
                                 ],
-                                startTime: "13:00",
-                                endTime: "14:30",
+                                startTime: "08:00",
+                                endTime: "09:30",
+                                room: "G205",
+                            },
+                        ],
+                        capacity: 30,
+                    },
+
+                    /*
+                    * Same schedule:
+                    * STINTSY and CSSECDV
+                    */
+                    {
+                        courseCode: "STINTSY",
+                        sectionCode: "S11",
+                        schedule: [
+                            {
+                                days: [
+                                    "TUESDAY",
+                                    "FRIDAY",
+                                ],
+                                startTime: "10:00",
+                                endTime: "11:30",
                                 room: "G205",
                             },
                         ],
@@ -1506,21 +1504,25 @@ async function seedDatabase(): Promise<void> {
                             {
                                 days: [
                                     "TUESDAY",
-                                    "THURSDAY",
+                                    "FRIDAY",
                                 ],
-                                startTime: "08:00",
-                                endTime: "09:30",
+                                startTime: "10:00",
+                                endTime: "11:30",
                                 room: "A110",
                             },
                         ],
                         capacity: 30,
                     },
+
+                    /*
+                    * Wednesday-only schedule.
+                    */
                     {
                         courseCode: "GEWORLD",
                         sectionCode: "G01",
                         schedule: [
                             {
-                                days: ["FRIDAY"],
+                                days: ["WEDNESDAY"],
                                 startTime: "13:00",
                                 endTime: "16:00",
                                 room: "Yuchengco 308",
@@ -1528,25 +1530,159 @@ async function seedDatabase(): Promise<void> {
                         ],
                         capacity: 35,
                     },
+
+                    /*
+                    * Saturday-only schedule.
+                    */
+                    {
+                        courseCode: "THS-ST3",
+                        sectionCode: "T01",
+                        schedule: [
+                            {
+                                days: ["SATURDAY"],
+                                startTime: "13:00",
+                                endTime: "16:00",
+                                room: "G301",
+                            },
+                        ],
+                        capacity: 20,
+                    },
                 ];
 
                 const enrollmentScheduleSlots = [
-                    { days: ["MONDAY", "WEDNESDAY"], startTime: "08:00", endTime: "09:30", room: "G201" },
-                    { days: ["MONDAY", "WEDNESDAY"], startTime: "09:45", endTime: "11:15", room: "G202" },
-                    { days: ["MONDAY", "WEDNESDAY"], startTime: "11:30", endTime: "13:00", room: "G203" },
-                    { days: ["MONDAY", "WEDNESDAY"], startTime: "13:15", endTime: "14:45", room: "G204" },
-                    { days: ["MONDAY", "WEDNESDAY"], startTime: "15:00", endTime: "16:30", room: "G205" },
-                    { days: ["TUESDAY", "THURSDAY"], startTime: "08:00", endTime: "09:30", room: "G301" },
-                    { days: ["TUESDAY", "THURSDAY"], startTime: "09:45", endTime: "11:15", room: "G302" },
-                    { days: ["TUESDAY", "THURSDAY"], startTime: "11:30", endTime: "13:00", room: "G303" },
-                    { days: ["TUESDAY", "THURSDAY"], startTime: "13:15", endTime: "14:45", room: "G304" },
-                    { days: ["TUESDAY", "THURSDAY"], startTime: "15:00", endTime: "16:30", room: "G305" },
-                    { days: ["FRIDAY"], startTime: "08:00", endTime: "11:00", room: "Y201" },
-                    { days: ["FRIDAY"], startTime: "11:15", endTime: "14:15", room: "Y202" },
-                    { days: ["FRIDAY"], startTime: "14:30", endTime: "17:30", room: "Y203" },
-                    { days: ["SATURDAY"], startTime: "08:00", endTime: "11:00", room: "Y301" },
-                    { days: ["SATURDAY"], startTime: "11:15", endTime: "14:15", room: "Y302" },
-                    { days: ["SATURDAY"], startTime: "14:30", endTime: "17:30", room: "Y303" },
+                    // Monday and Thursday
+                    {
+                        days: [
+                            "MONDAY",
+                            "THURSDAY",
+                        ],
+                        startTime: "08:00",
+                        endTime: "09:30",
+                        room: "G201",
+                    },
+                    {
+                        days: [
+                            "MONDAY",
+                            "THURSDAY",
+                        ],
+                        startTime: "09:45",
+                        endTime: "11:15",
+                        room: "G202",
+                    },
+                    {
+                        days: [
+                            "MONDAY",
+                            "THURSDAY",
+                        ],
+                        startTime: "11:30",
+                        endTime: "13:00",
+                        room: "G203",
+                    },
+                    {
+                        days: [
+                            "MONDAY",
+                            "THURSDAY",
+                        ],
+                        startTime: "13:15",
+                        endTime: "14:45",
+                        room: "G204",
+                    },
+                    {
+                        days: [
+                            "MONDAY",
+                            "THURSDAY",
+                        ],
+                        startTime: "15:00",
+                        endTime: "16:30",
+                        room: "G205",
+                    },
+
+                    // Tuesday and Friday
+                    {
+                        days: [
+                            "TUESDAY",
+                            "FRIDAY",
+                        ],
+                        startTime: "08:00",
+                        endTime: "09:30",
+                        room: "G301",
+                    },
+                    {
+                        days: [
+                            "TUESDAY",
+                            "FRIDAY",
+                        ],
+                        startTime: "09:45",
+                        endTime: "11:15",
+                        room: "G302",
+                    },
+                    {
+                        days: [
+                            "TUESDAY",
+                            "FRIDAY",
+                        ],
+                        startTime: "11:30",
+                        endTime: "13:00",
+                        room: "G303",
+                    },
+                    {
+                        days: [
+                            "TUESDAY",
+                            "FRIDAY",
+                        ],
+                        startTime: "13:15",
+                        endTime: "14:45",
+                        room: "G304",
+                    },
+                    {
+                        days: [
+                            "TUESDAY",
+                            "FRIDAY",
+                        ],
+                        startTime: "15:00",
+                        endTime: "16:30",
+                        room: "G305",
+                    },
+
+                    // Wednesday only
+                    {
+                        days: ["WEDNESDAY"],
+                        startTime: "08:00",
+                        endTime: "11:00",
+                        room: "Y201",
+                    },
+                    {
+                        days: ["WEDNESDAY"],
+                        startTime: "11:15",
+                        endTime: "14:15",
+                        room: "Y202",
+                    },
+                    {
+                        days: ["WEDNESDAY"],
+                        startTime: "14:30",
+                        endTime: "17:30",
+                        room: "Y203",
+                    },
+
+                    // Saturday only
+                    {
+                        days: ["SATURDAY"],
+                        startTime: "08:00",
+                        endTime: "11:00",
+                        room: "Y301",
+                    },
+                    {
+                        days: ["SATURDAY"],
+                        startTime: "11:15",
+                        endTime: "14:15",
+                        room: "Y302",
+                    },
+                    {
+                        days: ["SATURDAY"],
+                        startTime: "14:30",
+                        endTime: "17:30",
+                        room: "Y303",
+                    },
                 ] as const;
 
                 const termOneOfferedCourses =
@@ -1597,6 +1733,15 @@ async function seedDatabase(): Promise<void> {
                             ) %
                             enrollmentScheduleSlots.length;
 
+                        const isSharedConflictSection =
+                            sectionIndex === 0 &&
+                            (
+                                course.code ===
+                                    "CSADPRG" ||
+                                course.code ===
+                                    "STDISCM"
+                            );
+
                         const scheduleSlot =
                             course.code ===
                             "PRCCSST"
@@ -1613,9 +1758,25 @@ async function seedDatabase(): Promise<void> {
                                           1
                                       }`,
                                   }
-                                : enrollmentScheduleSlots[
-                                      scheduleIndex
-                                  ];
+                                : isSharedConflictSection
+                                  ? {
+                                        days: [
+                                            "MONDAY",
+                                            "THURSDAY",
+                                        ],
+                                        startTime:
+                                            "08:00",
+                                        endTime:
+                                            "09:30",
+                                        room:
+                                            course.code ===
+                                            "STDISCM"
+                                                ? "G304"
+                                                : "G205",
+                                    }
+                                  : enrollmentScheduleSlots[
+                                        scheduleIndex
+                                    ];
 
                         const enrolledCount =
                             course.code ===

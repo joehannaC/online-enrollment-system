@@ -17,7 +17,8 @@
         "express": "^5.1.0",
         "helmet": "^8.1.0",
         "jsonwebtoken": "^9.0.2",
-        "mongodb": "^6.18.0"
+        "mongodb": "^6.18.0",
+        "@online-enrollment/shared": "file:../../packages/shared"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",

@@ -12,11 +12,11 @@ interface JwtPayload {
     email?: string;
 }
 
-const jwtSecret = process.env.JWT_SECRET;
+const jwtSecret = process.env.JWT_ACCESS_SECRET;
 
 if (!jwtSecret) {
     throw new Error(
-        "JWT_SECRET is missing from enrollment-service environment.",
+        "JWT_ACCESS_SECRET is missing from enrollment-service environment.",
     );
 }
 

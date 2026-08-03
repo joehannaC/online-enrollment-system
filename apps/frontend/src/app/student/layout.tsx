@@ -1,9 +1,13 @@
-import type { ReactNode } from "react";
+import type {
+    ReactNode,
+} from "react";
+
+import AuthGuard from "@/components/auth/AuthGuard";
 
 import {
     AppSidebar,
     MobileNavigation,
-} from "../../components/layout/";
+} from "@/components/layout";
 
 interface StudentLayoutProps {
     children: ReactNode;
@@ -13,12 +17,14 @@ export default function StudentLayout({
     children,
 }: StudentLayoutProps) {
     return (
-        <>
-            <AppSidebar role="STUDENT" />
+        <AuthGuard allowedRole="STUDENT">
+            <>
+                <AppSidebar role="STUDENT" />
 
-            {children}
+                {children}
 
-            <MobileNavigation role="STUDENT" />
-        </>
+                <MobileNavigation role="STUDENT" />
+            </>
+        </AuthGuard>
     );
 }

@@ -40,7 +40,9 @@ export interface RejectedEnrollmentSection {
     courseId: string;
     courseCode: string;
     courseName: string;
-    reason: "SECTION_FULL";
+    reason:
+        | "SECTION_FULL"
+        | "SCHEDULE_CONFLICT";
 }
 
 export interface SubmitEnrollmentResult {
@@ -74,6 +76,7 @@ interface CourseDocument {
     nonAcademicUnits: number;
     curriculumCode: string;
     prerequisiteCodes?: string[];
+    category?: string;
     status: string;
 }
 
@@ -3000,59 +3003,6 @@ export async function submitEnrollment(
                             ),
                         );
 
-                    for (
-                        let firstIndex = 0;
-                        firstIndex <
-                        sections.length;
-                        firstIndex += 1
-                    ) {
-                        for (
-                            let secondIndex =
-                                firstIndex + 1;
-                            secondIndex <
-                            sections.length;
-                            secondIndex += 1
-                        ) {
-                            const firstCourse =
-                                courseById.get(
-                                    sections[
-                                        firstIndex
-                                    ].courseId.toHexString(),
-                                );
-
-                            const secondCourse =
-                                courseById.get(
-                                    sections[
-                                        secondIndex
-                                    ].courseId.toHexString(),
-                                );
-
-                            const includesPracticum =
-                                firstCourse?.category ===
-                                "PRACTICUM" ||
-                                secondCourse?.category ===
-                                "PRACTICUM";
-
-                            if (
-                                !includesPracticum &&
-                                schedulesConflict(
-                                    sections[
-                                        firstIndex
-                                    ].schedule,
-                                    sections[
-                                        secondIndex
-                                    ].schedule,
-                                )
-                            ) {
-                                throw new StudentEnrollmentServiceError(
-                                    "SCHEDULE_CONFLICT",
-                                    "Two selected sections have overlapping schedules.",
-                                    409,
-                                );
-                            }
-                        }
-                    }
-
                     const gradeHistory =
                         await getGradeHistory(
                             db,
@@ -3071,18 +3021,46 @@ export async function submitEnrollment(
                         );
                     }
 
+                    /*
+                     * Preserve the student's draft-selection order. The first
+                     * successfully reserved course keeps its schedule slot; a
+                     * later course with an overlapping schedule is removed.
+                     * The ObjectId tie-breaker keeps the order deterministic.
+                     */
                     const sortedSections =
                         [...sections].sort(
-                            (first, second) =>
-                                first._id
+                            (first, second) => {
+                                const firstItem =
+                                    itemBySectionId.get(
+                                        first._id.toHexString(),
+                                    );
+
+                                const secondItem =
+                                    itemBySectionId.get(
+                                        second._id.toHexString(),
+                                    );
+
+                                const createdAtDifference =
+                                    (firstItem?.createdAt.getTime() ?? 0) -
+                                    (secondItem?.createdAt.getTime() ?? 0);
+
+                                if (createdAtDifference !== 0) {
+                                    return createdAtDifference;
+                                }
+
+                                return first._id
                                     .toHexString()
                                     .localeCompare(
                                         second._id.toHexString(),
-                                    ),
+                                    );
+                            },
                         );
 
                     const acceptedSectionIds:
                         ObjectId[] = [];
+
+                    const acceptedSections:
+                        SectionDocument[] = [];
 
                     const rejectedSections:
                         RejectedEnrollmentSection[] =
@@ -3092,6 +3070,76 @@ export async function submitEnrollment(
                         const section of
                         sortedSections
                     ) {
+                        const item =
+                            itemBySectionId.get(
+                                section._id.toHexString(),
+                            );
+
+                        const course =
+                            courseById.get(
+                                section.courseId.toHexString(),
+                            );
+
+                        if (!item || !course) {
+                            throw new StudentEnrollmentServiceError(
+                                "INVALID_SECTION_SELECTION",
+                                "A selected section could not be matched to its course.",
+                                409,
+                            );
+                        }
+
+                        /*
+                         * Practicum has an arranged schedule and is exempt from
+                         * the ordinary classroom schedule-overlap rule.
+                         */
+                        const conflictingAcceptedSection =
+                            course.category ===
+                            "PRACTICUM"
+                                ? undefined
+                                : acceptedSections.find(
+                                      (acceptedSection) => {
+                                          const acceptedCourse =
+                                              courseById.get(
+                                                  acceptedSection.courseId.toHexString(),
+                                              );
+
+                                          return (
+                                              acceptedCourse?.category !==
+                                                  "PRACTICUM" &&
+                                              schedulesConflict(
+                                                  acceptedSection.schedule,
+                                                  section.schedule,
+                                              )
+                                          );
+                                      },
+                                  );
+
+                        if (conflictingAcceptedSection) {
+                            rejectedSections.push({
+                                itemId:
+                                    item._id.toHexString(),
+                                sectionId:
+                                    section._id.toHexString(),
+                                sectionCode:
+                                    section.sectionCode,
+                                courseId:
+                                    course._id.toHexString(),
+                                courseCode:
+                                    course.courseCode,
+                                courseName:
+                                    course.courseName,
+                                reason:
+                                    "SCHEDULE_CONFLICT",
+                            });
+
+                            continue;
+                        }
+
+                        /*
+                         * Reserve the slot atomically. If this section became
+                         * full, it is removed and a later course with the same
+                         * schedule is still allowed to try.
+                         */
                         const reserved =
                             await db
                                 .collection<SectionDocument>(
@@ -3139,25 +3187,12 @@ export async function submitEnrollment(
                             acceptedSectionIds.push(
                                 section._id,
                             );
+
+                            acceptedSections.push(
+                                section,
+                            );
+
                             continue;
-                        }
-
-                        const item =
-                            itemBySectionId.get(
-                                section._id.toHexString(),
-                            );
-
-                        const course =
-                            courseById.get(
-                                section.courseId.toHexString(),
-                            );
-
-                        if (!item || !course) {
-                            throw new StudentEnrollmentServiceError(
-                                "INVALID_SECTION_SELECTION",
-                                "A selected section could not be matched to its course.",
-                                409,
-                            );
                         }
 
                         rejectedSections.push({
@@ -3177,17 +3212,6 @@ export async function submitEnrollment(
                                 "SECTION_FULL",
                         });
                     }
-
-
-                    {/*await createEnrollmentAnnouncement(
-                        db,
-                        session,
-                        student._id,
-                        enrollment._id,
-                        term,
-                        now,
-                    );*/
-                }
 
                     if (
                         rejectedSections.length >
@@ -3422,11 +3446,18 @@ export async function submitEnrollment(
                     if (
                         rejectedSections.length > 0
                     ) {
-                        const rejectedCourseCodes =
+                        const rejectedCourseDescriptions =
                             rejectedSections
                                 .map(
-                                    (section) =>
-                                        `${section.courseCode} (${section.sectionCode})`,
+                                    (section) => {
+                                        const reason =
+                                            section.reason ===
+                                            "SECTION_FULL"
+                                                ? "section full"
+                                                : "schedule conflict";
+
+                                        return `${section.courseCode} (${section.sectionCode}) — ${reason}`;
+                                    },
                                 )
                                 .join(", ");
 
@@ -3434,7 +3465,7 @@ export async function submitEnrollment(
                             outcome:
                                 "PARTIAL_SUCCESS",
                             message:
-                                `Enrollment submitted successfully, but the following full section${rejectedSections.length > 1 ? "s were" : " was"} removed: ${rejectedCourseCodes}.`,
+                                `Enrollment submitted successfully. The following course${rejectedSections.length > 1 ? "s were" : " was"} removed: ${rejectedCourseDescriptions}.`,
                             submittedCourseCount:
                                 acceptedItems.length,
                             rejectedCourseCount:

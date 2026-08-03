@@ -17,7 +17,7 @@ import {
 } from "next/navigation";
 
 import {
-    clearAuthSession,
+    clearTabAuthSession,
 } from "@/lib/auth/tokenStorage";
 import type {
     UserRole,
@@ -101,12 +101,11 @@ export default function MobileNavigation({
             : facultyItems;
 
     function handleSignOut(): void {
-        clearAuthSession();
+        clearTabAuthSession();
 
         router.replace("/login");
-        router.refresh();
     }
-
+    
     return (
         <nav
             aria-label="Mobile navigation"

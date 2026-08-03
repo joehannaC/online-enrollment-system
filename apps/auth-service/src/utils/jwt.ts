@@ -16,13 +16,13 @@ export function generateAccessToken(
         audience: "online-enrollment-system",
     };
 
-    return jwt.sign(payload, env.JWT_SECRET, options);
+    return jwt.sign(payload, env.JWT_ACCESS_SECRET, options);
 }
 
 export function verifyAccessToken(
     token: string,
 ): AuthTokenPayload {
-    return jwt.verify(token, env.JWT_SECRET, {
+    return jwt.verify(token, env.JWT_ACCESS_SECRET, {
         issuer: "online-enrollment-auth-service",
         audience: "online-enrollment-system",
     }) as AuthTokenPayload;

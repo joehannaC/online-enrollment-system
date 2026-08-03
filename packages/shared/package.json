@@ -9,10 +9,27 @@
         ".": {
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js"
+        },
+        "./auth": {
+            "types": "./dist/auth/index.d.ts",
+            "import": "./dist/auth/index.js"
         }
     },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsc -p tsconfig.json",
+        "clean": "rm -rf dist",
         "typecheck": "tsc -p tsconfig.json --noEmit"
+    },
+    "dependencies": {
+        "express": "^5.1.0",
+        "jsonwebtoken": "^9.0.2"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.3",
+        "@types/jsonwebtoken": "^9.0.10",
+        "typescript": "^5.9.2"
     }
 }
