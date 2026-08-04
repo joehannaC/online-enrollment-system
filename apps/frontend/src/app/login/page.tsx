@@ -97,13 +97,6 @@ export default function LoginPage() {
                     ? "/student/dashboard"
                     : "/faculty/dashboard";
 
-            /*
-            * Use a full browser navigation.
-            *
-            * This ensures the destination layout and
-            * AuthGuard initialize after sessionStorage
-            * has already been updated.
-            */
             window.location.replace(
                 destination,
             );

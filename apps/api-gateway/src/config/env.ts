@@ -29,10 +29,6 @@ const envSchema = z.object({
         .positive()
         .default(4000),
 
-    /*
-     * Backward-compatible single frontend origin.
-     * Used when FRONTEND_URLS is not provided.
-     */
     FRONTEND_URL: z
         .string()
         .trim()
@@ -41,12 +37,6 @@ const envSchema = z.object({
             "http://localhost:3001",
         ),
 
-    /*
-     * Comma-separated frontend origins.
-     *
-     * Example:
-     * http://localhost:3001,https://h61zcjl1-3001.asse.devtunnels.ms
-     */
     FRONTEND_URLS: z
         .string()
         .trim()

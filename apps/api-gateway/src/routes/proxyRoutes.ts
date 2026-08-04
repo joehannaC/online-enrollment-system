@@ -163,10 +163,6 @@ function proxy(
                     },
                 );
 
-                /*
-                 * The response can be a raw Socket
-                 * for WebSocket proxy errors.
-                 */
                 if (
                     !isHttpResponse(
                         response,

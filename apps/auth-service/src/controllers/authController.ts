@@ -1,6 +1,6 @@
 import type {
-  Request,
-  Response,
+    Request,
+    Response,
 } from "express";
 
 import { loginSchema } from "../schemas/authSchema.js";

@@ -12,7 +12,7 @@ interface JwtPayload {
     email?: string;
 }
 
-const jwtSecret = process.env.JWT_ACCESS_SECRET;
+const jwtSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
 
 if (!jwtSecret) {
     throw new Error(

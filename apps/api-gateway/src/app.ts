@@ -36,11 +36,6 @@ const corsOptions: CorsOptions = {
         origin,
         callback,
     ) {
-        /*
-         * curl, health checks, internal services,
-         * and other non-browser requests may not
-         * include an Origin header.
-         */
         if (!origin) {
             callback(
                 null,
@@ -104,10 +99,6 @@ const corsOptions: CorsOptions = {
         600,
 };
 
-/*
- * Application-level CORS middleware also handles
- * OPTIONS preflight requests for all routes.
- */
 app.use(
     cors(
         corsOptions,
@@ -146,11 +137,6 @@ app.use("/api/faculty", authenticateRequest);
 app.use("/api/grades", authenticateRequest);
 app.use("/api/profiles", authenticateRequest);
 
-/*
- * Proxy middleware must run before Express body
- * parsers so the original request stream remains
- * available to the downstream services.
- */
 app.use(
     proxyRoutes,
 );
