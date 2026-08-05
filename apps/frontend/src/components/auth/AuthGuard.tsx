@@ -5,9 +5,7 @@ import {
     useEffect,
     useState,
 } from "react";
-
 import {
-    usePathname,
     useRouter,
 } from "next/navigation";
 
@@ -16,68 +14,143 @@ import {
     getStoredAuthUser,
 } from "@/lib/auth/tokenStorage";
 
+type SupportedRole =
+    | "STUDENT"
+    | "FACULTY";
+
 interface AuthGuardProps {
     children: ReactNode;
-    allowedRole:
-        | "STUDENT"
-        | "FACULTY";
+    allowedRole: SupportedRole;
+}
+
+function normalizeRole(
+    role: unknown,
+): SupportedRole | null {
+    const normalizedRole =
+        String(role ?? "")
+            .trim()
+            .toUpperCase();
+
+    if (
+        normalizedRole === "STUDENT" ||
+        normalizedRole === "FACULTY"
+    ) {
+        return normalizedRole;
+    }
+
+    return null;
+}
+
+function getDashboardPath(
+    role: SupportedRole,
+): string {
+    return role === "STUDENT"
+        ? "/student/dashboard"
+        : "/faculty/dashboard";
 }
 
 export default function AuthGuard({
     children,
     allowedRole,
 }: AuthGuardProps) {
-    const router =
-        useRouter();
-
-    const pathname =
-        usePathname();
+    const router = useRouter();
 
     const [
-        isChecking,
-        setIsChecking,
-    ] = useState(true);
+        guardState,
+        setGuardState,
+    ] = useState<
+        | "CHECKING"
+        | "AUTHORIZED"
+        | "REDIRECTING"
+    >("CHECKING");
 
     useEffect(() => {
-        const accessToken =
-            getAccessToken();
+        let isActive = true;
 
-        const user =
-            getStoredAuthUser();
-
-        if (
-            !accessToken ||
-            !user
-        ) {
-            router.replace(
-                "/login",
-            );
-
-            return;
+        function updateState(
+            state:
+                | "AUTHORIZED"
+                | "REDIRECTING",
+        ): void {
+            if (isActive) {
+                setGuardState(state);
+            }
         }
 
-        if (
-            user.role !==
-            allowedRole
-        ) {
-            router.replace(
-                user.role ===
-                    "STUDENT"
-                    ? "/student/dashboard"
-                    : "/faculty/dashboard",
+        try {
+            const accessToken =
+                getAccessToken();
+
+            const storedUser =
+                getStoredAuthUser();
+
+            if (
+                !accessToken ||
+                !storedUser
+            ) {
+                updateState(
+                    "REDIRECTING",
+                );
+                router.replace("/login");
+                return;
+            }
+
+            const normalizedRole =
+                normalizeRole(
+                    storedUser.role,
+                );
+
+            if (!normalizedRole) {
+                updateState(
+                    "REDIRECTING",
+                );
+                router.replace("/login");
+                return;
+            }
+
+            if (
+                normalizedRole !==
+                allowedRole
+            ) {
+                updateState(
+                    "REDIRECTING",
+                );
+
+                router.replace(
+                    getDashboardPath(
+                        normalizedRole,
+                    ),
+                );
+                return;
+            }
+
+            updateState(
+                "AUTHORIZED",
+            );
+        } catch (error) {
+            console.error(
+                "[AuthGuard] Failed to read the authentication session:",
+                error,
             );
 
-            return;
+            updateState(
+                "REDIRECTING",
+            );
+            router.replace("/login");
         }
 
-        setIsChecking(false);
+        return () => {
+            isActive = false;
+        };
     }, [
         allowedRole,
-        pathname,
         router,
     ]);
 
-    if (isChecking) {
+    if (
+        guardState !==
+        "AUTHORIZED"
+    ) {
         return (
             <main
                 className="
@@ -87,11 +160,38 @@ export default function AuthGuard({
                     bg-[#35822E]
                 "
             >
-                <div
-                    role="status"
-                    aria-label="Checking your session"
-                    className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white"
-                />
+                <div className="text-center">
+                    <div
+                        role="status"
+                        aria-label={
+                            guardState ===
+                            "CHECKING"
+                                ? "Checking your session"
+                                : "Redirecting"
+                        }
+                        className="
+                            mx-auto
+                            h-8 w-8
+                            animate-spin
+                            rounded-full
+                            border-4
+                            border-white/30
+                            border-t-white
+                        "
+                    />
+
+                    <p
+                        className="
+                            mt-4 text-sm
+                            text-white/80
+                        "
+                    >
+                        {guardState ===
+                        "CHECKING"
+                            ? "Checking your session..."
+                            : "Redirecting..."}
+                    </p>
+                </div>
             </main>
         );
     }

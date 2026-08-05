@@ -6,9 +6,7 @@ import {
     LockKeyhole,
     UserRound,
 } from "lucide-react";
-import {
-    useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
     type FormEvent,
     useState,
@@ -18,14 +16,34 @@ import {
     ApiRequestError,
     login,
 } from "@/lib/api/authApi";
-
 import {
     saveAuthSession,
 } from "@/lib/auth/tokenStorage";
 
+type SupportedRole =
+    | "STUDENT"
+    | "FACULTY";
+
+function normalizeRole(
+    role: unknown,
+): SupportedRole | null {
+    const normalizedRole =
+        String(role ?? "")
+            .trim()
+            .toUpperCase();
+
+    if (
+        normalizedRole === "STUDENT" ||
+        normalizedRole === "FACULTY"
+    ) {
+        return normalizedRole;
+    }
+
+    return null;
+}
+
 export default function LoginPage() {
-    const router =
-        useRouter();
+    const router = useRouter();
 
     const [
         usernameOrEmail,
@@ -56,7 +74,6 @@ export default function LoginPage() {
         event: FormEvent<HTMLFormElement>,
     ): Promise<void> {
         event.preventDefault();
-        event.stopPropagation();
 
         if (isSubmitting) {
             return;
@@ -72,7 +89,6 @@ export default function LoginPage() {
             setErrorMessage(
                 "Enter your username/email and password.",
             );
-
             return;
         }
 
@@ -80,26 +96,54 @@ export default function LoginPage() {
         setIsSubmitting(true);
 
         try {
-            const result =
-                await login({
-                    usernameOrEmail:
-                        normalizedUsernameOrEmail,
-                    password,
-                });
+            const result = await login({
+                usernameOrEmail:
+                    normalizedUsernameOrEmail,
+                password,
+            });
+
+            if (!result.accessToken) {
+                throw new Error(
+                    "The authentication response did not include an access token.",
+                );
+            }
+
+            if (!result.user) {
+                throw new Error(
+                    "The authentication response did not include user information.",
+                );
+            }
+
+            const normalizedRole =
+                normalizeRole(
+                    result.user.role,
+                );
+
+            if (!normalizedRole) {
+                throw new Error(
+                    `Unsupported user role: ${String(
+                        result.user.role,
+                    )}`,
+                );
+            }
+
+            const normalizedUser = {
+                ...result.user,
+                role: normalizedRole,
+            };
 
             saveAuthSession(
                 result.accessToken,
-                result.user,
+                normalizedUser,
             );
 
             const destination =
-                result.user.role === "STUDENT"
+                normalizedRole === "STUDENT"
                     ? "/student/dashboard"
                     : "/faculty/dashboard";
 
-            window.location.replace(
-                destination,
-            );
+            router.replace(destination);
+            router.refresh();
         } catch (error) {
             if (
                 error instanceof
@@ -117,14 +161,12 @@ export default function LoginPage() {
                     setErrorMessage(
                         "The authentication service is currently unavailable. Please try again later.",
                     );
-
                     return;
                 }
 
                 setErrorMessage(
                     error.message,
                 );
-
                 return;
             }
 
@@ -134,10 +176,18 @@ export default function LoginPage() {
             );
 
             setErrorMessage(
-                "An unexpected error occurred. Please try again.",
+                error instanceof Error
+                    ? error.message
+                    : "An unexpected error occurred. Please try again.",
             );
         } finally {
             setIsSubmitting(false);
+        }
+    }
+
+    function clearError(): void {
+        if (errorMessage) {
+            setErrorMessage("");
         }
     }
 
@@ -289,14 +339,7 @@ export default function LoginPage() {
                                                 .target
                                                 .value,
                                         );
-
-                                        if (
-                                            errorMessage
-                                        ) {
-                                            setErrorMessage(
-                                                "",
-                                            );
-                                        }
+                                        clearError();
                                     }}
                                     disabled={
                                         isSubmitting
@@ -371,14 +414,7 @@ export default function LoginPage() {
                                                 .target
                                                 .value,
                                         );
-
-                                        if (
-                                            errorMessage
-                                        ) {
-                                            setErrorMessage(
-                                                "",
-                                            );
-                                        }
+                                        clearError();
                                     }}
                                     disabled={
                                         isSubmitting
