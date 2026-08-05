@@ -65,6 +65,104 @@ function getAuthorizationHeaders(): HeadersInit {
     };
 }
 
+/**
+ * Generates a UUID-compatible idempotency key.
+ *
+ * crypto.randomUUID() may be unavailable when the
+ * frontend is opened through a non-secure HTTP VM IP,
+ * such as http://172.20.10.4:3001.
+ */
+function createIdempotencyKey(): string {
+    const cryptoApi =
+        globalThis.crypto;
+
+    if (
+        cryptoApi &&
+        typeof cryptoApi.randomUUID ===
+            "function"
+    ) {
+        return cryptoApi.randomUUID();
+    }
+
+    if (
+        cryptoApi &&
+        typeof cryptoApi.getRandomValues ===
+            "function"
+    ) {
+        const bytes =
+            new Uint8Array(16);
+
+        cryptoApi.getRandomValues(
+            bytes,
+        );
+
+        // Set UUID version 4 bits.
+        bytes[6] =
+            (bytes[6] & 0x0f) |
+            0x40;
+
+        // Set UUID variant bits.
+        bytes[8] =
+            (bytes[8] & 0x3f) |
+            0x80;
+
+        const hex =
+            Array.from(
+                bytes,
+                (byte) =>
+                    byte
+                        .toString(16)
+                        .padStart(2, "0"),
+            );
+
+        return [
+            hex
+                .slice(0, 4)
+                .join(""),
+            hex
+                .slice(4, 6)
+                .join(""),
+            hex
+                .slice(6, 8)
+                .join(""),
+            hex
+                .slice(8, 10)
+                .join(""),
+            hex
+                .slice(10, 16)
+                .join(""),
+        ].join("-");
+    }
+
+    /*
+     * Last-resort fallback for environments where
+     * Web Crypto is unavailable.
+     *
+     * This is acceptable for an idempotency key,
+     * but it must not be used for passwords, tokens,
+     * encryption keys, or other security-sensitive data.
+     */
+    return [
+        Date.now().toString(16),
+        Math.random()
+            .toString(16)
+            .slice(2),
+        Math.random()
+            .toString(16)
+            .slice(2),
+    ].join("-");
+}
+
+function createServiceUnavailableError():
+    StudentEnrollmentApiError {
+    return new StudentEnrollmentApiError(
+        "ENROLLMENT_SERVICE_UNAVAILABLE",
+        "The Enrollment Service is unavailable.",
+        503,
+        "enrollment-service",
+    );
+}
+
 async function parseApiResponse<T>(
     response: Response,
 ): Promise<T> {
@@ -94,15 +192,24 @@ async function parseApiResponse<T>(
             body as ApiErrorResponse;
 
         throw new StudentEnrollmentApiError(
-            errorBody.error.code,
-            errorBody.error.message,
-            response.status,
-            errorBody.error.service,
-            errorBody.error.details,
+            errorBody.error?.code ??
+                "ENROLLMENT_REQUEST_FAILED",
+
+            errorBody.error?.message ??
+                "The enrollment request could not be completed.",
+
+            response.status || 500,
+
+            errorBody.error?.service ??
+                "enrollment-service",
+
+            errorBody.error?.details,
         );
     }
 
-    return body.data;
+    return (
+        body as ApiResponse<T>
+    ).data;
 }
 
 export async function getStudentEnrollment(
@@ -140,7 +247,9 @@ export async function getStudentEnrollment(
 
     try {
         response = await fetch(
-            buildApiUrl(`/api/students/enrollment?${parameters.toString()}`),
+            buildApiUrl(
+                `/api/students/enrollment?${parameters.toString()}`,
+            ),
             {
                 method: "GET",
 
@@ -162,12 +271,14 @@ export async function getStudentEnrollment(
             throw error;
         }
 
-        throw new StudentEnrollmentApiError(
-            "ENROLLMENT_SERVICE_UNAVAILABLE",
-            "The Enrollment Service is unavailable.",
-            503,
-            "enrollment-service",
+        console.warn(
+            "[studentEnrollmentApi] Failed to retrieve enrollment:",
+            error instanceof Error
+                ? error.message
+                : "Unknown network error",
         );
+
+        throw createServiceUnavailableError();
     }
 
     return parseApiResponse<StudentEnrollmentResponse>(
@@ -179,9 +290,13 @@ export async function addEnrollmentDraftItem(
     sectionId: string,
     expectedVersion: number,
 ): Promise<void> {
-    const response =
-        await fetch(
-            buildApiUrl("/api/students/enrollment/draft/items"),
+    let response: Response;
+
+    try {
+        response = await fetch(
+            buildApiUrl(
+                "/api/students/enrollment/draft/items",
+            ),
             {
                 method: "POST",
 
@@ -194,6 +309,16 @@ export async function addEnrollmentDraftItem(
                 }),
             },
         );
+    } catch (error) {
+        console.warn(
+            "[studentEnrollmentApi] Failed to add draft item:",
+            error instanceof Error
+                ? error.message
+                : "Unknown network error",
+        );
+
+        throw createServiceUnavailableError();
+    }
 
     await parseApiResponse<{
         message: string;
@@ -204,9 +329,13 @@ export async function removeEnrollmentDraftItem(
     itemId: string,
     expectedVersion: number,
 ): Promise<void> {
-    const response =
-        await fetch(
-            buildApiUrl(`/api/students/enrollment/draft/items/${itemId}`),
+    let response: Response;
+
+    try {
+        response = await fetch(
+            buildApiUrl(
+                `/api/students/enrollment/draft/items/${itemId}`,
+            ),
             {
                 method: "DELETE",
 
@@ -218,6 +347,16 @@ export async function removeEnrollmentDraftItem(
                 }),
             },
         );
+    } catch (error) {
+        console.warn(
+            "[studentEnrollmentApi] Failed to remove draft item:",
+            error instanceof Error
+                ? error.message
+                : "Unknown network error",
+        );
+
+        throw createServiceUnavailableError();
+    }
 
     await parseApiResponse<{
         message: string;
@@ -227,9 +366,20 @@ export async function removeEnrollmentDraftItem(
 export async function submitStudentEnrollment(
     expectedVersion: number,
 ): Promise<SubmitEnrollmentResult> {
-    const response =
-        await fetch(
-            buildApiUrl("/api/students/enrollment/submit"),
+    /*
+     * Generate this before fetch so the same key is
+     * included in the enrollment submission request.
+     */
+    const idempotencyKey =
+        createIdempotencyKey();
+
+    let response: Response;
+
+    try {
+        response = await fetch(
+            buildApiUrl(
+                "/api/students/enrollment/submit",
+            ),
             {
                 method: "POST",
 
@@ -238,13 +388,20 @@ export async function submitStudentEnrollment(
 
                 body: JSON.stringify({
                     expectedVersion,
-
-                    idempotencyKey:
-                        globalThis.crypto
-                            .randomUUID(),
+                    idempotencyKey,
                 }),
             },
         );
+    } catch (error) {
+        console.warn(
+            "[studentEnrollmentApi] Failed to submit enrollment:",
+            error instanceof Error
+                ? error.message
+                : "Unknown network error",
+        );
+
+        throw createServiceUnavailableError();
+    }
 
     return parseApiResponse<SubmitEnrollmentResult>(
         response,
