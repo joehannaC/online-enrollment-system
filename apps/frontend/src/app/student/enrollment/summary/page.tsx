@@ -264,7 +264,7 @@ export default function EnrollmentSummaryPage() {
                     title:
                         "Enrollment partially successful",
                     message:
-                        result.message,
+                        `${result.message} You can add replacement courses and submit again.`,
                 });
 
                 return;
@@ -340,8 +340,9 @@ export default function EnrollmentSummaryPage() {
             data?.term
                 .isEnrollmentOpen &&
                 !submitted &&
-                data.enrollment.items
-                    .length > 0,
+                data.enrollment.items.some(
+                    (item) => item.canDrop,
+                ),
         );
 
     const canSubmit =
@@ -349,8 +350,17 @@ export default function EnrollmentSummaryPage() {
             data?.term
                 .isEnrollmentOpen &&
                 !submitted &&
-                data.enrollment.items
-                    .length > 0,
+                data.enrollment.items.some(
+                    (item) =>
+                        item.status === "DRAFT",
+                ),
+        );
+
+    const canAddCourses =
+        Boolean(
+            data?.term
+                .isEnrollmentOpen &&
+                !submitted,
         );
 
 
@@ -511,6 +521,27 @@ export default function EnrollmentSummaryPage() {
                                 </p>
 
                                 <div className="flex flex-col gap-2 sm:flex-row">
+                                    {canAddCourses ? (
+                                        <Link
+                                            href="/student/enrollment"
+                                            className="
+                                                inline-flex h-10
+                                                items-center
+                                                justify-center
+                                                rounded-lg
+                                                border
+                                                border-[#35822E]
+                                                bg-white px-5
+                                                text-sm font-semibold
+                                                text-[#35822E]
+                                                transition
+                                                hover:bg-green-50
+                                            "
+                                        >
+                                            Add Courses
+                                        </Link>
+                                    ) : null}
+
                                     {canEdit ? (
                                         <Link
                                             href="/student/enrollment/edit"
@@ -671,14 +702,16 @@ export default function EnrollmentSummaryPage() {
                                                       <span
                                                           className={[
                                                               "inline-flex min-w-[108px] justify-center rounded-lg px-4 py-2 text-xs font-semibold",
-                                                              submitted
+                                                              item.status ===
+                                                              "ENROLLED"
                                                                   ? "bg-[#35822E] text-white"
                                                                   : "bg-green-50 text-[#35822E]",
                                                           ].join(
                                                               " ",
                                                           )}
                                                       >
-                                                          {submitted
+                                                          {item.status ===
+                                                          "ENROLLED"
                                                               ? "Enrolled"
                                                               : "Selected"}
                                                       </span>
@@ -718,7 +751,8 @@ export default function EnrollmentSummaryPage() {
                                               </div>
 
                                               <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-[#35822E]">
-                                                  {submitted
+                                                  {item.status ===
+                                                  "ENROLLED"
                                                       ? "Enrolled"
                                                       : "Selected"}
                                               </span>

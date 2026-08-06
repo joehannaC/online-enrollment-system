@@ -58,8 +58,11 @@ function getActionLabel(
         case "ALREADY_CREDITED":
             return "Credited";
 
+        case "ALREADY_ENROLLED":
+            return "Enrolled";
+
         case "ALREADY_SELECTED":
-            return "Enroll";
+            return "Selected";
 
         case "MISSING_PREREQUISITES":
             return "Unavailable";
@@ -496,8 +499,9 @@ export default function StudentEnrollmentPage() {
             data?.term
                 .isEnrollmentOpen &&
                 !submitted &&
-                data.enrollment.items
-                    .length > 0,
+                data.enrollment.items.some(
+                    (item) => item.canDrop,
+                ),
         );
 
     const isEnrollmentComingSoon =

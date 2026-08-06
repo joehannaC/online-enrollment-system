@@ -3,6 +3,7 @@ export type CourseEligibilityCode =
     | "MISSING_PREREQUISITES"
     | "ALREADY_COMPLETED"
     | "ALREADY_SELECTED"
+    | "ALREADY_ENROLLED"
     | "SECTION_FULL"
     | "MAXIMUM_LOAD_EXCEEDED"
     | "ENROLLMENT_NOT_OPEN"
@@ -65,9 +66,17 @@ export interface StudentRecordSummary {
     remainingUnits: number;
     remainingNonAcademicUnits: number;
 
+    /*
+     * Units from studentEnrollmentItems whose item-level
+     * status is ENROLLED.
+     */
     enrolledUnits: number;
     enrolledNonAcademicUnits: number;
 
+    /*
+     * Units from studentEnrollmentItems whose item-level
+     * status is DRAFT.
+     */
     enlistedUnits: number;
     enlistedNonAcademicUnits: number;
 }

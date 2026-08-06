@@ -497,30 +497,36 @@ export default function EditEnrollmentPage() {
                                                       }
                                                   </td>
                                                   <td className="px-4 py-4 text-center">
-                                                      <button
-                                                          type="button"
-                                                          disabled={
-                                                              isDropping
-                                                          }
-                                                          onClick={() => {
-                                                              setSelectedDropItem(
-                                                                  item,
-                                                              );
-                                                          }}
-                                                          className="
-                                                              h-9 min-w-[100px]
-                                                              rounded-lg
-                                                              bg-red-600
-                                                              px-4 text-sm
-                                                              font-semibold
-                                                              text-white
-                                                              transition
-                                                              hover:bg-red-700
-                                                              disabled:opacity-50
-                                                          "
-                                                      >
-                                                          Drop
-                                                      </button>
+                                                      {item.canDrop ? (
+                                                          <button
+                                                              type="button"
+                                                              disabled={
+                                                                  isDropping
+                                                              }
+                                                              onClick={() => {
+                                                                  setSelectedDropItem(
+                                                                      item,
+                                                                  );
+                                                              }}
+                                                              className="
+                                                                  h-9 min-w-[100px]
+                                                                  rounded-lg
+                                                                  bg-red-600
+                                                                  px-4 text-sm
+                                                                  font-semibold
+                                                                  text-white
+                                                                  transition
+                                                                  hover:bg-red-700
+                                                                  disabled:opacity-50
+                                                              "
+                                                          >
+                                                              Drop
+                                                          </button>
+                                                      ) : (
+                                                          <span className="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                                                              Enrolled
+                                                          </span>
+                                                      )}
                                                   </td>
                                               </tr>
                                           ),
@@ -588,28 +594,34 @@ export default function EditEnrollmentPage() {
                                               </div>
                                           </dl>
 
-                                          <button
-                                              type="button"
-                                              disabled={
-                                                  isDropping
-                                              }
-                                              onClick={() => {
-                                                  setSelectedDropItem(
-                                                      item,
-                                                  );
-                                              }}
-                                              className="
-                                                  mt-4 h-10
-                                                  w-full rounded-lg
-                                                  bg-red-600
-                                                  text-sm font-semibold
-                                                  text-white transition
-                                                  hover:bg-red-700
-                                                  disabled:opacity-50
-                                              "
-                                          >
-                                              Drop
-                                          </button>
+                                          {item.canDrop ? (
+                                              <button
+                                                  type="button"
+                                                  disabled={
+                                                      isDropping
+                                                  }
+                                                  onClick={() => {
+                                                      setSelectedDropItem(
+                                                          item,
+                                                      );
+                                                  }}
+                                                  className="
+                                                      mt-4 h-10
+                                                      w-full rounded-lg
+                                                      bg-red-600
+                                                      text-sm font-semibold
+                                                      text-white transition
+                                                      hover:bg-red-700
+                                                      disabled:opacity-50
+                                                  "
+                                              >
+                                                  Drop
+                                              </button>
+                                          ) : (
+                                              <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-700">
+                                                  Successfully enrolled
+                                              </div>
+                                          )}
                                       </article>
                                   ),
                               )
@@ -691,7 +703,7 @@ export default function EditEnrollmentPage() {
                 title="Drop this course?"
                 description={
                     selectedDropItem
-                        ? `${selectedDropItem.courseCode} — ${selectedDropItem.courseName} will be removed from your draft. You may enroll in it again from the main enrollment page while the enrollment period is open.`
+                        ? `${selectedDropItem.courseCode} — ${selectedDropItem.courseName} will be removed from your draft.`
                         : ""
                 }
                 confirmLabel="Yes, drop"

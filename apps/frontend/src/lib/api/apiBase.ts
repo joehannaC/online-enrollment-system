@@ -2,12 +2,6 @@ import {
     getAccessToken,
 } from "@/lib/auth/tokenStorage";
 
-/*
- * Empty means "use the same origin as the frontend".
- *
- * Example:
- * https://h61zcjl1-3001.asse.devtunnels.ms/api/auth/login
- */
 export const API_BASE_URL =
     process.env
         .NEXT_PUBLIC_API_BASE_URL

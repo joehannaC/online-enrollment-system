@@ -159,6 +159,10 @@ interface EnrollmentHeaderDocument {
     updatedAt: Date;
 }
 
+type EnrollmentItemStatus =
+    | "DRAFT"
+    | "ENROLLED";
+
 interface EnrollmentItemDocument {
     _id: ObjectId;
     enrollmentId: ObjectId;
@@ -168,6 +172,8 @@ interface EnrollmentItemDocument {
     courseId: ObjectId;
     academicUnits: number;
     nonAcademicUnits: number;
+    status: EnrollmentItemStatus;
+    enrolledAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -187,6 +193,7 @@ type CourseEligibilityCode =
     | "ALREADY_COMPLETED"
     | "ALREADY_CREDITED"
     | "ALREADY_SELECTED"
+    | "ALREADY_ENROLLED"
     | "SECTION_FULL"
     | "MAXIMUM_LOAD_EXCEEDED"
     | "ENROLLMENT_NOT_OPEN"
@@ -235,6 +242,9 @@ interface EnrollmentSummaryItem {
     sectionCode: string;
     instructorName: string;
     scheduleLabel: string;
+    status: EnrollmentItemStatus;
+    canDrop: boolean;
+    enrolledAt?: string;
 }
 
 export interface StudentEnrollmentResponse {
@@ -424,6 +434,12 @@ function isEnrollmentOpen(
     );
 }
 
+function getItemStatus(
+    item: EnrollmentItemDocument,
+): EnrollmentItemStatus {
+    return item.status ?? "DRAFT";
+}
+
 function getCourseEligibility({
     enrollmentHasStarted,
     enrollmentHasEnded,
@@ -431,6 +447,7 @@ function getCourseEligibility({
     alreadyCompleted,
     alreadyCredited,
     alreadySelected,
+    alreadyEnrolled,
     isFull,
     wouldExceedMaximumLoad,
     missingPrerequisiteCodes,
@@ -443,6 +460,7 @@ function getCourseEligibility({
     alreadyCompleted: boolean;
     alreadyCredited: boolean;
     alreadySelected: boolean;
+    alreadyEnrolled: boolean;
     isFull: boolean;
     wouldExceedMaximumLoad: boolean;
     missingPrerequisiteCodes: string[];
@@ -496,6 +514,16 @@ function getCourseEligibility({
             title: "Already completed",
             message:
                 "You have already passed this course.",
+        };
+    }
+
+    if (alreadyEnrolled) {
+        return {
+            canEnroll: false,
+            code: "ALREADY_ENROLLED",
+            title: "Already enrolled",
+            message:
+                "This course was already successfully enrolled.",
         };
     }
 
@@ -1574,11 +1602,31 @@ export async function getStudentEnrollment(
             ),
         );
 
-    const selectedCourseIds =
+    const draftItems =
+        items.filter(
+            (item) =>
+                getItemStatus(item) ===
+                "DRAFT",
+        );
+
+    const enrolledItems =
+        items.filter(
+            (item) =>
+                getItemStatus(item) ===
+                "ENROLLED",
+        );
+
+    const draftCourseIds =
         new Set(
-            items.map((item) =>
-                item.courseId
-                    .toHexString(),
+            draftItems.map((item) =>
+                item.courseId.toHexString(),
+            ),
+        );
+
+    const enrolledCourseIds =
+        new Set(
+            enrolledItems.map((item) =>
+                item.courseId.toHexString(),
             ),
         );
 
@@ -1703,7 +1751,12 @@ export async function getStudentEnrollment(
             course._id.toHexString();
 
         const alreadySelected =
-            selectedCourseIds.has(
+            draftCourseIds.has(
+                courseId,
+            );
+
+        const alreadyEnrolled =
+            enrolledCourseIds.has(
                 courseId,
             );
 
@@ -1835,6 +1888,7 @@ export async function getStudentEnrollment(
                 alreadyCompleted,
                 alreadyCredited,
                 alreadySelected,
+                alreadyEnrolled,
                 isFull,
                 wouldExceedMaximumLoad,
                 missingPrerequisiteCodes,
@@ -2079,6 +2133,16 @@ export async function getStudentEnrollment(
                 formatSchedule(
                     section.schedule,
                 ),
+            status:
+                getItemStatus(item),
+            canDrop:
+                getItemStatus(item) ===
+                    "DRAFT" &&
+                open &&
+                !termGradesFinalized,
+            enrolledAt:
+                item.enrolledAt
+                    ?.toISOString(),
         });
     }
 
@@ -2315,14 +2379,26 @@ export async function addDraftItem(
                         session,
                     );
 
-                if (
-                    items.some(
-                        (item) =>
-                            item.courseId.equals(
-                                course._id,
-                            ),
-                    )
-                ) {
+                const existingCourseItem =
+                    items.find((item) =>
+                        item.courseId.equals(
+                            course._id,
+                        ),
+                    );
+
+                if (existingCourseItem) {
+                    if (
+                        getItemStatus(
+                            existingCourseItem,
+                        ) === "ENROLLED"
+                    ) {
+                        throw new StudentEnrollmentServiceError(
+                            "COURSE_ALREADY_ENROLLED",
+                            "The course has already been successfully enrolled.",
+                            409,
+                        );
+                    }
+
                     throw new StudentEnrollmentServiceError(
                         "DUPLICATE_COURSE",
                         "The course is already included in the enrollment draft.",
@@ -2435,6 +2511,8 @@ export async function addDraftItem(
                                     course.academicUnits,
                                 nonAcademicUnits:
                                     course.nonAcademicUnits,
+                                status:
+                                    "DRAFT",
                                 createdAt:
                                     now,
                                 updatedAt:
@@ -2537,32 +2615,23 @@ export async function removeDraftItem(
     }
 
     const db = getDatabase();
-    const client =
-        getMongoClient();
-    const session =
-        client.startSession();
+    const client = getMongoClient();
+    const session = client.startSession();
 
     try {
         await session.withTransaction(
             async () => {
-                const student =
-                    await getStudent(
-                        db,
-                        authenticatedUserId,
-                        session,
-                    );
+                const student = await getStudent(
+                    db,
+                    authenticatedUserId,
+                    session,
+                );
+                const term = await getEnrollmentTerm(
+                    db,
+                    session,
+                );
 
-                const term =
-                    await getEnrollmentTerm(
-                        db,
-                        session,
-                    );
-
-                if (
-                    !isEnrollmentOpen(
-                        term,
-                    )
-                ) {
+                if (!isEnrollmentOpen(term)) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_PERIOD_CLOSED",
                         "The enrollment period has ended.",
@@ -2570,22 +2639,17 @@ export async function removeDraftItem(
                     );
                 }
 
-                const enrollment =
-                    await db
-                        .collection<EnrollmentHeaderDocument>(
-                            "studentEnrollments",
-                        )
-                        .findOne(
-                            {
-                                studentId:
-                                    student._id,
-                                academicTermId:
-                                    term._id,
-                            },
-                            {
-                                session,
-                            },
-                        );
+                const enrollment = await db
+                    .collection<EnrollmentHeaderDocument>(
+                        "studentEnrollments",
+                    )
+                    .findOne(
+                        {
+                            studentId: student._id,
+                            academicTermId: term._id,
+                        },
+                        { session },
+                    );
 
                 if (!enrollment) {
                     throw new StudentEnrollmentServiceError(
@@ -2595,21 +2659,15 @@ export async function removeDraftItem(
                     );
                 }
 
-                if (
-                    enrollment.status ===
-                    "SUBMITTED"
-                ) {
+                if (enrollment.status === "SUBMITTED") {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_ALREADY_SUBMITTED",
-                        "The enrollment has already been submitted and can no longer be changed.",
+                        "The enrollment has already been finalized.",
                         409,
                     );
                 }
 
-                if (
-                    enrollment.version !==
-                    expectedVersion
-                ) {
+                if (enrollment.version !== expectedVersion) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_VERSION_CONFLICT",
                         "The enrollment was changed in another tab. Reload and try again.",
@@ -2617,80 +2675,90 @@ export async function removeDraftItem(
                     );
                 }
 
-                const deleted =
-                    await db
-                        .collection<EnrollmentItemDocument>(
-                            "studentEnrollmentItems",
-                        )
-                        .deleteOne(
-                            {
-                                _id:
-                                    new ObjectId(
-                                        itemId,
-                                    ),
-                                enrollmentId:
-                                    enrollment._id,
-                                studentId:
-                                    student._id,
-                            },
-                            {
-                                session,
-                            },
-                        );
+                const enrollmentItem = await db
+                    .collection<EnrollmentItemDocument>(
+                        "studentEnrollmentItems",
+                    )
+                    .findOne(
+                        {
+                            _id: new ObjectId(itemId),
+                            enrollmentId: enrollment._id,
+                            studentId: student._id,
+                        },
+                        { session },
+                    );
 
-                if (
-                    deleted.deletedCount !==
-                    1
-                ) {
+                if (!enrollmentItem) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_ITEM_NOT_FOUND",
-                        "The selected course could not be found in the draft.",
+                        "The selected course could not be found.",
                         404,
                     );
                 }
 
-                const totals =
-                    await recalculateTotals(
-                        db,
-                        enrollment._id,
-                        session,
+                if (
+                    getItemStatus(enrollmentItem) ===
+                    "ENROLLED"
+                ) {
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLED_COURSE_LOCKED",
+                        "A successfully enrolled course can no longer be dropped.",
+                        409,
+                    );
+                }
+
+                const deleted = await db
+                    .collection<EnrollmentItemDocument>(
+                        "studentEnrollmentItems",
+                    )
+                    .deleteOne(
+                        {
+                            _id: enrollmentItem._id,
+                            enrollmentId: enrollment._id,
+                            studentId: student._id,
+                            status: "DRAFT",
+                        },
+                        { session },
                     );
 
-                const updated =
-                    await db
-                        .collection<EnrollmentHeaderDocument>(
-                            "studentEnrollments",
-                        )
-                        .updateOne(
-                            {
-                                _id:
-                                    enrollment._id,
-                                version:
-                                    expectedVersion,
-                                status: "DRAFT",
-                            },
-                            {
-                                $set: {
-                                    totalAcademicUnits:
-                                        totals.totalAcademicUnits,
-                                    totalNonAcademicUnits:
-                                        totals.totalNonAcademicUnits,
-                                    updatedAt:
-                                        new Date(),
-                                },
-                                $inc: {
-                                    version: 1,
-                                },
-                            },
-                            {
-                                session,
-                            },
-                        );
+                if (deleted.deletedCount !== 1) {
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLMENT_ITEM_NOT_FOUND",
+                        "The selected draft course could not be removed.",
+                        404,
+                    );
+                }
 
-                if (
-                    updated.modifiedCount !==
-                    1
-                ) {
+                const totals = await recalculateTotals(
+                    db,
+                    enrollment._id,
+                    session,
+                );
+
+                const updated = await db
+                    .collection<EnrollmentHeaderDocument>(
+                        "studentEnrollments",
+                    )
+                    .updateOne(
+                        {
+                            _id: enrollment._id,
+                            version: expectedVersion,
+                            status: "DRAFT",
+                        },
+                        {
+                            $set: {
+                                totalAcademicUnits:
+                                    totals.totalAcademicUnits,
+                                totalNonAcademicUnits:
+                                    totals.totalNonAcademicUnits,
+                                updatedAt: new Date(),
+                            },
+                            $inc: { version: 1 },
+                        },
+                        { session },
+                    );
+
+                if (updated.modifiedCount !== 1) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_VERSION_CONFLICT",
                         "The enrollment was changed in another tab. Reload and try again.",
@@ -2699,12 +2767,8 @@ export async function removeDraftItem(
                 }
             },
             {
-                readConcern: {
-                    level: "snapshot",
-                },
-                writeConcern: {
-                    w: "majority",
-                },
+                readConcern: { level: "snapshot" },
+                writeConcern: { w: "majority" },
             },
         );
     } finally {
@@ -2780,424 +2844,288 @@ export async function submitEnrollment(
     }
 
     const db = getDatabase();
-    const client =
-        getMongoClient();
-    const session =
-        client.startSession();
+    const client = getMongoClient();
+    const session = client.startSession();
 
     try {
-        const result =
-            await session.withTransaction(
-                async (): Promise<SubmitEnrollmentResult> => {
-                    const student =
-                        await getStudent(
-                            db,
-                            authenticatedUserId,
-                            session,
-                        );
+        const result = await session.withTransaction(
+            async (): Promise<SubmitEnrollmentResult> => {
+                const student = await getStudent(
+                    db,
+                    authenticatedUserId,
+                    session,
+                );
+                const term = await getEnrollmentTerm(
+                    db,
+                    session,
+                );
 
-                    const term =
-                        await getEnrollmentTerm(
-                            db,
-                            session,
-                        );
+                if (!isEnrollmentOpen(term)) {
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLMENT_PERIOD_CLOSED",
+                        "The enrollment period has ended.",
+                        409,
+                    );
+                }
 
+                const enrollment = await db
+                    .collection<EnrollmentHeaderDocument>(
+                        "studentEnrollments",
+                    )
+                    .findOne(
+                        {
+                            studentId: student._id,
+                            academicTermId: term._id,
+                        },
+                        { session },
+                    );
+
+                if (!enrollment) {
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLMENT_NOT_FOUND",
+                        "The enrollment draft could not be found.",
+                        404,
+                    );
+                }
+
+                if (enrollment.status === "SUBMITTED") {
                     if (
-                        !isEnrollmentOpen(
-                            term,
-                        )
+                        enrollment.lastIdempotencyKey ===
+                        input.idempotencyKey
                     ) {
-                        throw new StudentEnrollmentServiceError(
-                            "ENROLLMENT_PERIOD_CLOSED",
-                            "The enrollment period has ended.",
-                            409,
-                        );
+                        return {
+                            outcome: "SUCCESS",
+                            message:
+                                "Enrollment was already submitted successfully.",
+                            submittedCourseCount: 0,
+                            rejectedCourseCount: 0,
+                            rejectedSections: [],
+                        };
                     }
 
-                    const enrollment =
-                        await db
-                            .collection<EnrollmentHeaderDocument>(
-                                "studentEnrollments",
-                            )
-                            .findOne(
-                                {
-                                    studentId:
-                                        student._id,
-                                    academicTermId:
-                                        term._id,
-                                },
-                                {
-                                    session,
-                                },
-                            );
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLMENT_ALREADY_SUBMITTED",
+                        "The enrollment has already been finalized.",
+                        409,
+                    );
+                }
 
-                    if (!enrollment) {
-                        throw new StudentEnrollmentServiceError(
-                            "ENROLLMENT_NOT_FOUND",
-                            "The enrollment draft could not be found.",
-                            404,
-                        );
-                    }
+                if (
+                    enrollment.version !==
+                    input.expectedVersion
+                ) {
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLMENT_VERSION_CONFLICT",
+                        "The enrollment was changed in another tab. Reload and try again.",
+                        409,
+                    );
+                }
 
-                    if (
-                        enrollment.status ===
-                        "SUBMITTED"
-                    ) {
-                        if (
-                            enrollment.lastIdempotencyKey ===
-                            input.idempotencyKey
-                        ) {
-                            return {
-                                outcome:
-                                    "SUCCESS",
-                                message:
-                                    "Enrollment was already submitted successfully.",
-                                submittedCourseCount:
-                                    0,
-                                rejectedCourseCount:
-                                    0,
-                                rejectedSections:
-                                    [],
-                            };
-                        }
+                const allItems = await getEnrollmentItems(
+                    db,
+                    enrollment._id,
+                    session,
+                );
+                const enrolledItems = allItems.filter(
+                    (item) =>
+                        getItemStatus(item) ===
+                        "ENROLLED",
+                );
+                const draftItems = allItems.filter(
+                    (item) =>
+                        getItemStatus(item) ===
+                        "DRAFT",
+                );
 
-                        throw new StudentEnrollmentServiceError(
-                            "ENROLLMENT_ALREADY_SUBMITTED",
-                            "The enrollment has already been submitted and can no longer be changed.",
-                            409,
-                        );
-                    }
+                if (draftItems.length === 0) {
+                    throw new StudentEnrollmentServiceError(
+                        "EMPTY_ENROLLMENT_DRAFT",
+                        "Select at least one new course before submitting.",
+                        409,
+                    );
+                }
 
-                    if (
-                        enrollment.version !==
-                        input.expectedVersion
-                    ) {
-                        throw new StudentEnrollmentServiceError(
-                            "ENROLLMENT_VERSION_CONFLICT",
-                            "The enrollment was changed in another tab. Reload and try again.",
-                            409,
-                        );
-                    }
+                const draftSections = await db
+                    .collection<SectionDocument>("sections")
+                    .find(
+                        {
+                            _id: {
+                                $in: draftItems.map(
+                                    (item) => item.sectionId,
+                                ),
+                            },
+                            academicTermId: term._id,
+                            status: "OPEN",
+                        },
+                        { session },
+                    )
+                    .toArray();
 
-                    const items =
-                        await getEnrollmentItems(
-                            db,
-                            enrollment._id,
-                            session,
-                        );
+                if (
+                    draftSections.length !==
+                    draftItems.length
+                ) {
+                    throw new StudentEnrollmentServiceError(
+                        "INVALID_SECTION_SELECTION",
+                        "One or more selected sections are unavailable.",
+                        409,
+                    );
+                }
 
-                    if (items.length === 0) {
-                        throw new StudentEnrollmentServiceError(
-                            "EMPTY_ENROLLMENT",
-                            "Select at least one course before submitting.",
-                            409,
-                        );
-                    }
+                const allCourses = await db
+                    .collection<CourseDocument>("courses")
+                    .find(
+                        {
+                            _id: {
+                                $in: allItems.map(
+                                    (item) => item.courseId,
+                                ),
+                            },
+                            curriculumCode:
+                                student.curriculumCode,
+                            status: "ACTIVE",
+                        },
+                        { session },
+                    )
+                    .toArray();
 
-                    const sections =
-                        await db
-                            .collection<SectionDocument>(
-                                "sections",
-                            )
-                            .find(
-                                {
-                                    _id: {
-                                        $in:
-                                            items.map(
-                                                (item) =>
-                                                    item.sectionId,
-                                            ),
-                                    },
-                                    academicTermId:
-                                        term._id,
-                                    status: "OPEN",
-                                },
-                                {
-                                    session,
-                                },
-                            )
-                            .toArray();
+                if (allCourses.length !== allItems.length) {
+                    throw new StudentEnrollmentServiceError(
+                        "COURSE_NOT_IN_CURRICULUM",
+                        "One or more selected courses are not part of the student's curriculum.",
+                        409,
+                    );
+                }
 
-                    if (
-                        sections.length !==
-                        items.length
-                    ) {
-                        throw new StudentEnrollmentServiceError(
-                            "INVALID_SECTION_SELECTION",
-                            "One or more selected sections are unavailable.",
-                            409,
-                        );
-                    }
+                const courseById = new Map(
+                    allCourses.map((course) => [
+                        course._id.toHexString(),
+                        course,
+                    ]),
+                );
+                const itemBySectionId = new Map(
+                    draftItems.map((item) => [
+                        item.sectionId.toHexString(),
+                        item,
+                    ]),
+                );
 
-                    const courses =
-                        await db
-                            .collection<CourseDocument>(
-                                "courses",
-                            )
-                            .find(
-                                {
-                                    _id: {
-                                        $in:
-                                            items.map(
-                                                (item) =>
-                                                    item.courseId,
-                                            ),
-                                    },
-                                    curriculumCode:
-                                        student.curriculumCode,
-                                    status: "ACTIVE",
-                                },
-                                {
-                                    session,
-                                },
-                            )
-                            .toArray();
+                const gradeHistory = await getGradeHistory(
+                    db,
+                    student._id,
+                    session,
+                );
 
-                    if (
-                        courses.length !==
-                        items.length
-                    ) {
+                for (const item of draftItems) {
+                    const course = courseById.get(
+                        item.courseId.toHexString(),
+                    );
+                    if (!course) {
                         throw new StudentEnrollmentServiceError(
                             "COURSE_NOT_IN_CURRICULUM",
-                            "One or more selected courses are not part of the student's curriculum.",
+                            "A selected course could not be found.",
                             409,
                         );
                     }
+                    await validateCourseEligibility(
+                        db,
+                        student,
+                        term,
+                        course,
+                        gradeHistory,
+                        session,
+                    );
+                }
 
-                    const sectionCourseIds =
-                        new Set(
-                            sections.map(
-                                (section) =>
-                                    section.courseId.toHexString(),
-                            ),
-                        );
-
-                    if (
-                        sectionCourseIds.size !==
-                        sections.length
-                    ) {
-                        throw new StudentEnrollmentServiceError(
-                            "DUPLICATE_COURSE",
-                            "Only one section per course may be selected.",
-                            409,
-                        );
-                    }
-
-                    const courseById =
-                        new Map(
-                            courses.map(
-                                (course) => [
-                                    course._id.toHexString(),
-                                    course,
-                                ],
-                            ),
-                        );
-
-                    const itemBySectionId =
-                        new Map(
-                            items.map(
-                                (item) => [
-                                    item.sectionId.toHexString(),
-                                    item,
-                                ],
-                            ),
-                        );
-
-                    const gradeHistory =
-                        await getGradeHistory(
-                            db,
-                            student._id,
-                            session,
-                        );
-
-                    for (const course of courses) {
-                        await validateCourseEligibility(
-                            db,
-                            student,
-                            term,
-                            course,
-                            gradeHistory,
-                            session,
-                        );
-                    }
-
-                    /*
-                     * Preserve the student's draft-selection order. The first
-                     * successfully reserved course keeps its schedule slot; a
-                     * later course with an overlapping schedule is removed.
-                     * The ObjectId tie-breaker keeps the order deterministic.
-                     */
-                    const sortedSections =
-                        [...sections].sort(
-                            (first, second) => {
-                                const firstItem =
-                                    itemBySectionId.get(
-                                        first._id.toHexString(),
-                                    );
-
-                                const secondItem =
-                                    itemBySectionId.get(
-                                        second._id.toHexString(),
-                                    );
-
-                                const createdAtDifference =
-                                    (firstItem?.createdAt.getTime() ?? 0) -
-                                    (secondItem?.createdAt.getTime() ?? 0);
-
-                                if (createdAtDifference !== 0) {
-                                    return createdAtDifference;
-                                }
-
-                                return first._id
-                                    .toHexString()
-                                    .localeCompare(
-                                        second._id.toHexString(),
-                                    );
-                            },
-                        );
-
-                    const acceptedSectionIds:
-                        ObjectId[] = [];
-
-                    const acceptedSections:
-                        SectionDocument[] = [];
-
-                    const rejectedSections:
-                        RejectedEnrollmentSection[] =
-                        [];
-
-                    for (
-                        const section of
-                        sortedSections
-                    ) {
-                        const item =
-                            itemBySectionId.get(
-                                section._id.toHexString(),
-                            );
-
-                        const course =
-                            courseById.get(
-                                section.courseId.toHexString(),
-                            );
-
-                        if (!item || !course) {
-                            throw new StudentEnrollmentServiceError(
-                                "INVALID_SECTION_SELECTION",
-                                "A selected section could not be matched to its course.",
-                                409,
-                            );
-                        }
-
-                        /*
-                         * Practicum has an arranged schedule and is exempt from
-                         * the ordinary classroom schedule-overlap rule.
-                         */
-                        const conflictingAcceptedSection =
-                            course.category ===
-                            "PRACTICUM"
-                                ? undefined
-                                : acceptedSections.find(
-                                      (acceptedSection) => {
-                                          const acceptedCourse =
-                                              courseById.get(
-                                                  acceptedSection.courseId.toHexString(),
-                                              );
-
-                                          return (
-                                              acceptedCourse?.category !==
-                                                  "PRACTICUM" &&
-                                              schedulesConflict(
-                                                  acceptedSection.schedule,
-                                                  section.schedule,
-                                              )
-                                          );
+                const previouslyEnrolledSections =
+                    enrolledItems.length > 0
+                        ? await db
+                              .collection<SectionDocument>(
+                                  "sections",
+                              )
+                              .find(
+                                  {
+                                      _id: {
+                                          $in: enrolledItems.map(
+                                              (item) =>
+                                                  item.sectionId,
+                                          ),
                                       },
-                                  );
+                                  },
+                                  { session },
+                              )
+                              .toArray()
+                        : [];
 
-                        if (conflictingAcceptedSection) {
-                            rejectedSections.push({
-                                itemId:
-                                    item._id.toHexString(),
-                                sectionId:
-                                    section._id.toHexString(),
-                                sectionCode:
-                                    section.sectionCode,
-                                courseId:
-                                    course._id.toHexString(),
-                                courseCode:
-                                    course.courseCode,
-                                courseName:
-                                    course.courseName,
-                                reason:
-                                    "SCHEDULE_CONFLICT",
-                            });
+                const sortedSections = [
+                    ...draftSections,
+                ].sort((first, second) => {
+                    const firstItem =
+                        itemBySectionId.get(
+                            first._id.toHexString(),
+                        );
+                    const secondItem =
+                        itemBySectionId.get(
+                            second._id.toHexString(),
+                        );
+                    const difference =
+                        (firstItem?.createdAt.getTime() ?? 0) -
+                        (secondItem?.createdAt.getTime() ?? 0);
+                    return difference !== 0
+                        ? difference
+                        : first._id
+                              .toHexString()
+                              .localeCompare(
+                                  second._id.toHexString(),
+                              );
+                });
 
-                            continue;
-                        }
+                const acceptedSectionIds: ObjectId[] = [];
+                const acceptedSections: SectionDocument[] = [
+                    ...previouslyEnrolledSections,
+                ];
+                const rejectedSections:
+                    RejectedEnrollmentSection[] = [];
 
-                        /*
-                         * Reserve the slot atomically. If this section became
-                         * full, it is removed and a later course with the same
-                         * schedule is still allowed to try.
-                         */
-                        const reserved =
-                            await db
-                                .collection<SectionDocument>(
-                                    "sections",
-                                )
-                                .updateOne(
-                                    {
-                                        _id:
-                                            section._id,
-                                        academicTermId:
-                                            term._id,
-                                        status:
-                                            "OPEN",
-                                        enrolledCount: {
-                                            $lt:
-                                                MAXIMUM_SECTION_CAPACITY,
-                                        },
-                                        $expr: {
-                                            $lt: [
-                                                "$enrolledCount",
-                                                {
-                                                    $min: [
-                                                        "$capacity",
-                                                        MAXIMUM_SECTION_CAPACITY,
-                                                    ],
-                                                },
-                                            ],
-                                        },
-                                    },
-                                    {
-                                        $inc: {
-                                            enrolledCount:
-                                                1,
-                                        },
-                                    },
-                                    {
-                                        session,
-                                    },
-                                );
+                for (const section of sortedSections) {
+                    const item = itemBySectionId.get(
+                        section._id.toHexString(),
+                    );
+                    const course = courseById.get(
+                        section.courseId.toHexString(),
+                    );
 
-                        if (
-                            reserved.modifiedCount ===
-                            1
-                        ) {
-                            acceptedSectionIds.push(
-                                section._id,
-                            );
+                    if (!item || !course) {
+                        throw new StudentEnrollmentServiceError(
+                            "INVALID_SECTION_SELECTION",
+                            "A selected section could not be matched to its course.",
+                            409,
+                        );
+                    }
 
-                            acceptedSections.push(
-                                section,
-                            );
+                    const conflictingSection =
+                        course.category === "PRACTICUM"
+                            ? undefined
+                            : acceptedSections.find(
+                                  (acceptedSection) => {
+                                      const acceptedCourse =
+                                          courseById.get(
+                                              acceptedSection.courseId.toHexString(),
+                                          );
+                                      return (
+                                          acceptedCourse?.category !==
+                                              "PRACTICUM" &&
+                                          schedulesConflict(
+                                              acceptedSection.schedule,
+                                              section.schedule,
+                                          )
+                                      );
+                                  },
+                              );
 
-                            continue;
-                        }
-
+                    if (conflictingSection) {
                         rejectedSections.push({
-                            itemId:
-                                item._id.toHexString(),
+                            itemId: item._id.toHexString(),
                             sectionId:
                                 section._id.toHexString(),
                             sectionCode:
@@ -3208,232 +3136,214 @@ export async function submitEnrollment(
                                 course.courseCode,
                             courseName:
                                 course.courseName,
-                            reason:
-                                "SECTION_FULL",
+                            reason: "SCHEDULE_CONFLICT",
                         });
+                        continue;
                     }
 
-                    if (
-                        rejectedSections.length >
-                        0
-                    ) {
-                        await db
-                            .collection<EnrollmentItemDocument>(
-                                "studentEnrollmentItems",
-                            )
-                            .deleteMany(
-                                {
-                                    enrollmentId:
-                                        enrollment._id,
-                                    sectionId: {
-                                        $in:
-                                            rejectedSections.map(
-                                                (
-                                                    rejected,
-                                                ) =>
-                                                    new ObjectId(
-                                                        rejected.sectionId,
-                                                    ),
-                                            ),
-                                    },
-                                },
-                                {
-                                    session,
-                                },
-                            );
-                    }
-
-                    const acceptedSectionIdSet =
-                        new Set(
-                            acceptedSectionIds.map(
-                                (sectionId) =>
-                                    sectionId.toHexString(),
-                            ),
-                        );
-
-                    const acceptedItems =
-                        items.filter(
-                            (item) =>
-                                acceptedSectionIdSet.has(
-                                    item.sectionId.toHexString(),
-                                ),
-                        );
-
-                    const acceptedCourses =
-                        acceptedItems
-                            .map((item) =>
-                                courseById.get(
-                                    item.courseId.toHexString(),
-                                ),
-                            )
-                            .filter(
-                                (
-                                    course,
-                                ): course is CourseDocument =>
-                                    Boolean(course),
-                            );
-
-                    const totalAcademicUnits =
-                        acceptedCourses.reduce(
-                            (total, course) =>
-                                total +
-                                course.academicUnits,
-                            0,
-                        );
-
-                    if (
-                        totalAcademicUnits >
-                        MAXIMUM_ACADEMIC_UNITS
-                    ) {
-                        throw new StudentEnrollmentServiceError(
-                            "MAXIMUM_UNITS_EXCEEDED",
-                            `The maximum academic load is ${MAXIMUM_ACADEMIC_UNITS} units.`,
-                            409,
-                        );
-                    }
-
-                    const totalNonAcademicUnits =
-                        acceptedCourses.reduce(
-                            (total, course) =>
-                                total +
-                                course.nonAcademicUnits,
-                            0,
-                        );
-
-                    const now = new Date();
-
-                    if (
-                        acceptedItems.length === 0
-                    ) {
-                        const updated =
-                            await db
-                                .collection<EnrollmentHeaderDocument>(
-                                    "studentEnrollments",
-                                )
-                                .updateOne(
-                                    {
-                                        _id:
-                                            enrollment._id,
-                                        version:
-                                            input.expectedVersion,
-                                        status:
-                                            "DRAFT",
-                                    },
-                                    {
-                                        $set: {
-                                            totalAcademicUnits:
-                                                0,
-                                            totalNonAcademicUnits:
-                                                0,
-                                            updatedAt:
-                                                now,
-                                        },
-                                        $inc: {
-                                            version: 1,
-                                        },
-                                    },
-                                    {
-                                        session,
-                                    },
-                                );
-
-                        if (
-                            updated.modifiedCount !== 1
-                        ) {
-                            throw new StudentEnrollmentServiceError(
-                                "ENROLLMENT_VERSION_CONFLICT",
-                                "The enrollment was changed in another tab. Reload and try again.",
-                                409,
-                            );
-                        }
-
-                        return {
-                            outcome:
-                                "ALL_SECTIONS_FULL",
-                            message:
-                                "Submission unsuccessful. All selected sections are full. Please enroll in another open section.",
-                            submittedCourseCount:
-                                0,
-                            rejectedCourseCount:
-                                rejectedSections.length,
-                            rejectedSections,
-                        };
-                    }
-
-                    const updated =
-                        await db
-                            .collection<EnrollmentHeaderDocument>(
-                                "studentEnrollments",
-                            )
-                            .updateOne(
-                                {
-                                    _id:
-                                        enrollment._id,
-                                    version:
-                                        input.expectedVersion,
-                                    status:
-                                        "DRAFT",
-                                },
-                                {
-                                    $set: {
-                                        status:
-                                            "SUBMITTED",
-                                        totalAcademicUnits,
-                                        totalNonAcademicUnits,
-                                        submittedAt:
-                                            now,
-                                        updatedAt:
-                                            now,
-                                        lastIdempotencyKey:
-                                            input.idempotencyKey,
-                                    },
-                                    $inc: {
-                                        version: 1,
-                                    },
-                                },
-                                {
-                                    session,
-                                },
-                            );
-
-                    if (
-                        updated.modifiedCount !== 1
-                    ) {
-                        throw new StudentEnrollmentServiceError(
-                            "ENROLLMENT_VERSION_CONFLICT",
-                            "The enrollment was changed in another tab. Reload and try again.",
-                            409,
-                        );
-                    }
-
-                    await db
-                        .collection<StudentDocument>(
-                            "students",
+                    const reserved = await db
+                        .collection<SectionDocument>(
+                            "sections",
                         )
                         .updateOne(
                             {
-                                _id:
-                                    student._id,
-                            },
-                            {
-                                $set: {
-                                    enrolledUnits:
-                                        totalAcademicUnits,
-                                    enrolledNonAcademicUnits:
-                                        totalNonAcademicUnits,
-                                    enlistedUnits:
-                                        0,
-                                    enlistedNonAcademicUnits:
-                                        0,
-                                    updatedAt:
-                                        now,
+                                _id: section._id,
+                                academicTermId: term._id,
+                                status: "OPEN",
+                                enrolledCount: {
+                                    $lt:
+                                        MAXIMUM_SECTION_CAPACITY,
+                                },
+                                $expr: {
+                                    $lt: [
+                                        "$enrolledCount",
+                                        {
+                                            $min: [
+                                                "$capacity",
+                                                MAXIMUM_SECTION_CAPACITY,
+                                            ],
+                                        },
+                                    ],
                                 },
                             },
                             {
-                                session,
+                                $inc: { enrolledCount: 1 },
                             },
+                            { session },
                         );
 
+                    if (reserved.modifiedCount === 1) {
+                        acceptedSectionIds.push(
+                            section._id,
+                        );
+                        acceptedSections.push(section);
+                        continue;
+                    }
+
+                    rejectedSections.push({
+                        itemId: item._id.toHexString(),
+                        sectionId:
+                            section._id.toHexString(),
+                        sectionCode: section.sectionCode,
+                        courseId:
+                            course._id.toHexString(),
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        reason: "SECTION_FULL",
+                    });
+                }
+
+                const now = new Date();
+
+                if (rejectedSections.length > 0) {
+                    await db
+                        .collection<EnrollmentItemDocument>(
+                            "studentEnrollmentItems",
+                        )
+                        .deleteMany(
+                            {
+                                enrollmentId:
+                                    enrollment._id,
+                                status: "DRAFT",
+                                sectionId: {
+                                    $in: rejectedSections.map(
+                                        (rejected) =>
+                                            new ObjectId(
+                                                rejected.sectionId,
+                                            ),
+                                    ),
+                                },
+                            },
+                            { session },
+                        );
+                }
+
+                if (acceptedSectionIds.length > 0) {
+                    const acceptedUpdate = await db
+                        .collection<EnrollmentItemDocument>(
+                            "studentEnrollmentItems",
+                        )
+                        .updateMany(
+                            {
+                                enrollmentId:
+                                    enrollment._id,
+                                status: "DRAFT",
+                                sectionId: {
+                                    $in: acceptedSectionIds,
+                                },
+                            },
+                            {
+                                $set: {
+                                    status: "ENROLLED",
+                                    enrolledAt: now,
+                                    updatedAt: now,
+                                },
+                            },
+                            { session },
+                        );
+
+                    if (
+                        acceptedUpdate.modifiedCount !==
+                        acceptedSectionIds.length
+                    ) {
+                        throw new StudentEnrollmentServiceError(
+                            "ENROLLMENT_ITEM_UPDATE_CONFLICT",
+                            "One or more accepted courses could not be locked.",
+                            409,
+                        );
+                    }
+                }
+
+                const totals = await recalculateTotals(
+                    db,
+                    enrollment._id,
+                    session,
+                );
+
+                if (
+                    totals.totalAcademicUnits >
+                    MAXIMUM_ACADEMIC_UNITS
+                ) {
+                    throw new StudentEnrollmentServiceError(
+                        "MAXIMUM_UNITS_EXCEEDED",
+                        `The maximum academic load is ${MAXIMUM_ACADEMIC_UNITS} units.`,
+                        409,
+                    );
+                }
+
+                const isPartialSuccess =
+                    acceptedSectionIds.length > 0 &&
+                    rejectedSections.length > 0;
+                const isCompleteSuccess =
+                    acceptedSectionIds.length > 0 &&
+                    rejectedSections.length === 0;
+                const nextStatus:
+                    EnrollmentHeaderDocument["status"] =
+                    isCompleteSuccess
+                        ? "SUBMITTED"
+                        : "DRAFT";
+
+                const updateDocument: Record<
+                    string,
+                    unknown
+                > = {
+                    status: nextStatus,
+                    totalAcademicUnits:
+                        totals.totalAcademicUnits,
+                    totalNonAcademicUnits:
+                        totals.totalNonAcademicUnits,
+                    updatedAt: now,
+                    lastIdempotencyKey:
+                        input.idempotencyKey,
+                };
+
+                if (isCompleteSuccess) {
+                    updateDocument.submittedAt = now;
+                }
+
+                const updated = await db
+                    .collection<EnrollmentHeaderDocument>(
+                        "studentEnrollments",
+                    )
+                    .updateOne(
+                        {
+                            _id: enrollment._id,
+                            version:
+                                input.expectedVersion,
+                            status: "DRAFT",
+                        },
+                        {
+                            $set: updateDocument,
+                            $inc: { version: 1 },
+                        },
+                        { session },
+                    );
+
+                if (updated.modifiedCount !== 1) {
+                    throw new StudentEnrollmentServiceError(
+                        "ENROLLMENT_VERSION_CONFLICT",
+                        "The enrollment was changed in another tab. Reload and try again.",
+                        409,
+                    );
+                }
+
+                await db
+                    .collection<StudentDocument>("students")
+                    .updateOne(
+                        { _id: student._id },
+                        {
+                            $set: {
+                                enrolledUnits:
+                                    totals.totalAcademicUnits,
+                                enrolledNonAcademicUnits:
+                                    totals.totalNonAcademicUnits,
+                                updatedAt: now,
+                            },
+                        },
+                        { session },
+                    );
+
+                if (isCompleteSuccess) {
                     await createEnrollmentAnnouncement(
                         db,
                         session,
@@ -3442,60 +3352,60 @@ export async function submitEnrollment(
                         term,
                         now,
                     );
+                }
 
-                    if (
-                        rejectedSections.length > 0
-                    ) {
-                        const rejectedCourseDescriptions =
-                            rejectedSections
-                                .map(
-                                    (section) => {
-                                        const reason =
-                                            section.reason ===
-                                            "SECTION_FULL"
-                                                ? "section full"
-                                                : "schedule conflict";
+                if (acceptedSectionIds.length === 0) {
+                    return {
+                        outcome: "ALL_SECTIONS_FULL",
+                        message:
+                            "None of the selected courses could be enrolled. Select other available sections and try again.",
+                        submittedCourseCount: 0,
+                        rejectedCourseCount:
+                            rejectedSections.length,
+                        rejectedSections,
+                    };
+                }
 
-                                        return `${section.courseCode} (${section.sectionCode}) — ${reason}`;
-                                    },
-                                )
-                                .join(", ");
-
-                        return {
-                            outcome:
-                                "PARTIAL_SUCCESS",
-                            message:
-                                `Enrollment submitted successfully. The following course${rejectedSections.length > 1 ? "s were" : " was"} removed: ${rejectedCourseDescriptions}.`,
-                            submittedCourseCount:
-                                acceptedItems.length,
-                            rejectedCourseCount:
-                                rejectedSections.length,
-                            rejectedSections,
-                        };
-                    }
+                if (isPartialSuccess) {
+                    const rejectedDescriptions =
+                        rejectedSections
+                            .map((section) => {
+                                const reason =
+                                    section.reason ===
+                                    "SECTION_FULL"
+                                        ? "section full"
+                                        : "schedule conflict";
+                                return `${section.courseCode} (${section.sectionCode}) — ${reason}`;
+                            })
+                            .join(", ");
 
                     return {
-                        outcome: "SUCCESS",
+                        outcome: "PARTIAL_SUCCESS",
                         message:
-                            "Enrollment submitted successfully.",
+                            `${acceptedSectionIds.length} course${acceptedSectionIds.length === 1 ? " was" : "s were"} enrolled successfully. The following course${rejectedSections.length === 1 ? " was" : "s were"} removed: ${rejectedDescriptions}. You may add replacement courses and submit again.`,
                         submittedCourseCount:
-                            acceptedItems.length,
+                            acceptedSectionIds.length,
                         rejectedCourseCount:
-                            0,
-                        rejectedSections: [],
+                            rejectedSections.length,
+                        rejectedSections,
                     };
-                },
-                {
-                    readConcern: {
-                        level:
-                            "snapshot",
-                    },
-                    writeConcern: {
-                        w:
-                            "majority",
-                    },
-                },
-            );
+                }
+
+                return {
+                    outcome: "SUCCESS",
+                    message:
+                        "Enrollment submitted successfully.",
+                    submittedCourseCount:
+                        acceptedSectionIds.length,
+                    rejectedCourseCount: 0,
+                    rejectedSections: [],
+                };
+            },
+            {
+                readConcern: { level: "snapshot" },
+                writeConcern: { w: "majority" },
+            },
+        );
 
         if (!result) {
             throw new StudentEnrollmentServiceError(
@@ -3508,8 +3418,7 @@ export async function submitEnrollment(
         return result;
     } catch (error) {
         if (
-            error instanceof
-                MongoServerError &&
+            error instanceof MongoServerError &&
             error.hasErrorLabel(
                 "TransientTransactionError",
             )

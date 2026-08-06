@@ -299,7 +299,12 @@ const previousAcademicRecords:
             previousGpa: 1.88,
             previousGradedUnits: 161,
             previousGradePoints: 302.68,
-        },
+    },
+        student2: {
+            previousGpa: 2.79,
+            previousGradedUnits: 115,
+            previousGradePoints: 320.85,
+    },
     };
 
 const facultyProfiles = [

@@ -8,12 +8,17 @@ export type EnrollmentPageMode =
     | "EDITABLE_SUBMITTED"
     | "READ_ONLY";
 
+export type EnrollmentItemStatus =
+    | "DRAFT"
+    | "ENROLLED";
+
 export type CourseEligibilityCode =
     | "ELIGIBLE"
     | "MISSING_PREREQUISITES"
     | "ALREADY_COMPLETED"
     | "ALREADY_CREDITED"
     | "ALREADY_SELECTED"
+    | "ALREADY_ENROLLED"
     | "SECTION_FULL"
     | "MAXIMUM_LOAD_EXCEEDED"
     | "ENROLLMENT_NOT_OPEN"
@@ -71,6 +76,26 @@ export interface EnrollmentSummaryItem {
 
     instructorName: string;
     scheduleLabel: string;
+
+    /**
+     * DRAFT:
+     * The course is selected but has not yet been
+     * successfully reserved.
+     *
+     * ENROLLED:
+     * The course was successfully reserved and may
+     * no longer be dropped or selected again.
+     */
+    status:
+        EnrollmentItemStatus;
+
+    /**
+     * Should normally be true only for DRAFT items
+     * while the enrollment period is still open.
+     */
+    canDrop: boolean;
+
+    enrolledAt?: string;
 }
 
 export interface StudentEnrollmentResponse {
@@ -101,10 +126,34 @@ export interface StudentEnrollmentResponse {
 
         version: number;
 
+        /**
+         * Used only when the enrollment header has
+         * been fully finalized.
+         *
+         * For PARTIAL_SUCCESS, status should remain
+         * DRAFT and submittedAt should normally be
+         * undefined.
+         */
         submittedAt?: string;
 
+        /**
+         * Includes both ENROLLED and DRAFT items.
+         */
         totalAcademicUnits: number;
         totalNonAcademicUnits: number;
+
+        /**
+         * Optional item-level totals for clearer
+         * frontend presentation.
+         */
+        enrolledAcademicUnits?: number;
+        enrolledNonAcademicUnits?: number;
+
+        draftAcademicUnits?: number;
+        draftNonAcademicUnits?: number;
+
+        enrolledCourseCount?: number;
+        draftCourseCount?: number;
 
         items:
             EnrollmentSummaryItem[];
@@ -119,4 +168,53 @@ export interface StudentEnrollmentResponse {
         totalItems: number;
         totalPages: number;
     };
+}
+
+export type RejectedEnrollmentReason =
+    | "SECTION_FULL"
+    | "SCHEDULE_CONFLICT";
+
+export interface RejectedEnrollmentSection {
+    itemId: string;
+
+    sectionId: string;
+    sectionCode: string;
+
+    courseId: string;
+    courseCode: string;
+    courseName: string;
+
+    reason:
+        RejectedEnrollmentReason;
+}
+
+export interface SubmitEnrollmentResult {
+    outcome:
+        | "SUCCESS"
+        | "PARTIAL_SUCCESS"
+        | "ALL_SECTIONS_FULL";
+
+    message: string;
+
+    /**
+     * Number of DRAFT courses that became ENROLLED
+     * during the current submission attempt.
+     */
+    submittedCourseCount: number;
+
+    rejectedCourseCount: number;
+
+    rejectedSections:
+        RejectedEnrollmentSection[];
+
+    /**
+     * Latest version after the backend transaction.
+     */
+    enrollmentVersion?: number;
+
+    /**
+     * True for PARTIAL_SUCCESS and failed attempts
+     * where the student may continue selecting courses.
+     */
+    canContinueEnrollment?: boolean;
 }
