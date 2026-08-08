@@ -9,6 +9,9 @@ import {
     getDatabase,
     getMongoClient,
 } from "../config/database.js";
+import {
+    publishEnrollmentUpdated,
+} from "../realtime/realtimePublisher.js";
 
 const MAXIMUM_ACADEMIC_UNITS = 21;
 const MAXIMUM_SECTION_CAPACITY = 45;
@@ -2847,9 +2850,17 @@ export async function submitEnrollment(
     const client = getMongoClient();
     const session = client.startSession();
 
+    let realtimeStudentId = "";
+    let realtimeFacultyIds: string[] = [];
+    let realtimeSectionIds: string[] = [];
+
     try {
         const result = await session.withTransaction(
             async (): Promise<SubmitEnrollmentResult> => {
+                realtimeStudentId = "";
+                realtimeFacultyIds = [];
+                realtimeSectionIds = [];
+
                 const student = await getStudent(
                     db,
                     authenticatedUserId,
@@ -3354,6 +3365,44 @@ export async function submitEnrollment(
                     );
                 }
 
+                if (acceptedSectionIds.length > 0) {
+                    const acceptedSectionIdSet =
+                        new Set(
+                            acceptedSectionIds.map(
+                                (sectionId) =>
+                                    sectionId.toHexString(),
+                            ),
+                        );
+
+                    realtimeStudentId =
+                        student._id.toHexString();
+                    realtimeSectionIds =
+                        acceptedSectionIds.map(
+                            (sectionId) =>
+                                sectionId.toHexString(),
+                        );
+                    realtimeFacultyIds =
+                        Array.from(
+                            new Set(
+                                draftSections
+                                    .filter(
+                                        (section) =>
+                                            acceptedSectionIdSet.has(
+                                                section._id.toHexString(),
+                                            ),
+                                    )
+                                    .flatMap(
+                                        (section) =>
+                                            section.facultyId
+                                                ? [
+                                                      section.facultyId.toHexString(),
+                                                  ]
+                                                : [],
+                                    ),
+                            ),
+                        );
+                }
+
                 if (acceptedSectionIds.length === 0) {
                     return {
                         outcome: "ALL_SECTIONS_FULL",
@@ -3413,6 +3462,20 @@ export async function submitEnrollment(
                 "The enrollment submission did not return a result.",
                 500,
             );
+        }
+
+        if (
+            realtimeStudentId &&
+            realtimeSectionIds.length > 0
+        ) {
+            await publishEnrollmentUpdated({
+                studentId:
+                    realtimeStudentId,
+                facultyIds:
+                    realtimeFacultyIds,
+                sectionIds:
+                    realtimeSectionIds,
+            });
         }
 
         return result;

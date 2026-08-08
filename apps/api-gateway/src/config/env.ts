@@ -74,6 +74,32 @@ const envSchema = z.object({
             "http://127.0.0.1:4103",
         ),
 
+    JWT_SECRET: z
+        .string()
+        .trim()
+        .min(1),
+
+    JWT_ISSUER: z
+        .string()
+        .trim()
+        .min(1)
+        .default(
+            "online-enrollment-auth-service",
+        ),
+
+    JWT_AUDIENCE: z
+        .string()
+        .trim()
+        .min(1)
+        .default(
+            "online-enrollment-system",
+        ),
+
+    REALTIME_INTERNAL_SECRET: z
+        .string()
+        .trim()
+        .min(16),
+
     PROXY_TIMEOUT_MS: z.coerce
         .number()
         .int()

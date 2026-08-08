@@ -61,6 +61,9 @@ interface AcademicTermDocument {
         | "ACTIVE"
         | "UPCOMING"
         | "COMPLETED";
+
+    isCurrent?: boolean;
+    isEnrollmentTerm?: boolean;
 }
 
 interface SectionDocument {
@@ -262,14 +265,16 @@ function isNumericGpaGrade(
 function contributesGpaUnits(
     grade: StudentGradeItem,
 ): boolean {
-    return (
-        isNumericGpaGrade(
-            grade,
-        ) &&
-        grade.status !==
-            "FAILED" &&
-        grade.numericGrade! >
-            0
+    /*
+     * Every course with a numeric final grade contributes
+     * its academic units to the GPA denominator, including
+     * failed courses with a numeric grade of 0.0.
+     *
+     * CREDITED courses are excluded because they do not have
+     * a numeric GPA grade.
+     */
+    return isNumericGpaGrade(
+        grade,
     );
 }
 
@@ -319,22 +324,74 @@ function calculateGradePoints(
     };
 }
 
-function getLatestTermGrades(
+function getGradesForAcademicTerm(
     grades: StudentGradeItem[],
+    academicTerm:
+        AcademicTermDocument | undefined,
 ): StudentGradeItem[] {
-    const latestGrade =
-        grades[0];
-
-    if (!latestGrade) {
+    if (!academicTerm) {
         return [];
     }
 
     return grades.filter(
         (grade) =>
             grade.academicYear ===
-                latestGrade.academicYear &&
+                academicTerm.academicYear &&
             grade.termNumber ===
-                latestGrade.termNumber,
+                academicTerm.termNumber,
+    );
+}
+
+function getLatestIncrementalAcademicTerm(
+    academicTerms: AcademicTermDocument[],
+    gradeItems: StudentGradeItem[],
+): AcademicTermDocument | undefined {
+    /*
+     * previousGpa / previousGradedUnits /
+     * previousGradePoints already represent
+     * completed historical terms.
+     *
+     * Therefore only a non-COMPLETED term may
+     * contribute new grade points to the stored
+     * cumulative baseline.
+     *
+     * Prefer the explicitly current term. If no
+     * finalized grades exist there yet, allow a
+     * newer ACTIVE/UPCOMING term that actually
+     * has finalized grades. This keeps GPA
+     * calculation working when term flags are in
+     * transition while preventing historical
+     * completed terms from being counted twice.
+     */
+    const nonCompletedTerms =
+        academicTerms
+            .filter(
+                (term) =>
+                    term.status !==
+                    "COMPLETED",
+            )
+            .filter(
+                (term) =>
+                    getGradesForAcademicTerm(
+                        gradeItems,
+                        term,
+                    ).length > 0,
+            )
+            .sort(
+                (first, second) =>
+                    second.startDate.getTime() -
+                    first.startDate.getTime(),
+            );
+
+    const currentTermWithGrades =
+        nonCompletedTerms.find(
+            (term) =>
+                term.isCurrent === true,
+        );
+
+    return (
+        currentTermWithGrades ??
+        nonCompletedTerms[0]
     );
 }
 
@@ -710,13 +767,27 @@ export async function getStudentGrades(
               previousGradedUnits;
 
     /*
-     * Calculate only the newest term because
-     * previous values already represent all
-     * earlier academic terms.
+     * previousGpa / previousGradedUnits /
+     * previousGradePoints already represent the
+     * student's completed historical record.
+     *
+     * Only finalized grades from a non-COMPLETED
+     * academic term are allowed to extend that
+     * baseline. This prevents an old historical
+     * term from being added twice while still
+     * allowing the current GPA to update as soon
+     * as new SUBMITTED/VERIFIED grades exist.
      */
-    const latestTermGrades =
-        getLatestTermGrades(
+    const incrementalAcademicTerm =
+        getLatestIncrementalAcademicTerm(
+            academicTerms,
             gradeItems,
+        );
+
+    const latestTermGrades =
+        getGradesForAcademicTerm(
+            gradeItems,
+            incrementalAcademicTerm,
         );
 
     const latestTermCalculation =
@@ -859,6 +930,25 @@ export async function getStudentGrades(
             previousGpa,
             previousGradedUnits,
             previousGradePoints,
+
+            incrementalAcademicTerm:
+                incrementalAcademicTerm
+                    ? {
+                          academicYear:
+                              incrementalAcademicTerm
+                                  .academicYear,
+                          termNumber:
+                              incrementalAcademicTerm
+                                  .termNumber,
+                          status:
+                              incrementalAcademicTerm
+                                  .status,
+                          isCurrent:
+                              incrementalAcademicTerm
+                                  .isCurrent ??
+                              false,
+                      }
+                    : null,
 
             latestTermGradePoints:
                 latestTermCalculation

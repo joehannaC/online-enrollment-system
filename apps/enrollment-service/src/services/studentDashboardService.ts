@@ -88,8 +88,8 @@ function mapStudent(
         middleName:
             student.middleName
                 ? String(
-                      student.middleName,
-                  )
+                    student.middleName,
+                )
                 : undefined,
 
         lastName:
@@ -200,13 +200,13 @@ function normalizeSchedule(
                     item.days,
                 )
                     ? item.days.map(
-                          (day) =>
-                              String(
-                                  day,
-                              )
-                                  .trim()
-                                  .toUpperCase(),
-                      )
+                        (day) =>
+                            String(
+                                day,
+                            )
+                                .trim()
+                                .toUpperCase(),
+                    )
                     : [],
 
             startTime:

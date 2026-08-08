@@ -3,6 +3,7 @@ import type {
 } from "react";
 
 import AuthGuard from "@/components/auth/AuthGuard";
+import FacultyRealtime from "@/components/realtime/FacultyRealtime";
 
 import {
     AppSidebar,
@@ -21,7 +22,9 @@ export default function FacultyLayout({
             <>
                 <AppSidebar role="FACULTY" />
 
-                {children}
+                <FacultyRealtime>
+                    {children}
+                </FacultyRealtime>
 
                 <MobileNavigation role="FACULTY" />
             </>

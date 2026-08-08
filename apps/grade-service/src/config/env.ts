@@ -61,6 +61,15 @@ const environmentSchema = z.object({
         .string()
         .url()
         .default("http://localhost:3001"),
+
+    API_GATEWAY_URL: z
+        .string()
+        .url()
+        .default("http://127.0.0.1:4000"),
+
+    REALTIME_INTERNAL_SECRET: z
+        .string()
+        .min(16),
 });
 
 const result = environmentSchema.safeParse(

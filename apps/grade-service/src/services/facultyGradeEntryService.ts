@@ -9,6 +9,9 @@ import {
     getDatabase,
     getMongoClient,
 } from "../config/database.js";
+import {
+    publishGradeUpdated,
+} from "../realtime/realtimePublisher.js";
 import type {
     GradeComponents,
     GradeDraftInput,
@@ -1573,10 +1576,18 @@ export async function submitGrades(
     const session =
         client.startSession();
 
+    let realtimeStudentIds: string[] = [];
+    let realtimeFacultyId = "";
+    let realtimeSectionId = "";
+
     try {
         const result =
             await session.withTransaction(
                 async (): Promise<SubmitGradesResult> => {
+                    realtimeStudentIds = [];
+                    realtimeFacultyId = "";
+                    realtimeSectionId = "";
+
                     const {
                         faculty,
                         term,
@@ -1915,6 +1926,16 @@ export async function submitGrades(
                         );
                     }
 
+                    realtimeStudentIds =
+                        uniqueStudentIds.map(
+                            (studentId) =>
+                                studentId.toHexString(),
+                        );
+                    realtimeFacultyId =
+                        faculty._id.toHexString();
+                    realtimeSectionId =
+                        sectionId.toHexString();
+
                     return {
                         sectionId:
                             sectionId.toString(),
@@ -1936,6 +1957,21 @@ export async function submitGrades(
                 "Grade submission did not return a result.",
                 500,
             );
+        }
+
+        if (
+            realtimeStudentIds.length > 0 &&
+            realtimeFacultyId &&
+            realtimeSectionId
+        ) {
+            await publishGradeUpdated({
+                studentIds:
+                    realtimeStudentIds,
+                facultyId:
+                    realtimeFacultyId,
+                sectionId:
+                    realtimeSectionId,
+            });
         }
 
         return result;

@@ -688,6 +688,27 @@ function getRecordAcademicPeriod({
     academicYear: string;
     academicTerm: number;
 } {
+    /*
+     * A current enrollment selection has the highest
+     * period priority.
+     *
+     * This is especially important for retakes:
+     * when a course was FAILED in an older term and
+     * the student selects/enrolls it again in the
+     * current enrollment term, Records must display
+     * the new/current selection period instead of
+     * the historical term where it was failed.
+     */
+    if (selectionTerm) {
+        return {
+            academicYear:
+                selectionTerm.academicYear,
+
+            academicTerm:
+                selectionTerm.termNumber,
+        };
+    }
+
     if (gradeContext) {
         return {
             academicYear:
@@ -713,16 +734,6 @@ function getRecordAcademicPeriod({
                 enrollmentContext
                     .academicTerm
                     .termNumber,
-        };
-    }
-
-    if (selectionTerm) {
-        return {
-            academicYear:
-                selectionTerm.academicYear,
-
-            academicTerm:
-                selectionTerm.termNumber,
         };
     }
 

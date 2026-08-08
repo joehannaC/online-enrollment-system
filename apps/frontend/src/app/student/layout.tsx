@@ -3,6 +3,7 @@ import type {
 } from "react";
 
 import AuthGuard from "@/components/auth/AuthGuard";
+import StudentRealtime from "@/components/realtime/StudentRealtime";
 
 import {
     AppSidebar,
@@ -21,7 +22,9 @@ export default function StudentLayout({
             <>
                 <AppSidebar role="STUDENT" />
                 
-                {children}
+                <StudentRealtime>
+                    {children}
+                </StudentRealtime>
 
                 <MobileNavigation role="STUDENT" />
             </>

@@ -11,6 +11,9 @@ import helmet from "helmet";
 import { env } from "./config/env.js";
 import { authenticateRequest } from "./middleware/auth.js";
 import { proxyRoutes } from "./routes/proxyRoutes.js";
+import {
+    realtimeRoutes,
+} from "./realtime/realtime.routes.js";
 
 export const app =
     express();
@@ -130,6 +133,14 @@ app.get(
                         .toISOString(),
             });
     },
+);
+
+app.use(
+    "/internal/realtime",
+    express.json({
+        limit: "32kb",
+    }),
+    realtimeRoutes,
 );
 
 app.use("/api/students", authenticateRequest);

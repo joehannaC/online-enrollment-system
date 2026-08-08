@@ -103,4 +103,13 @@ export const env = {
     FRONTEND_URL:
         process.env.FRONTEND_URL ??
         "http://localhost:3001",
+
+    API_GATEWAY_URL:
+        process.env.API_GATEWAY_URL ??
+        "http://127.0.0.1:4000",
+
+    REALTIME_INTERNAL_SECRET:
+        getRequiredEnvironmentValue(
+            "REALTIME_INTERNAL_SECRET",
+        ),
 } as const;
