@@ -1003,7 +1003,7 @@ async function seedDatabase(): Promise<void> {
                             "2026-08-01T00:00:00+08:00",
                         ),
                         enrollmentEnd: new Date(
-                            "2026-08-15T23:59:59+08:00",
+                            "2026-08-20T23:59:59+08:00",
                         ),
                         gradeSubmissionDeadline:
                             new Date("2027-01-08"),
@@ -2062,7 +2062,7 @@ async function seedDatabase(): Promise<void> {
                         title:
                             "Enrollment period is now open",
                         message:
-                            "Students may enroll in available sections from August 1 to August 15, 2026.",
+                            "Students may enroll in available sections from August 1 to August 20, 2026.",
                         audience: "STUDENT",
                         publishedAt: new Date(
                             "2026-07-28",

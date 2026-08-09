@@ -890,7 +890,7 @@ export async function getFacultyDashboard(
 
     const deadline =
         new Date(
-            "2026-08-16T23:59:59+08:00",
+            "2026-12:20T23:59:59+08:00",
         );
 
     const daysRemaining =
