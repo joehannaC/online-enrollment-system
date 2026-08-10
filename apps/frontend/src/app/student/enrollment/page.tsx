@@ -660,24 +660,6 @@ export default function StudentEnrollmentPage() {
 
                                 {!isEnrollmentComingSoon ? (
                                     <div className="flex flex-col gap-2 sm:flex-row">
-                                    <Link
-                                        href="/student/enrollment/summary"
-                                        className="
-                                            inline-flex h-10
-                                            items-center
-                                            justify-center
-                                            gap-2 rounded-lg
-                                            bg-[#35822E]
-                                            px-5 text-sm
-                                            font-semibold
-                                            text-white
-                                            transition
-                                            hover:bg-[#2B6D26]
-                                        "
-                                    >
-                                        <Eye className="h-4 w-4" />
-                                        View Enrollment
-                                    </Link>
 
                                     {canEdit ? (
                                         <Link
@@ -699,6 +681,25 @@ export default function StudentEnrollmentPage() {
                                             Edit Enrollment
                                         </Link>
                                     ) : null}
+
+                                        <Link
+                                        href="/student/enrollment/summary"
+                                        className="
+                                            inline-flex h-10
+                                            items-center
+                                            justify-center
+                                            gap-2 rounded-lg
+                                            bg-[#35822E]
+                                            px-5 text-sm
+                                            font-semibold
+                                            text-white
+                                            transition
+                                            hover:bg-[#2B6D26]
+                                        "
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                        View Enrollment
+                                    </Link>
                                     </div>
                                 ) : null}
                             </div>

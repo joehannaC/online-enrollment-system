@@ -1201,7 +1201,7 @@ async function synchronizeStudentAcademicState(
                 : 0;
 
         const result =
-            finalGradeValue > 1.0
+            finalGradeValue >= 1.0
                 ? "PASSED"
                 : "FAILED";
 
