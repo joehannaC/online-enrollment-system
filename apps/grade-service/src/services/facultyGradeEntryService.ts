@@ -1351,7 +1351,7 @@ async function synchronizeStudentAcademicState(
         const passed =
             grade.result === "CREDITED" ||
             (typeof grade.finalGradeValue === "number" &&
-                grade.finalGradeValue > 1.0);
+                grade.finalGradeValue >= 1.0);
 
         if (!passed) continue;
 
@@ -1804,7 +1804,7 @@ export async function submitGrades(
                                 {
                                     $set: {
                                         result:
-                                            finalGradeValue > 1.0
+                                            finalGradeValue >= 1.0
                                                 ? "PASSED"
                                                 : "FAILED",
                                     },
