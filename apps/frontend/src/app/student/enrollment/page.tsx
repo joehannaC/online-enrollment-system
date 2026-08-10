@@ -669,12 +669,13 @@ export default function StudentEnrollmentPage() {
                                                 items-center
                                                 justify-center
                                                 gap-2 rounded-lg
-                                                bg-white
-                                                px-5 text-sm
-                                                font-semibold
-                                                text-white
+                                                border
+                                                border-[#35822E]
+                                                bg-white px-5
+                                                text-sm font-semibold
+                                                text-[#35822E]
                                                 transition
-                                                hover:bg-[#2B6D26]
+                                                hover:bg-green-50
                                             "
                                         >
                                             <Pencil className="h-4 w-4" />
