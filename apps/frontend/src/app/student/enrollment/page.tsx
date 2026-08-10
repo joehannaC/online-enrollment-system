@@ -669,7 +669,7 @@ export default function StudentEnrollmentPage() {
                                                 items-center
                                                 justify-center
                                                 gap-2 rounded-lg
-                                                bg-[#35822E]
+                                                bg-white
                                                 px-5 text-sm
                                                 font-semibold
                                                 text-white
