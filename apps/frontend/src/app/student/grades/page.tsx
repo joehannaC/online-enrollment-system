@@ -473,77 +473,20 @@ export default function StudentGradesPage() {
         );
     }
 
-    if (
-            errorStatus === 503 &&
-            !data
-        ) {
-            return (
-                <ServiceUnavailable
-                    serviceName="Student Grades Service"
-                    title="Grades unavailable"
-                    description={
-                        errorMessage ||
-                        "The Student Grades Service is currently unavailable. Please try again."
-                    }
-                    onRetry={() => {
-                        setRetryKey(
-                            (current) => current + 1,
-                        );
-                    }}
-                />
-            );
-        }
-
-    if (
-        errorMessage &&
-        !data
-    ) {
-        return (
-            <PageContainer>
-                <div className="mx-auto w-full max-w-[1440px]">
-                    <div
-                        role="alert"
-                        className="
-                            rounded-xl border
-                            border-red-200
-                            bg-red-50
-                            px-5 py-4
-                            text-sm text-red-700
-                        "
-                    >
-                        <p className="font-semibold">
-                            Grades could not be loaded
-                        </p>
-
-                        <p className="mt-1">
-                            {errorMessage}
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setRetryKey(
-                                    (current) =>
-                                        current + 1,
-                                );
-                            }}
-                            className="
-                                mt-4 rounded-lg
-                                border border-red-300
-                                bg-white px-4 py-2
-                                font-medium
-                                text-red-700
-                                transition
-                                hover:bg-red-100
-                            "
-                        >
-                            Try again
-                        </button>
-                    </div>
-                </div>
-            </PageContainer>
-        );
-    }
+    if (errorMessage && !data) {
+    return (
+        <ServiceUnavailable
+            serviceName="Grade Service"
+            title="Grades unavailable"
+            description={errorMessage}
+            onRetry={() => {
+                setRetryKey(
+                    (current) => current + 1,
+                );
+            }}
+        />
+    );
+}
 
     return (
         <PageContainer>
