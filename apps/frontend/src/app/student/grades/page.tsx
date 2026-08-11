@@ -474,26 +474,25 @@ export default function StudentGradesPage() {
     }
 
     if (
-        errorStatus === 503 &&
-        !data
-    ) {
-        return (
-            <ServiceUnavailable
-                title="Grades unavailable"
-                description={
-                    errorMessage ||
-                    "The Grade Service is temporarily unavailable."
-                }
-                serviceName="Grade Service"
-                onRetry={() => {
-                    setRetryKey(
-                        (current) =>
-                            current + 1,
-                    );
-                }}
-            />
-        );
-    }
+            errorStatus === 503 &&
+            !data
+        ) {
+            return (
+                <ServiceUnavailable
+                    serviceName="Student Grades Service"
+                    title="Grades unavailable"
+                    description={
+                        errorMessage ||
+                        "The Student Grades Service is currently unavailable. Please try again."
+                    }
+                    onRetry={() => {
+                        setRetryKey(
+                            (current) => current + 1,
+                        );
+                    }}
+                />
+            );
+        }
 
     if (
         errorMessage &&
