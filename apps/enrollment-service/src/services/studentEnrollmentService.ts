@@ -9,6 +9,7 @@ import {
     getDatabase,
     getMongoClient,
 } from "../config/database.js";
+import { FairSemaphore } from "../synchronization/fairSemaphore.js";
 import {
     publishEnrollmentUpdated,
 } from "../realtime/realtimePublisher.js";
@@ -305,108 +306,6 @@ export class StudentEnrollmentServiceError
         super(message);
         this.name =
             "StudentEnrollmentServiceError";
-    }
-}
-
-interface SemaphoreWaiter {
-    resolve: () => void;
-    reject: (
-        error: Error,
-    ) => void;
-    timeout?: NodeJS.Timeout;
-}
-
-class FairSemaphore {
-    private availablePermits: number;
-    private readonly queue:
-        SemaphoreWaiter[] = [];
-
-    constructor(
-        maximumPermits: number,
-    ) {
-        this.availablePermits =
-            Math.max(
-                1,
-                maximumPermits,
-            );
-    }
-
-    public async acquire(
-        timeoutMilliseconds =
-            10_000,
-    ): Promise<() => void> {
-        if (
-            this.availablePermits > 0 &&
-            this.queue.length === 0
-        ) {
-            this.availablePermits -= 1;
-            return this.createRelease();
-        }
-
-        await new Promise<void>(
-            (resolve, reject) => {
-                const waiter:
-                    SemaphoreWaiter = {
-                    resolve,
-                    reject,
-                };
-
-                waiter.timeout =
-                    setTimeout(() => {
-                        const index =
-                            this.queue.indexOf(
-                                waiter,
-                            );
-
-                        if (index >= 0) {
-                            this.queue.splice(
-                                index,
-                                1,
-                            );
-                        }
-
-                        reject(
-                            new Error(
-                                "Semaphore acquisition timed out.",
-                            ),
-                        );
-                    }, timeoutMilliseconds);
-
-                this.queue.push(
-                    waiter,
-                );
-            },
-        );
-
-        return this.createRelease();
-    }
-
-    private createRelease(): () => void {
-        let released = false;
-
-        return () => {
-            if (released) {
-                return;
-            }
-
-            released = true;
-
-            const next =
-                this.queue.shift();
-
-            if (next) {
-                if (next.timeout) {
-                    clearTimeout(
-                        next.timeout,
-                    );
-                }
-
-                next.resolve();
-                return;
-            }
-
-            this.availablePermits += 1;
-        };
     }
 }
 
