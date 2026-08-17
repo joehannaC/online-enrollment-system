@@ -1,3 +1,9 @@
+# Overview of the Online Enrollment System
+
+The Online Enrollment System is a distributed web-based enrollment platform designed to manage student enrollment, academic records, grades, faculty grade submission, student profiles, and real-time updates.
+
+The system follows a service-oriented/distributed architecture where the frontend communicates with an API Gateway, which routes requests to independent backend services. The backend services share the MongoDB persistence layer configured as a three-member replica set for database redundancy and fault tolerance. 
+
 ## Dependencies
 
 This project consists of the following applications:
