@@ -30,8 +30,8 @@ function formatUnitTotal(
         0
         ? `${academicUnits}(${nonAcademicUnits})`
         : String(
-              academicUnits,
-          );
+            academicUnits,
+        );
 }
 
 function formatSchedule(
@@ -50,8 +50,8 @@ function formatSchedule(
                 item.days.length >
                 0
                     ? item.days.join(
-                          "/",
-                      )
+                        "/",
+                    )
                     : "TBA";
 
             const time =
@@ -150,23 +150,23 @@ export default function RegisteredCourses({
 
         ...(showSchedule
             ? [
-                  {
-                      key:
-                          "schedule",
+                {
+                    key:
+                        "schedule",
 
-                      header:
-                          "Schedule",
+                    header:
+                        "Schedule",
 
-                      render:
-                          (
-                              course:
-                                  RegisteredCourse,
-                          ) =>
-                              formatSchedule(
-                                  course,
-                              ),
-                  },
-              ]
+                    render:
+                        (
+                            course:
+                                RegisteredCourse,
+                        ) =>
+                            formatSchedule(
+                                course,
+                            ),
+                },
+            ]
             : []),
 
         {

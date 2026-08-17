@@ -50,8 +50,7 @@ const protoDescriptor =
     packageDefinition,
   ) as unknown as HealthPackage;
 
-const healthService =
-  protoDescriptor.enrollment.health.v1.HealthService;
+const healthService = protoDescriptor.enrollment.health.v1.HealthService;
 
 function checkHealth(
   call: grpc.ServerUnaryCall<HealthRequest, HealthResponse>,
@@ -59,10 +58,7 @@ function checkHealth(
 ): void {
   const requestedService = call.request.service?.trim();
 
-  if (
-    requestedService &&
-    requestedService !== env.SERVICE_NAME
-  ) {
+  if (requestedService && requestedService !== env.SERVICE_NAME) {
     callback({
       code: grpc.status.NOT_FOUND,
       message: `Unknown service: ${requestedService}`,

@@ -26,10 +26,6 @@ interface StudentDocument {
     campus: string;
     college: string;
 
-    /*
-     * Cumulative academic record before
-     * the latest academic term.
-     */
     previousGpa?: number;
     previousGradedUnits?: number;
     previousGradePoints?: number;
@@ -265,14 +261,6 @@ function isNumericGpaGrade(
 function contributesGpaUnits(
     grade: StudentGradeItem,
 ): boolean {
-    /*
-     * Every course with a numeric final grade contributes
-     * its academic units to the GPA denominator, including
-     * failed courses with a numeric grade of 0.0.
-     *
-     * CREDITED courses are excluded because they do not have
-     * a numeric GPA grade.
-     */
     return isNumericGpaGrade(
         grade,
     );
@@ -310,11 +298,11 @@ function calculateGradePoints(
     const gpa =
         gradedUnits > 0
             ? Number(
-                  (
-                      gradePoints /
-                      gradedUnits
-                  ).toFixed(2),
-              )
+                (
+                    gradePoints /
+                    gradedUnits
+                ).toFixed(2),
+            )
             : null;
 
     return {
@@ -346,23 +334,7 @@ function getLatestIncrementalAcademicTerm(
     academicTerms: AcademicTermDocument[],
     gradeItems: StudentGradeItem[],
 ): AcademicTermDocument | undefined {
-    /*
-     * previousGpa / previousGradedUnits /
-     * previousGradePoints already represent
-     * completed historical terms.
-     *
-     * Therefore only a non-COMPLETED term may
-     * contribute new grade points to the stored
-     * cumulative baseline.
-     *
-     * Prefer the explicitly current term. If no
-     * finalized grades exist there yet, allow a
-     * newer ACTIVE/UPCOMING term that actually
-     * has finalized grades. This keeps GPA
-     * calculation working when term flags are in
-     * transition while preventing historical
-     * completed terms from being counted twice.
-     */
+
     const nonCompletedTerms =
         academicTerms
             .filter(
@@ -470,16 +442,16 @@ export async function getStudentGrades(
     const sections =
         sectionIds.length > 0
             ? await db
-                  .collection<SectionDocument>(
-                      "sections",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              sectionIds,
-                      },
-                  })
-                  .toArray()
+                .collection<SectionDocument>(
+                    "sections",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            sectionIds,
+                    },
+                })
+                .toArray()
             : [];
 
     const courseIds =
@@ -516,30 +488,30 @@ export async function getStudentGrades(
     ] = await Promise.all([
         courseIds.length > 0
             ? db
-                  .collection<CourseDocument>(
-                      "courses",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              courseIds,
-                      },
-                  })
-                  .toArray()
+                .collection<CourseDocument>(
+                    "courses",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            courseIds,
+                    },
+                })
+                .toArray()
             : [],
 
         academicTermIds.length > 0
             ? db
-                  .collection<AcademicTermDocument>(
-                      "academicTerms",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              academicTermIds,
-                      },
-                  })
-                  .toArray()
+                .collection<AcademicTermDocument>(
+                    "academicTerms",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            academicTermIds,
+                    },
+                })
+                .toArray()
             : [],
     ]);
 
@@ -681,9 +653,6 @@ export async function getStudentGrades(
         });
     }
 
-    /*
-     * Sort newest academic period first.
-     */
     gradeItems.sort(
         (first, second) => {
             const firstYear =
@@ -723,9 +692,6 @@ export async function getStudentGrades(
         },
     );
 
-    /*
-     * Previous cumulative academic record.
-     */
     const previousGpaValue =
         normalizeNonNegativeNumber(
             student.previousGpa,
@@ -754,30 +720,12 @@ export async function getStudentGrades(
         ) &&
         student.previousGradePoints >= 0;
 
-    /*
-     * Exact grade points are preferred.
-     *
-     * A rounded GPA multiplied by units can
-     * introduce cumulative rounding errors.
-     */
     const previousGradePoints =
         hasPreviousGradePoints
             ? student.previousGradePoints!
             : previousGpaValue *
-              previousGradedUnits;
+            previousGradedUnits;
 
-    /*
-     * previousGpa / previousGradedUnits /
-     * previousGradePoints already represent the
-     * student's completed historical record.
-     *
-     * Only finalized grades from a non-COMPLETED
-     * academic term are allowed to extend that
-     * baseline. This prevents an old historical
-     * term from being added twice while still
-     * allowing the current GPA to update as soon
-     * as new SUBMITTED/VERIFIED grades exist.
-     */
     const incrementalAcademicTerm =
         getLatestIncrementalAcademicTerm(
             academicTerms,
@@ -808,17 +756,13 @@ export async function getStudentGrades(
     const currentGpa =
         totalGradedUnits > 0
             ? Number(
-                  (
-                      totalGradePoints /
-                      totalGradedUnits
-                  ).toFixed(2),
-              )
+                (
+                    totalGradePoints /
+                    totalGradedUnits
+                ).toFixed(2),
+            )
             : null;
 
-    /*
-     * Current GPA and cumulative GPA refer
-     * to the same updated cumulative value.
-     */
     const cumulativeGpa =
         currentGpa;
 
@@ -917,10 +861,6 @@ export async function getStudentGrades(
             "CREDITED",
         ];
 
-    /*
-     * Temporary diagnostic output.
-     * Remove after confirming the GPA.
-     */
     console.log(
         "[grade-service] GPA calculation",
         {
@@ -934,20 +874,20 @@ export async function getStudentGrades(
             incrementalAcademicTerm:
                 incrementalAcademicTerm
                     ? {
-                          academicYear:
-                              incrementalAcademicTerm
-                                  .academicYear,
-                          termNumber:
-                              incrementalAcademicTerm
-                                  .termNumber,
-                          status:
-                              incrementalAcademicTerm
-                                  .status,
-                          isCurrent:
-                              incrementalAcademicTerm
-                                  .isCurrent ??
-                              false,
-                      }
+                        academicYear:
+                            incrementalAcademicTerm
+                                .academicYear,
+                        termNumber:
+                            incrementalAcademicTerm
+                                .termNumber,
+                        status:
+                            incrementalAcademicTerm
+                                .status,
+                        isCurrent:
+                            incrementalAcademicTerm
+                                .isCurrent ??
+                            false,
+                    }
                     : null,
 
             latestTermGradePoints:

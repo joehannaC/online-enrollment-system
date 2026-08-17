@@ -38,10 +38,7 @@ export async function handleGetStudentRecords(
             return;
         }
 
-        if (
-            request.auth.role !==
-            "STUDENT"
-        ) {
+        if (request.auth.role !== "STUDENT") {
             response.status(403).json({
                 success: false,
                 error: {

@@ -42,19 +42,13 @@ export async function connectDatabase(): Promise<Db> {
 
     await mongoClient.connect();
 
-    database = mongoClient.db(
-        env.MONGODB_DATABASE,
-    );
+    database = mongoClient.db(env.MONGODB_DATABASE,);
 
-    await database.command({
-        ping: 1,
-    });
+    await database.command({ping: 1,});
 
     connected = true;
 
-    console.log(
-        `[${env.SERVICE_NAME}] Connected to MongoDB database: ${env.MONGODB_DATABASE}`,
-    );
+    console.log(`[${env.SERVICE_NAME}] Connected to MongoDB database: ${env.MONGODB_DATABASE}`,);
 
     return database;
 }
@@ -101,9 +95,7 @@ export async function checkDatabaseConnection(): Promise<boolean> {
             return false;
         }
 
-        await database.command({
-            ping: 1,
-        });
+        await database.command({ping: 1,});
 
         connected = true;
 
@@ -125,9 +117,7 @@ export async function closeDatabase(): Promise<void> {
     database = null;
     connected = false;
 
-    console.log(
-        `[${env.SERVICE_NAME}] Disconnected from MongoDB.`,
-    );
+    console.log(`[${env.SERVICE_NAME}] Disconnected from MongoDB.`,);
 }
 
 export async function disconnectDatabase(): Promise<void> {

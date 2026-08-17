@@ -12,13 +12,6 @@ export type EnrollmentPageMode =
     | "EDITABLE_SUBMITTED"
     | "READ_ONLY";
 
-/**
- * Item-level status is required because a partially
- * successful submission can contain:
- *
- * - permanently enrolled courses;
- * - newly selected draft courses.
- */
 export type EnrollmentItemStatus =
     | "DRAFT"
     | "ENROLLED";
@@ -73,25 +66,9 @@ export interface EnrollmentSummaryItem {
     instructorName: string;
     scheduleLabel: string;
 
-    /**
-     * DRAFT:
-     * The student may still remove the course.
-     *
-     * ENROLLED:
-     * The course was successfully reserved and can
-     * no longer be removed or selected again.
-     */
     status:
         EnrollmentItemStatus;
 
-    /**
-     * Backend-calculated permission.
-     *
-     * This should normally be true only when:
-     * - item.status is DRAFT;
-     * - enrollment remains open;
-     * - the enrollment is not read-only.
-     */
     canDrop: boolean;
 
     enrolledAt?: string;
@@ -125,23 +102,13 @@ export interface StudentEnrollmentResponse {
 
         version: number;
 
-        /**
-         * This should only represent final submission.
-         * For PARTIAL_SUCCESS, the header should remain
-         * DRAFT and submittedAt should normally remain
-         * undefined.
-         */
         submittedAt?: string;
 
-        /**
-         * Totals include both DRAFT and ENROLLED items.
-         */
+
         totalAcademicUnits: number;
         totalNonAcademicUnits: number;
 
-        /**
-         * Optional breakdown for clearer UI logic.
-         */
+
         draftAcademicUnits?: number;
         enrolledAcademicUnits?: number;
 
@@ -189,10 +156,6 @@ export interface SubmitEnrollmentResult {
 
     message: string;
 
-    /**
-     * Courses accepted during the current submission
-     * attempt, not the student's lifetime total.
-     */
     submittedCourseCount: number;
 
     rejectedCourseCount: number;
@@ -200,16 +163,7 @@ export interface SubmitEnrollmentResult {
     rejectedSections:
         RejectedEnrollmentSection[];
 
-    /**
-     * Latest enrollment version after the transaction.
-     * This is useful for avoiding another GET before the
-     * next edit, although reloading remains recommended.
-     */
     enrollmentVersion?: number;
 
-    /**
-     * True when the student may continue adding,
-     * dropping draft items, and submitting again.
-     */
     canContinueEnrollment?: boolean;
 }

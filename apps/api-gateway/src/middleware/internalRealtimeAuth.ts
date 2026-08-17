@@ -16,15 +16,11 @@ function secretsMatch(
     received: string,
     expected: string,
 ): boolean {
-    const receivedBuffer =
-        Buffer.from(received);
-    const expectedBuffer =
-        Buffer.from(expected);
 
-    if (
-        receivedBuffer.length !==
-        expectedBuffer.length
-    ) {
+    const receivedBuffer = Buffer.from(received);
+    const expectedBuffer = Buffer.from(expected);
+
+    if (receivedBuffer.length !== expectedBuffer.length) {
         return false;
     }
 
@@ -39,18 +35,10 @@ export function authenticateRealtimePublisher(
     response: Response,
     next: NextFunction,
 ): void {
-    const receivedSecret =
-        request.header(
-            "x-internal-secret",
-        );
+    
+    const receivedSecret = request.header("x-internal-secret",);
 
-    if (
-        !receivedSecret ||
-        !secretsMatch(
-            receivedSecret,
-            env.REALTIME_INTERNAL_SECRET,
-        )
-    ) {
+    if (!receivedSecret || !secretsMatch(receivedSecret,env.REALTIME_INTERNAL_SECRET,)) {
         response
             .status(403)
             .json({

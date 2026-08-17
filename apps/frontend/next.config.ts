@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
         "172.20.10.13",
         "172.20.10.2",
         "localhost",
+        // add ip addr if needed
     ],
 
     turbopack: {

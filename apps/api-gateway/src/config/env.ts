@@ -172,10 +172,7 @@ const invalidFrontendOrigins =
         },
     );
 
-if (
-    invalidFrontendOrigins.length >
-    0
-) {
+if (invalidFrontendOrigins.length > 0) {
     console.error(
         [
             "[api-gateway] Invalid FRONTEND_URLS configuration:",
@@ -189,9 +186,7 @@ if (
     process.exit(1);
 }
 
-if (
-    frontendOrigins.length === 0
-) {
+if (frontendOrigins.length === 0) {
     console.error(
         "[api-gateway] At least one frontend origin must be configured.",
     );

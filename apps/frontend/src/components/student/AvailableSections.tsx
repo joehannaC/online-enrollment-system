@@ -247,8 +247,8 @@ export default function AvailableSections({
                                                 ? "danger"
                                                 : section.availableSlots <=
                                                     5
-                                                  ? "warning"
-                                                  : "success"
+                                                ? "warning"
+                                                : "success"
                                         }
                                     >
                                         {
@@ -287,8 +287,8 @@ export default function AvailableSections({
                                         {section.isAlreadyEnrolled
                                             ? "Enrolled"
                                             : section.isFull
-                                              ? "Full"
-                                              : isSelected
+                                            ? "Full"
+                                            : isSelected
                                                 ? "Remove"
                                                 : "Enroll"}
                                     </Button>

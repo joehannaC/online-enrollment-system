@@ -20,10 +20,7 @@ export function errorHandler(
 ): void {
     console.error(error);
 
-    if (
-        error instanceof
-        StudentRecordServiceError
-    ) {
+    if (error instanceof StudentRecordServiceError) {
         response
             .status(error.status)
             .json({
@@ -43,10 +40,7 @@ export function errorHandler(
         return;
     }
 
-    if (
-        error instanceof
-        StudentEnrollmentServiceError
-    ) {
+    if (error instanceof StudentEnrollmentServiceError) {
         response
             .status(error.status)
             .json({

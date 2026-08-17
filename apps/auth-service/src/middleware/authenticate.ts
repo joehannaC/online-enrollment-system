@@ -22,10 +22,7 @@ export function authenticate(
     const authorizationHeader =
         request.headers.authorization;
 
-    if (
-        !authorizationHeader ||
-        !authorizationHeader.startsWith("Bearer ")
-    ) {
+    if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
         response.status(401).json({
             success: false,
             error: {
@@ -63,8 +60,7 @@ export function authenticate(
             env.JWT_ACCESS_SECRET,
         ) as AccessTokenPayload;
 
-        const userId =
-            payload.sub ?? payload.userId;
+        const userId = payload.sub ?? payload.userId;
 
         if (!userId || !payload.role) {
             response.status(401).json({
@@ -88,8 +84,7 @@ export function authenticate(
 
         next();
     } catch (error) {
-        const isExpired =
-            error instanceof jwt.TokenExpiredError;
+        const isExpired = error instanceof jwt.TokenExpiredError;
 
         response.status(401).json({
             success: false,

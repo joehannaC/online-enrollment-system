@@ -50,8 +50,7 @@ export interface EnrollmentSectionOption {
 
     canEnroll: boolean;
 
-    eligibilityCode:
-        CourseEligibilityCode;
+    eligibilityCode: CourseEligibilityCode;
 
     eligibilityTitle: string;
 
@@ -77,22 +76,7 @@ export interface EnrollmentSummaryItem {
     instructorName: string;
     scheduleLabel: string;
 
-    /**
-     * DRAFT:
-     * The course is selected but has not yet been
-     * successfully reserved.
-     *
-     * ENROLLED:
-     * The course was successfully reserved and may
-     * no longer be dropped or selected again.
-     */
-    status:
-        EnrollmentItemStatus;
-
-    /**
-     * Should normally be true only for DRAFT items
-     * while the enrollment period is still open.
-     */
+    status: EnrollmentItemStatus;
     canDrop: boolean;
 
     enrolledAt?: string;
@@ -126,26 +110,11 @@ export interface StudentEnrollmentResponse {
 
         version: number;
 
-        /**
-         * Used only when the enrollment header has
-         * been fully finalized.
-         *
-         * For PARTIAL_SUCCESS, status should remain
-         * DRAFT and submittedAt should normally be
-         * undefined.
-         */
         submittedAt?: string;
 
-        /**
-         * Includes both ENROLLED and DRAFT items.
-         */
         totalAcademicUnits: number;
         totalNonAcademicUnits: number;
 
-        /**
-         * Optional item-level totals for clearer
-         * frontend presentation.
-         */
         enrolledAcademicUnits?: number;
         enrolledNonAcademicUnits?: number;
 
@@ -155,12 +124,10 @@ export interface StudentEnrollmentResponse {
         enrolledCourseCount?: number;
         draftCourseCount?: number;
 
-        items:
-            EnrollmentSummaryItem[];
+        items: EnrollmentSummaryItem[];
     };
 
-    availableSections:
-        EnrollmentSectionOption[];
+    availableSections: EnrollmentSectionOption[];
 
     pagination: {
         page: number;
@@ -196,25 +163,13 @@ export interface SubmitEnrollmentResult {
 
     message: string;
 
-    /**
-     * Number of DRAFT courses that became ENROLLED
-     * during the current submission attempt.
-     */
     submittedCourseCount: number;
 
     rejectedCourseCount: number;
 
-    rejectedSections:
-        RejectedEnrollmentSection[];
+    rejectedSections: RejectedEnrollmentSection[];
 
-    /**
-     * Latest version after the backend transaction.
-     */
     enrollmentVersion?: number;
 
-    /**
-     * True for PARTIAL_SUCCESS and failed attempts
-     * where the student may continue selecting courses.
-     */
     canContinueEnrollment?: boolean;
 }

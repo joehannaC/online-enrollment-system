@@ -443,7 +443,7 @@ export default function FacultySubjectsPage() {
                             )}
                         </div>
                     ) : filteredSubjects.length ===
-                      0 ? (
+                    0 ? (
                         <div className="p-5">
                             <EmptyState
                                 compact
@@ -695,9 +695,9 @@ export default function FacultySubjectsPage() {
                                                                 ? "success"
                                                                 : student.gradeStatus ===
                                                                     "RETURNED"
-                                                                  ? "danger"
-                                                                  : student.gradeStatus ===
-                                                                      "SUBMITTED"
+                                                                ? "danger"
+                                                                : student.gradeStatus ===
+                                                                    "SUBMITTED"
                                                                     ? "primary"
                                                                     : "warning"
                                                         }

@@ -501,7 +501,7 @@ export default function FacultyRecordsPage() {
                             <LoadingSkeleton className="h-72 w-full" />
                         </div>
                     ) : filteredRecords.length ===
-                      0 ? (
+                    0 ? (
                         <div className="p-5">
                             <EmptyState
                                 compact
@@ -570,13 +570,13 @@ export default function FacultyRecordsPage() {
                                                     {record.status ===
                                                     "SUBMITTED"
                                                         ? formatDate(
-                                                              record.submittedAt,
-                                                          )
+                                                            record.submittedAt,
+                                                        )
                                                         : record.lastSavedAt
-                                                          ? `${formatDate(
+                                                        ? `${formatDate(
                                                                 record.lastSavedAt,
                                                             )}`
-                                                          : "No grade input"}
+                                                        : "No grade input"}
                                                 </td>
 
                                                 <td className="px-4 py-4 text-center font-semibold text-neutral-800">
@@ -602,8 +602,8 @@ export default function FacultyRecordsPage() {
                                                             ? "Submitted"
                                                             : record.status ===
                                                                 "DRAFT"
-                                                              ? "Draft"
-                                                              : "Incomplete"}
+                                                            ? "Draft"
+                                                            : "Incomplete"}
                                                     </StatusBadge>
                                                 </td>
 

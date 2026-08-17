@@ -590,8 +590,8 @@ export default function StudentGradesPage() {
                                     .currentGpa !==
                                 null
                                     ? data.summary.currentGpa.toFixed(
-                                          2,
-                                      )
+                                        2,
+                                    )
                                     : "-.--"}
                             </p>
                         </div>
@@ -877,19 +877,19 @@ export default function StudentGradesPage() {
                                 {!isLoading &&
                                 !errorMessage
                                     ? data?.grades.map(
-                                          (
-                                              grade,
-                                          ) => (
-                                              <GradeRow
-                                                  key={
-                                                      grade.id
-                                                  }
-                                                  grade={
-                                                      grade
-                                                  }
-                                              />
-                                          ),
-                                      )
+                                        (
+                                            grade,
+                                        ) => (
+                                            <GradeRow
+                                                key={
+                                                    grade.id
+                                                }
+                                                grade={
+                                                    grade
+                                                }
+                                            />
+                                        ),
+                                    )
                                     : null}
                             </tbody>
                         </table>
@@ -904,17 +904,17 @@ export default function StudentGradesPage() {
                         {!isLoading &&
                         !errorMessage
                             ? data?.grades.map(
-                                  (grade) => (
-                                      <MobileGradeCard
-                                          key={
-                                              grade.id
-                                          }
-                                          grade={
-                                              grade
-                                          }
-                                      />
-                                  ),
-                              )
+                                (grade) => (
+                                    <MobileGradeCard
+                                        key={
+                                            grade.id
+                                        }
+                                        grade={
+                                            grade
+                                        }
+                                    />
+                                ),
+                            )
                             : null}
                     </div>
 

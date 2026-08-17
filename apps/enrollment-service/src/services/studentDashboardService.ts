@@ -30,8 +30,7 @@ export class StudentDashboardError extends Error {
     ) {
         super(message);
 
-        this.name =
-            "StudentDashboardError";
+        this.name = "StudentDashboardError";
     }
 }
 
@@ -39,11 +38,7 @@ function toObjectId(
     value: string,
     fieldName: string,
 ): ObjectId {
-    if (
-        !ObjectId.isValid(
-            value,
-        )
-    ) {
+    if (!ObjectId.isValid(value,)) {
         throw new StudentDashboardError(
             "INVALID_IDENTIFIER",
             `${fieldName} is invalid.`,
@@ -100,11 +95,11 @@ function mapStudent(
         fullName:
             student.fullName
                 ? String(
-                      student.fullName,
-                  )
+                    student.fullName,
+                )
                 : buildFullName(
-                      student,
-                  ),
+                    student,
+                ),
 
         programCode:
             String(
@@ -185,11 +180,7 @@ function mapTerm(
 function normalizeSchedule(
     schedule: unknown,
 ): ScheduleItem[] {
-    if (
-        !Array.isArray(
-            schedule,
-        )
-    ) {
+    if (!Array.isArray(schedule,)) {
         return [];
     }
 
@@ -261,8 +252,7 @@ function getAcademicUnits(
         course.units ??
         0;
 
-    const parsed =
-        Number(value);
+    const parsed = Number(value);
 
     return Number.isFinite(
         parsed,
@@ -284,8 +274,7 @@ function getNonAcademicUnits(
         course.nonAcademicUnits ??
         0;
 
-    const parsed =
-        Number(value);
+    const parsed = Number(value);
 
     return Number.isFinite(
         parsed,
@@ -297,8 +286,7 @@ function getNonAcademicUnits(
 export async function getStudentDashboard(
     authenticatedUserId: string,
 ): Promise<StudentDashboardResponse> {
-    const database =
-        getDatabase();
+    const database = getDatabase();
 
     const userId =
         toObjectId(
@@ -351,10 +339,7 @@ export async function getStudentDashboard(
         );
     }
 
-    if (
-        !currentTerm &&
-        !enrollmentTerm
-    ) {
+    if (!currentTerm && !enrollmentTerm) {
         throw new StudentDashboardError(
             "ACADEMIC_TERM_NOT_FOUND",
             "No current or enrollment academic term is configured.",
@@ -365,57 +350,57 @@ export async function getStudentDashboard(
     const enrollmentHeader =
         enrollmentTerm
             ? await database
-                  .collection(
-                      "studentEnrollments",
-                  )
-                  .findOne(
-                      {
-                          studentId:
-                              student._id,
+                .collection(
+                    "studentEnrollments",
+                )
+                .findOne(
+                    {
+                        studentId:
+                            student._id,
 
-                          academicTermId:
-                              enrollmentTerm._id,
+                        academicTermId:
+                            enrollmentTerm._id,
 
-                          status: {
-                              $in: [
-                                  "DRAFT",
-                                  "SUBMITTED",
-                              ],
-                          },
-                      },
-                      {
-                          sort: {
-                              updatedAt:
-                                  -1,
+                        status: {
+                            $in: [
+                                "DRAFT",
+                                "SUBMITTED",
+                            ],
+                        },
+                    },
+                    {
+                        sort: {
+                            updatedAt:
+                                -1,
 
-                              createdAt:
-                                  -1,
-                          },
-                      },
-                  )
+                            createdAt:
+                                -1,
+                        },
+                    },
+                )
             : null;
 
     const enrollmentItems =
         enrollmentHeader
             ? await database
-                  .collection(
-                      "studentEnrollmentItems",
-                  )
-                  .find({
-                      enrollmentId:
-                          enrollmentHeader._id,
+                .collection(
+                    "studentEnrollmentItems",
+                )
+                .find({
+                    enrollmentId:
+                        enrollmentHeader._id,
 
-                      studentId:
-                          student._id,
+                    studentId:
+                        student._id,
 
-                      academicTermId:
-                          enrollmentHeader.academicTermId,
-                  })
-                  .sort({
-                      createdAt:
-                          1,
-                  })
-                  .toArray()
+                    academicTermId:
+                        enrollmentHeader.academicTermId,
+                })
+                .sort({
+                    createdAt:
+                        1,
+                })
+                .toArray()
             : [];
 
     const relevantTermIds =
@@ -435,36 +420,36 @@ export async function getStudentDashboard(
         0
             ? []
             : await database
-                  .collection(
-                      "enrollments",
-                  )
-                  .find({
-                      studentId:
-                          student._id,
+                .collection(
+                    "enrollments",
+                )
+                .find({
+                    studentId:
+                        student._id,
 
-                      academicTermId: {
-                          $in:
-                              relevantTermIds,
-                      },
+                    academicTermId: {
+                        $in:
+                            relevantTermIds,
+                    },
 
-                      status: {
-                          $in: [
-                              "ENROLLED",
-                              "REGISTERED",
-                          ],
-                      },
-                  })
-                  .sort({
-                      enrolledAt:
-                          1,
+                    status: {
+                        $in: [
+                            "ENROLLED",
+                            "REGISTERED",
+                        ],
+                    },
+                })
+                .sort({
+                    enrolledAt:
+                        1,
 
-                      registeredAt:
-                          1,
+                    registeredAt:
+                        1,
 
-                      createdAt:
-                          1,
-                  })
-                  .toArray();
+                    createdAt:
+                        1,
+                })
+                .toArray();
 
     const sectionIdMap =
         new Map<
@@ -472,14 +457,8 @@ export async function getStudentDashboard(
             ObjectId
         >();
 
-    for (
-        const enrollment of
-        finalEnrollments
-    ) {
-        if (
-            enrollment.sectionId instanceof
-            ObjectId
-        ) {
+    for (const enrollment of finalEnrollments) {
+        if (enrollment.sectionId instanceof ObjectId) {
             sectionIdMap.set(
                 enrollment.sectionId.toHexString(),
                 enrollment.sectionId,
@@ -487,14 +466,8 @@ export async function getStudentDashboard(
         }
     }
 
-    for (
-        const item of
-        enrollmentItems
-    ) {
-        if (
-            item.sectionId instanceof
-            ObjectId
-        ) {
+    for (const item of enrollmentItems) {
+        if (item.sectionId instanceof ObjectId) {
             sectionIdMap.set(
                 item.sectionId.toHexString(),
                 item.sectionId,
@@ -512,16 +485,16 @@ export async function getStudentDashboard(
         0
             ? []
             : await database
-                  .collection(
-                      "sections",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              sectionIds,
-                      },
-                  })
-                  .toArray();
+                .collection(
+                    "sections",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            sectionIds,
+                    },
+                })
+                .toArray();
 
     const courseIdMap =
         new Map<
@@ -529,14 +502,8 @@ export async function getStudentDashboard(
             ObjectId
         >();
 
-    for (
-        const section of
-        sections
-    ) {
-        if (
-            section.courseId instanceof
-            ObjectId
-        ) {
+    for (const section of sections) {
+        if (section.courseId instanceof ObjectId) {
             courseIdMap.set(
                 section.courseId.toHexString(),
                 section.courseId,
@@ -554,16 +521,16 @@ export async function getStudentDashboard(
         0
             ? []
             : await database
-                  .collection(
-                      "courses",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              courseIds,
-                      },
-                  })
-                  .toArray();
+                .collection(
+                    "courses",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            courseIds,
+                    },
+                })
+                .toArray();
 
     const sectionMap =
         new Map(
@@ -591,9 +558,7 @@ export async function getStudentDashboard(
             RegisteredCourse
         >();
 
-    if (
-        enrollmentHeader
-    ) {
+    if (enrollmentHeader) {
         const draftStatus:
             | "REGISTERED"
             | "IN_PROGRESS" =
@@ -602,10 +567,7 @@ export async function getStudentDashboard(
                 ? "IN_PROGRESS"
                 : "REGISTERED";
 
-        for (
-            const item of
-            enrollmentItems
-        ) {
+        for (const item of enrollmentItems) {
             const section =
                 sectionMap.get(
                     item.sectionId.toString(),
@@ -672,10 +634,7 @@ export async function getStudentDashboard(
         }
     }
 
-    for (
-        const enrollment of
-        finalEnrollments
-    ) {
+    for (const enrollment of finalEnrollments) {
         const section =
             sectionMap.get(
                 enrollment.sectionId.toString(),
@@ -756,32 +715,28 @@ export async function getStudentDashboard(
     const submittedGradeSectionIds =
         registeredSectionIds.length > 0
             ? new Set(
-                  (
-                      await database
-                          .collection("grades")
-                          .find({
-                              studentId: student._id,
-                              sectionId: {
-                                  $in: registeredSectionIds,
-                              },
-                              status: {
-                                  $in: ["SUBMITTED", "VERIFIED"],
-                              },
-                          })
-                          .project({ sectionId: 1 })
-                          .toArray()
-                  ).map((grade) =>
-                      grade.sectionId.toString(),
-                  ),
-              )
+                (
+                    await database
+                        .collection("grades")
+                        .find({
+                            studentId: student._id,
+                            sectionId: {
+                                $in: registeredSectionIds,
+                            },
+                            status: {
+                                $in: ["SUBMITTED", "VERIFIED"],
+                            },
+                        })
+                        .project({ sectionId: 1 })
+                        .toArray()
+                ).map((grade) =>
+                    grade.sectionId.toString(),
+                ),
+            )
             : new Set<string>();
 
     for (const [courseId, course] of registeredCourseMap) {
-        if (
-            submittedGradeSectionIds.has(
-                course.sectionId,
-            )
-        ) {
+        if (submittedGradeSectionIds.has(course.sectionId)) {
             registeredCourseMap.delete(courseId);
         }
     }
@@ -827,8 +782,7 @@ export async function getStudentDashboard(
             0,
         );
 
-    const today =
-        getTodayName();
+    const today = getTodayName();
 
     const todaySchedule:
         StudentScheduleEntry[] =
@@ -964,12 +918,12 @@ export async function getStudentDashboard(
                         .publishedAt instanceof
                     Date
                         ? announcement
-                              .publishedAt
-                              .toISOString()
+                            .publishedAt
+                            .toISOString()
                         : String(
-                              announcement
-                                  .publishedAt,
-                          ),
+                            announcement
+                                .publishedAt,
+                        ),
             }),
         );
 
@@ -979,7 +933,7 @@ export async function getStudentDashboard(
         enrollmentTerm
             ? enrollmentTerm
             : currentTerm ??
-              enrollmentTerm;
+            enrollmentTerm;
 
     if (!displayedTerm) {
         throw new StudentDashboardError(

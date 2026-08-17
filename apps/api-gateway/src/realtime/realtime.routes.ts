@@ -55,12 +55,9 @@ const realtimeEventSchema =
         ],
     );
 
-export const realtimeRoutes =
-    Router();
+export const realtimeRoutes = Router();
 
-realtimeRoutes.use(
-    authenticateRealtimePublisher,
-);
+realtimeRoutes.use(authenticateRealtimePublisher,);
 
 realtimeRoutes.post(
     "/",
@@ -91,19 +88,11 @@ realtimeRoutes.post(
             return;
         }
 
-        const io =
-            getSocketServer();
-        const event =
-            parsed.data;
+        const io = getSocketServer();
+        const event = parsed.data;
 
-        if (
-            event.type ===
-            "GRADE_UPDATED"
-        ) {
-            for (
-                const studentId of
-                event.studentIds
-            ) {
+        if (event.type === "GRADE_UPDATED") {
+            for (const studentId of event.studentIds) {
                 io.to(
                     `student:${studentId}`,
                 ).emit(
@@ -117,13 +106,8 @@ realtimeRoutes.post(
 
         }
 
-        if (
-            event.type ===
-            "ENROLLMENT_UPDATED"
-        ) {
-            for (
-                const facultyId of
-                event.facultyIds
+        if (event.type === "ENROLLMENT_UPDATED") {
+            for (const facultyId of event.facultyIds
             ) {
                 io.to(
                     `faculty:${facultyId}`,

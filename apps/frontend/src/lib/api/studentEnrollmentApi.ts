@@ -65,13 +65,6 @@ function getAuthorizationHeaders(): HeadersInit {
     };
 }
 
-/**
- * Generates a UUID-compatible idempotency key.
- *
- * crypto.randomUUID() may be unavailable when the
- * frontend is opened through a non-secure HTTP VM IP,
- * such as http://172.20.10.4:3001.
- */
 function createIdempotencyKey(): string {
     const cryptoApi =
         globalThis.crypto;
@@ -96,12 +89,10 @@ function createIdempotencyKey(): string {
             bytes,
         );
 
-        // Set UUID version 4 bits.
         bytes[6] =
             (bytes[6] & 0x0f) |
             0x40;
 
-        // Set UUID variant bits.
         bytes[8] =
             (bytes[8] & 0x3f) |
             0x80;
@@ -134,14 +125,6 @@ function createIdempotencyKey(): string {
         ].join("-");
     }
 
-    /*
-     * Last-resort fallback for environments where
-     * Web Crypto is unavailable.
-     *
-     * This is acceptable for an idempotency key,
-     * but it must not be used for passwords, tokens,
-     * encryption keys, or other security-sensitive data.
-     */
     return [
         Date.now().toString(16),
         Math.random()
@@ -366,10 +349,7 @@ export async function removeEnrollmentDraftItem(
 export async function submitStudentEnrollment(
     expectedVersion: number,
 ): Promise<SubmitEnrollmentResult> {
-    /*
-     * Generate this before fetch so the same key is
-     * included in the enrollment submission request.
-     */
+
     const idempotencyKey =
         createIdempotencyKey();
 

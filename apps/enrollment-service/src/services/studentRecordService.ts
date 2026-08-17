@@ -9,6 +9,7 @@ import type {
     StudentRecordItem,
     StudentRecordResponse,
     StudentRecordStatus,
+    EnrollmentItemStatus,
 } from "../types/studentRecord.types.js";
 import type {
     StudentRecordQuery,
@@ -128,9 +129,7 @@ interface StudentEnrollmentHeaderDocument {
     updatedAt?: Date;
 }
 
-type EnrollmentItemStatus =
-    | "DRAFT"
-    | "ENROLLED";
+
 
 interface StudentEnrollmentItemDocument {
     _id: ObjectId;
@@ -142,10 +141,6 @@ interface StudentEnrollmentItemDocument {
     academicUnits: number;
     nonAcademicUnits: number;
 
-    /*
-     * Item-level status supports partial-success enrollment.
-     * Older records may not have this field yet.
-     */
     status?: EnrollmentItemStatus;
     enrolledAt?: Date;
 
@@ -159,14 +154,7 @@ function getEnrollmentItemStatus(
     return item.status ?? "DRAFT";
 }
 
-/*
- * Resolve legacy enrollment items using the status of the
- * header that owns the item. Newer items use their own status.
- *
- * This preserves the original SUBMITTED-header behavior while
- * supporting PARTIAL_SUCCESS, where the header can remain DRAFT
- * and accepted items are individually marked ENROLLED.
- */
+
 function getEffectiveEnrollmentItemStatus(
     item: StudentEnrollmentItemDocument,
     header?: StudentEnrollmentHeaderDocument,
@@ -224,11 +212,7 @@ function isFinalGrade(
 function isPassedGrade(
     grade?: GradeDocument,
 ): boolean {
-    /*
-     * The submitted result is the source of truth.
-     * Do not reclassify an explicitly PASSED grade using
-     * finalGradeValue because grading scales may differ.
-     */
+
     return (
         isFinalGrade(grade) &&
         (
@@ -243,10 +227,7 @@ function isPassedGrade(
 function isFailedGrade(
     grade?: GradeDocument,
 ): boolean {
-    /*
-     * A submitted FAILED result remains failed regardless
-     * of the numeric representation used by the course.
-     */
+
     return (
         isFinalGrade(grade) &&
         grade?.result ===
@@ -276,8 +257,7 @@ export class StudentRecordServiceError
     ) {
         super(message);
 
-        this.name =
-            "StudentRecordServiceError";
+        this.name = "StudentRecordServiceError";
     }
 }
 
@@ -308,10 +288,7 @@ function getCourseNonAcademicUnits(
 function formatGrade(
     grade?: GradeDocument,
 ): string | undefined {
-    if (
-        grade?.finalGradeValue ===
-        undefined
-    ) {
+    if (grade?.finalGradeValue === undefined) {
         return undefined;
     }
 
@@ -362,9 +339,7 @@ function getBestEnrollment(
                     first.enrollment.status,
                 );
 
-            if (
-                priorityDifference !== 0
-            ) {
+            if (priorityDifference !== 0) {
                 return priorityDifference;
             }
 
@@ -402,9 +377,7 @@ function getBestGrade(
                     first.grade,
                 );
 
-            if (
-                dateDifference !== 0
-            ) {
+            if (dateDifference !== 0) {
                 return dateDifference;
             }
 
@@ -471,8 +444,8 @@ function getRecordEligibility({
                 message:
                     missingPrerequisiteCodes.length > 0
                         ? `Complete ${missingPrerequisiteCodes.join(
-                              ", ",
-                          )} before enlisting ${courseCode}.`
+                            ", ",
+                        )} before enlisting ${courseCode}.`
                         : `${courseCode} cannot yet be enlisted because its curriculum requirements have not been satisfied.`,
                 missingPrerequisiteCodes,
             };
@@ -502,10 +475,7 @@ function isGradeForCurrentSelection(
     enrollmentItem:
         StudentEnrollmentItemDocument | undefined,
 ): boolean {
-    if (
-        !gradeContext ||
-        !enrollmentItem
-    ) {
+    if (!gradeContext || !enrollmentItem) {
         return false;
     }
 
@@ -534,36 +504,18 @@ function deriveStatus({
     recommendedTrimester: number;
     enlistmentSequence: number;
 }): StudentRecordStatus {
-    const grade =
-        gradeContext?.grade;
+    const grade = gradeContext?.grade;
 
-    /*
-     * A finalized grade for the currently selected section
-     * has the highest priority. This removes the course from
-     * enrolled units whether the result is passed or failed.
-     */
-    if (
-        gradeBelongsToCurrentSelection &&
-        isFinalGrade(grade)
-    ) {
-        if (
-            grade?.result ===
-            "CREDITED"
-        ) {
+    if (gradeBelongsToCurrentSelection && isFinalGrade(grade)) {
+        if (grade?.result === "CREDITED") {
             return "CREDITED";
         }
 
-        if (
-            grade?.result ===
-            "PASSED"
-        ) {
+        if (grade?.result === "PASSED") {
             return "COMPLETED";
         }
 
-        if (
-            grade?.result ===
-            "FAILED"
-        ) {
+        if (grade?.result === "FAILED") {
             const prerequisitesSatisfied =
                 missingPrerequisiteCodes
                     .length === 0;
@@ -581,35 +533,15 @@ function deriveStatus({
         }
     }
 
-    /*
-     * A current partial-success item or retake takes priority
-     * over a failed grade from an older section/term.
-     */
-    if (
-        selectionStatus ===
-            "ENROLLED" ||
-        selectionStatus ===
-            "SUBMITTED"
-    ) {
+    if (selectionStatus === "ENROLLED" || selectionStatus === "SUBMITTED") {
         return "IN_PROGRESS";
     }
 
-    if (
-        selectionStatus ===
-        "DRAFT"
-    ) {
+    if (selectionStatus === "DRAFT") {
         return "REGISTERED";
     }
 
-    /*
-     * With no current selection, retain the original grade
-     * and historical-enrollment behavior.
-     */
-    if (
-        isFinalGrade(grade) &&
-        grade?.result ===
-            "CREDITED"
-    ) {
+    if (isFinalGrade(grade) && grade?.result === "CREDITED") {
         return "CREDITED";
     }
 
@@ -688,17 +620,7 @@ function getRecordAcademicPeriod({
     academicYear: string;
     academicTerm: number;
 } {
-    /*
-     * A current enrollment selection has the highest
-     * period priority.
-     *
-     * This is especially important for retakes:
-     * when a course was FAILED in an older term and
-     * the student selects/enrolls it again in the
-     * current enrollment term, Records must display
-     * the new/current selection period instead of
-     * the historical term where it was failed.
-     */
+
     if (selectionTerm) {
         return {
             academicYear:
@@ -762,16 +684,11 @@ function buildAcademicPeriodOptions(
             AcademicPeriodOption
         >();
 
-    for (
-        const term of
-        academicTerms
-    ) {
+    for (const term of academicTerms) {
         const key =
             `${term.academicYear}|${term.termNumber}`;
 
-        if (
-            uniquePeriods.has(key)
-        ) {
+        if (uniquePeriods.has(key)) {
             continue;
         }
 
@@ -808,10 +725,7 @@ function buildAcademicPeriodOptions(
                     0,
                 );
 
-            if (
-                firstYear !==
-                secondYear
-            ) {
+            if (firstYear !== secondYear) {
                 return (
                     firstYear -
                     secondYear
@@ -830,9 +744,7 @@ function calculateEnlistmentSequence(
     currentTerm: AcademicTermDocument,
     academicTerms: AcademicTermDocument[],
 ): number {
-    if (
-        currentTerm.curriculumTrimester
-    ) {
+    if (currentTerm.curriculumTrimester) {
         return (
             currentTerm
                 .curriculumTrimester +
@@ -859,8 +771,8 @@ function calculateEnlistmentSequence(
     const latestHistoricalSequence =
         historicalSequences.length > 0
             ? Math.max(
-                  ...historicalSequences,
-              )
+                ...historicalSequences,
+            )
             : 0;
 
     return (
@@ -874,11 +786,7 @@ export async function getStudentRecords(
     authenticatedUserId: string,
     query: StudentRecordQuery,
 ): Promise<StudentRecordResponse> {
-    if (
-        !ObjectId.isValid(
-            authenticatedUserId,
-        )
-    ) {
+    if (!ObjectId.isValid(authenticatedUserId,)) {
         throw new StudentRecordServiceError(
             "INVALID_USER_ID",
             "The authenticated user ID is invalid.",
@@ -959,10 +867,6 @@ export async function getStudentRecords(
         );
     }
 
-    /*
-     * Preserve the original behavior of selecting the latest
-     * active enrollment header first.
-     */
     const enrollmentHeader =
         await db
             .collection<StudentEnrollmentHeaderDocument>(
@@ -986,37 +890,30 @@ export async function getStudentRecords(
                 },
             );
 
-    /*
-     * PARTIAL_SUCCESS and resubmission must accumulate all
-     * successful selections for the same student and academic
-     * term. Some existing accounts can have more than one header
-     * for that term, so load all matching headers instead of only
-     * the latest header's items.
-     */
     const enrollmentHeaders =
         enrollmentHeader
             ? await db
-                  .collection<StudentEnrollmentHeaderDocument>(
-                      "studentEnrollments",
-                  )
-                  .find({
-                      studentId:
-                          student._id,
-                      academicTermId:
-                          enrollmentHeader
-                              .academicTermId,
-                      status: {
-                          $in: [
-                              "DRAFT",
-                              "SUBMITTED",
-                          ],
-                      },
-                  })
-                  .sort({
-                      updatedAt: -1,
-                      createdAt: -1,
-                  })
-                  .toArray()
+                .collection<StudentEnrollmentHeaderDocument>(
+                    "studentEnrollments",
+                )
+                .find({
+                    studentId:
+                        student._id,
+                    academicTermId:
+                        enrollmentHeader
+                            .academicTermId,
+                    status: {
+                        $in: [
+                            "DRAFT",
+                            "SUBMITTED",
+                        ],
+                    },
+                })
+                .sort({
+                    updatedAt: -1,
+                    createdAt: -1,
+                })
+                .toArray()
             : [];
 
     const enrollmentHeaderIds =
@@ -1028,25 +925,25 @@ export async function getStudentRecords(
     const allEnrollmentItems =
         enrollmentHeaderIds.length > 0
             ? await db
-                  .collection<StudentEnrollmentItemDocument>(
-                      "studentEnrollmentItems",
-                  )
-                  .find({
-                      enrollmentId: {
-                          $in:
-                              enrollmentHeaderIds,
-                      },
-                      studentId:
-                          student._id,
-                      academicTermId:
-                          enrollmentHeader
-                              ?.academicTermId,
-                  })
-                  .sort({
-                      updatedAt: -1,
-                      createdAt: -1,
-                  })
-                  .toArray()
+                .collection<StudentEnrollmentItemDocument>(
+                    "studentEnrollmentItems",
+                )
+                .find({
+                    enrollmentId: {
+                        $in:
+                            enrollmentHeaderIds,
+                    },
+                    studentId:
+                        student._id,
+                    academicTermId:
+                        enrollmentHeader
+                            ?.academicTermId,
+                })
+                .sort({
+                    updatedAt: -1,
+                    createdAt: -1,
+                })
+                .toArray()
             : [];
 
     const enrollmentHeaderById =
@@ -1060,22 +957,13 @@ export async function getStudentRecords(
             ),
         );
 
-    /*
-     * A course may appear in more than one legacy header. Keep a
-     * single effective item per course, preferring ENROLLED over
-     * DRAFT. When statuses are equal, the query order keeps the
-     * most recently updated item.
-     */
     const enrollmentItemByCourseId =
         new Map<
             string,
             StudentEnrollmentItemDocument
         >();
 
-    for (
-        const item of
-        allEnrollmentItems
-    ) {
+    for (const item of allEnrollmentItems) {
         const courseId =
             item.courseId
                 .toHexString();
@@ -1118,12 +1006,7 @@ export async function getStudentRecords(
                 incomingHeader,
             );
 
-        if (
-            existingStatus ===
-                "DRAFT" &&
-            incomingStatus ===
-                "ENROLLED"
-        ) {
+        if (existingStatus === "DRAFT" && incomingStatus === "ENROLLED") {
             enrollmentItemByCourseId.set(
                 courseId,
                 item,
@@ -1140,11 +1023,11 @@ export async function getStudentRecords(
     const enrollmentSelectionTerm =
         enrollmentHeader
             ? academicTerms.find(
-                  (term) =>
-                      term._id.equals(
-                          enrollmentHeader.academicTermId,
-                      ),
-              )
+                (term) =>
+                    term._id.equals(
+                        enrollmentHeader.academicTermId,
+                    ),
+            )
             : undefined;
 
     if (courses.length === 0) {
@@ -1257,10 +1140,7 @@ export async function getStudentRecords(
             AcademicTermDocument
         >();
 
-    for (
-        const term of
-        academicTerms
-    ) {
+    for (const term of academicTerms) {
         if (
             typeof term
                 .curriculumTrimester !==
@@ -1292,10 +1172,7 @@ export async function getStudentRecords(
             EnrollmentContext[]
         >();
 
-    for (
-        const enrollment of
-        enrollments
-    ) {
+    for (const enrollment of enrollments) {
         const section =
             sectionsById.get(
                 enrollment.sectionId
@@ -1345,10 +1222,7 @@ export async function getStudentRecords(
             GradeContext[]
         >();
 
-    for (
-        const grade of
-        grades
-    ) {
+    for (const grade of grades) {
         const section =
             sectionsById.get(
                 grade.sectionId
@@ -1481,10 +1355,7 @@ export async function getStudentRecords(
     const recordItems:
         StudentRecordItem[] = [];
 
-    for (
-        const course of
-        courses
-    ) {
+    for (const course of courses) {
         const courseId =
             course._id
                 .toHexString();
@@ -1511,10 +1382,10 @@ export async function getStudentRecords(
         const selectionHeader =
             enrollmentItem
                 ? enrollmentHeaderById.get(
-                      enrollmentItem
-                          .enrollmentId
-                          .toHexString(),
-                  )
+                    enrollmentItem
+                        .enrollmentId
+                        .toHexString(),
+                )
                 : undefined;
 
         const selectionStatus:
@@ -1524,9 +1395,9 @@ export async function getStudentRecords(
             | undefined =
             enrollmentItem
                 ? getEffectiveEnrollmentItemStatus(
-                      enrollmentItem,
-                      selectionHeader,
-                  )
+                    enrollmentItem,
+                    selectionHeader,
+                )
                 : undefined;
 
         const prerequisiteCodes =
@@ -1740,18 +1611,10 @@ export async function getStudentRecords(
                 ),
         );
 
-    /*
-     * A historical final grade must not remove a currently
-     * enrolled retake. Only a final grade attached to the
-     * selected section finalizes that current enrollment.
-     */
     const finalizedCurrentSelectionCourseIds =
         new Set<string>();
 
-    for (
-        const item of
-        enrollmentItems
-    ) {
+    for (const item of enrollmentItems) {
         const courseId =
             item.courseId
                 .toHexString();
@@ -1772,23 +1635,13 @@ export async function getStudentRecords(
                     ),
             );
 
-        if (
-            hasFinalGradeForSelectedSection
-        ) {
+        if (hasFinalGradeForSelectedSection) {
             finalizedCurrentSelectionCourseIds.add(
                 courseId,
             );
         }
     }
 
-    /*
-     * Preserve the original IN_PROGRESS calculation and add
-     * every item accepted by partial-success or resubmission.
-     *
-     * Previous accepted items remain ENROLLED while newly
-     * submitted items are added to the same total. Finalized
-     * grades are always excluded from enrolled units.
-     */
     const enrolledRecords =
         recordItems.filter(
             (record) =>
@@ -1826,15 +1679,6 @@ export async function getStudentRecords(
             0,
         );
 
-    /*
-     * Enlisted units represent the student's current
-     * unsubmitted enrollment draft.
-     *
-     * Calculate the values directly from the draft items.
-     * Deriving the values from recordItems can miss a draft
-     * when a historical enrollment or grade takes precedence
-     * while the record status is being resolved.
-     */
     const activeDraftItems =
         enrollmentItems.filter(
             (item) => {
@@ -1842,11 +1686,7 @@ export async function getStudentRecords(
                     item.courseId
                         .toHexString();
 
-                if (
-                    finalizedCurrentSelectionCourseIds.has(
-                        courseId,
-                    )
-                ) {
+                if (finalizedCurrentSelectionCourseIds.has(courseId,)) {
                     return false;
                 }
 
@@ -1929,8 +1769,7 @@ export async function getStudentRecords(
             },
         );
 
-    const totalItems =
-        filteredRecords.length;
+    const totalItems = filteredRecords.length;
 
     const totalPages =
         Math.max(

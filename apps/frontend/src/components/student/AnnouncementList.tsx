@@ -224,7 +224,7 @@ export default function AnnouncementList({
                     )}
                 </div>
             ) : sortedAnnouncements.length ===
-              0 ? (
+            0 ? (
                 <div className="p-5">
                     <EmptyState
                         compact

@@ -105,8 +105,8 @@ export default function GradeEntryMobileCard({
         "SUBMITTED"
             ? "COMPLETE"
             : hasAnyInput
-              ? "DRAFT"
-              : "INCOMPLETE";
+            ? "DRAFT"
+            : "INCOMPLETE";
 
 
     function updateComponent(
@@ -156,8 +156,8 @@ export default function GradeEntryMobileCard({
                             ? "success"
                             : displayStatus ===
                                 "DRAFT"
-                              ? "primary"
-                              : "warning"
+                            ? "primary"
+                            : "warning"
                     }
                 >
                     {displayStatus ===
@@ -165,8 +165,8 @@ export default function GradeEntryMobileCard({
                         ? "Complete"
                         : displayStatus ===
                             "DRAFT"
-                          ? "Draft"
-                          : "Incomplete"}
+                        ? "Draft"
+                        : "Incomplete"}
                 </StatusBadge>
             </header>
 
@@ -234,10 +234,10 @@ export default function GradeEntryMobileCard({
                         {student.rawFinalGrade !==
                         undefined
                             ? `${student.rawFinalGrade.toFixed(
-                                  2,
-                              )} (${student.finalGradeValue?.toFixed(
-                                  1,
-                              )})`
+                                2,
+                            )} (${student.finalGradeValue?.toFixed(
+                                1,
+                            )})`
                             : "—"}
                     </p>
                 </div>

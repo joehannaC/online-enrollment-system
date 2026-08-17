@@ -75,7 +75,7 @@ export async function getFacultyGradeEntryController(
                 .sectionId ===
             "string"
                 ? request.query
-                      .sectionId
+                    .sectionId
                 : undefined;
 
         const result =

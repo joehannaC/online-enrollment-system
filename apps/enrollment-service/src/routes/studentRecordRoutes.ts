@@ -9,8 +9,7 @@ import {
     authenticate,
 } from "../middleware/authenticate.js";
 
-const studentRecordRouter =
-    Router();
+const studentRecordRouter = Router();
 
 studentRecordRouter.get(
     "/records",

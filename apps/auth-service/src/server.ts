@@ -40,9 +40,7 @@ async function shutdown(signal: string): Promise<void> {
 
   shuttingDown = true;
 
-  console.log(
-    `[${env.SERVICE_NAME}] Received ${signal}; shutting down`,
-  );
+  console.log(`[${env.SERVICE_NAME}] Received ${signal}; shutting down`,);
 
   if (httpServer) {
     await new Promise<void>((resolve, reject) => {

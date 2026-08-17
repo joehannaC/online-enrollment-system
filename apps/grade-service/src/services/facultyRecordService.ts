@@ -232,18 +232,18 @@ export async function getFacultyRecords(
         sectionIds.length > 0 &&
         enrollmentIds.length > 0
             ? await database
-                  .collection(
-                      "studentEnrollmentItems",
-                  )
-                  .find({
-                      enrollmentId: {
-                          $in: enrollmentIds,
-                      },
-                      sectionId: {
-                          $in: sectionIds,
-                      },
-                  })
-                  .toArray()
+                .collection(
+                    "studentEnrollmentItems",
+                )
+                .find({
+                    enrollmentId: {
+                        $in: enrollmentIds,
+                    },
+                    sectionId: {
+                        $in: sectionIds,
+                    },
+                })
+                .toArray()
             : [];
 
     const enrollmentMap = new Map(
@@ -307,11 +307,11 @@ export async function getFacultyRecords(
 
                     return enrollment
                         ? [
-                              [
-                                  enrollment.studentId.toString(),
-                                  enrollment.studentId,
-                              ] as const,
-                          ]
+                            [
+                                enrollment.studentId.toString(),
+                                enrollment.studentId,
+                            ] as const,
+                        ]
                         : [];
                 },
             ),
@@ -326,63 +326,63 @@ export async function getFacultyRecords(
     ] = await Promise.all([
         courseIds.length > 0
             ? database
-                  .collection("courses")
-                  .find({
-                      _id: {
-                          $in: courseIds,
-                      },
-                  })
-                  .toArray()
+                .collection("courses")
+                .find({
+                    _id: {
+                        $in: courseIds,
+                    },
+                })
+                .toArray()
             : [],
 
         studentIds.length > 0
             ? database
-                  .collection("students")
-                  .find({
-                      _id: {
-                          $in: studentIds,
-                      },
-                  })
-                  .toArray()
+                .collection("students")
+                .find({
+                    _id: {
+                        $in: studentIds,
+                    },
+                })
+                .toArray()
             : [],
 
         visibleSections.length > 0
             ? database
-                  .collection("grades")
-                  .find({
-                      sectionId: {
-                          $in: visibleSections.map(
-                              (section) =>
-                                  section._id,
-                          ),
-                      },
-                      academicTermId:
-                          term._id,
-                      facultyId:
-                          faculty._id,
-                  })
-                  .toArray()
+                .collection("grades")
+                .find({
+                    sectionId: {
+                        $in: visibleSections.map(
+                            (section) =>
+                                section._id,
+                        ),
+                    },
+                    academicTermId:
+                        term._id,
+                    facultyId:
+                        faculty._id,
+                })
+                .toArray()
             : [],
 
         visibleSections.length > 0
             ? database
-                  .collection(
-                      "gradeSubmissions",
-                  )
-                  .find({
-                      sectionId: {
-                          $in: visibleSections.map(
-                              (section) =>
-                                  section._id,
-                          ),
-                      },
-                      academicTermId:
-                          term._id,
-                      facultyId:
-                          faculty._id,
-                      gradeType: "FINAL",
-                  })
-                  .toArray()
+                .collection(
+                    "gradeSubmissions",
+                )
+                .find({
+                    sectionId: {
+                        $in: visibleSections.map(
+                            (section) =>
+                                section._id,
+                        ),
+                    },
+                    academicTermId:
+                        term._id,
+                    facultyId:
+                        faculty._id,
+                    gradeType: "FINAL",
+                })
+                .toArray()
             : [],
     ]);
 
@@ -579,14 +579,14 @@ export async function getFacultyRecords(
                         submittedAt:
                             submission?.submittedAt
                                 ? new Date(
-                                      submission.submittedAt,
-                                  ).toISOString()
+                                    submission.submittedAt,
+                                ).toISOString()
                                 : undefined,
                         lastSavedAt:
                             gradeDates[0]
                                 ? new Date(
-                                      gradeDates[0],
-                                  ).toISOString()
+                                    gradeDates[0],
+                                ).toISOString()
                                 : undefined,
                         students: roster,
                     },

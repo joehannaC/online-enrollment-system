@@ -21,15 +21,11 @@ let socketServer:
 function getBearerToken(
     value: unknown,
 ): string | undefined {
-    if (
-        typeof value !==
-        "string"
-    ) {
+    if (typeof value !== "string") {
         return undefined;
     }
 
-    const trimmedValue =
-        value.trim();
+    const trimmedValue = value.trim();
 
     if (!trimmedValue) {
         return undefined;
@@ -56,43 +52,27 @@ function verifyRealtimeToken(
             },
         );
 
-    if (
-        typeof decoded !==
-        "object" ||
-        decoded === null
-    ) {
+    if (typeof decoded !== "object" || decoded === null) {
         throw new Error(
             "Invalid token payload.",
         );
     }
 
-    const payload =
-        decoded as unknown as RealtimeJwtPayload;
+    const payload = decoded as unknown as RealtimeJwtPayload;
 
-    if (
-        !payload.userId ||
-        !payload.role
-    ) {
+    if (!payload.userId || !payload.role) {
         throw new Error(
             "Invalid token payload.",
         );
     }
 
-    if (
-        payload.role ===
-            "STUDENT" &&
-        !payload.studentId
-    ) {
+    if (payload.role === "STUDENT" && !payload.studentId) {
         throw new Error(
             "Student token does not include a student ID.",
         );
     }
 
-    if (
-        payload.role ===
-            "FACULTY" &&
-        !payload.facultyId
-    ) {
+    if (payload.role === "FACULTY" && !payload.facultyId) {
         throw new Error(
             "Faculty token does not include a faculty ID.",
         );
@@ -113,30 +93,16 @@ export function initializeSocketServer(
                     callback,
                 ) {
                     if (!origin) {
-                        callback(
-                            null,
-                            true,
-                        );
+                        callback(null, true,);
                         return;
                     }
 
-                    if (
-                        env.FRONTEND_ORIGINS.includes(
-                            origin,
-                        )
-                    ) {
-                        callback(
-                            null,
-                            true,
-                        );
+                    if (env.FRONTEND_ORIGINS.includes(origin,)) {
+                        callback(null, true,);
                         return;
                     }
 
-                    callback(
-                        new Error(
-                            `CORS blocked origin: ${origin}`,
-                        ),
-                    );
+                    callback(new Error(`CORS blocked origin: ${origin}`,),);
                 },
                 credentials:
                     true,
@@ -167,21 +133,13 @@ export function initializeSocketServer(
                     return;
                 }
 
-                const payload =
-                    verifyRealtimeToken(
-                        token,
-                    );
+                const payload = verifyRealtimeToken(token,);
 
-                socket.data.user =
-                    payload;
+                socket.data.user = payload;
 
                 next();
             } catch {
-                next(
-                    new Error(
-                        "Unauthorized realtime connection.",
-                    ),
-                );
+                next(new Error("Unauthorized realtime connection.",),);
             }
         },
     );
@@ -193,25 +151,15 @@ export function initializeSocketServer(
                 socket.data
                     .user as RealtimeJwtPayload;
 
-            socket.join(
-                `user:${user.userId}`,
-            );
+            socket.join(`user:${user.userId}`,);
 
-            if (
-                user.role ===
-                    "STUDENT" &&
-                user.studentId
-            ) {
+            if (user.role === "STUDENT" && user.studentId) {
                 socket.join(
                     `student:${user.studentId}`,
                 );
             }
 
-            if (
-                user.role ===
-                    "FACULTY" &&
-                user.facultyId
-            ) {
+            if (user.role === "FACULTY" && user.facultyId) {
                 socket.join(
                     `faculty:${user.facultyId}`,
                 );

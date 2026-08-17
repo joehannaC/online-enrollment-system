@@ -12,8 +12,7 @@ import {
     authenticate,
 } from "../middleware/authenticate.js";
 
-const studentEnrollmentRouter =
-    Router();
+const studentEnrollmentRouter = Router();
 
 studentEnrollmentRouter.get(
     "/enrollment",

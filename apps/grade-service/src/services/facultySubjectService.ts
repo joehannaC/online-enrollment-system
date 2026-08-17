@@ -300,10 +300,6 @@ export async function getFacultySubjects(
             ).values(),
         );
 
-    /*
-     * Only submitted enrollment headers represent successful
-     * enrollment. Draft selections must not appear in class lists.
-     */
     const submittedEnrollments =
         await database
             .collection(
@@ -346,20 +342,20 @@ export async function getFacultySubjects(
             submittedEnrollmentIds.length >
             0
                 ? database
-                      .collection(
-                          "studentEnrollmentItems",
-                      )
-                      .find({
-                          enrollmentId: {
-                              $in:
-                                  submittedEnrollmentIds,
-                          },
-                          sectionId: {
-                              $in:
-                                  sectionIds,
-                          },
-                      })
-                      .toArray()
+                    .collection(
+                        "studentEnrollmentItems",
+                    )
+                    .find({
+                        enrollmentId: {
+                            $in:
+                                submittedEnrollmentIds,
+                        },
+                        sectionId: {
+                            $in:
+                                sectionIds,
+                        },
+                    })
+                    .toArray()
                 : [],
 
             database
@@ -401,11 +397,11 @@ export async function getFacultySubjects(
 
                         return enrollment
                             ? [
-                                  [
-                                      enrollment.studentId.toString(),
-                                      enrollment.studentId,
-                                  ] as const,
-                              ]
+                                [
+                                    enrollment.studentId.toString(),
+                                    enrollment.studentId,
+                                ] as const,
+                            ]
                             : [];
                     },
                 ),
@@ -415,16 +411,16 @@ export async function getFacultySubjects(
     const students =
         studentIds.length > 0
             ? await database
-                  .collection(
-                      "students",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              studentIds,
-                      },
-                  })
-                  .toArray()
+                .collection(
+                    "students",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            studentIds,
+                    },
+                })
+                .toArray()
             : [];
 
     const courseMap =
@@ -497,10 +493,7 @@ export async function getFacultySubjects(
                         section._id.toString(),
                     ) ?? [];
 
-                /*
-                 * Hide offered sections that have no successfully
-                 * enrolled students.
-                 */
+                
                 if (
                     !course ||
                     sectionItems.length ===

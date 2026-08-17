@@ -28,10 +28,7 @@ export function authenticate(
     const authorizationHeader =
         request.headers.authorization;
 
-    if (
-        !authorizationHeader ||
-        !authorizationHeader.startsWith("Bearer ")
-    ) {
+    if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
         response.status(401).json({
             success: false,
             error: {

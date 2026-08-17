@@ -10,13 +10,10 @@ export interface StudentGradeItem {
     courseCode: string;
     courseName: string;
 
-    /** Used for display compatibility. Never use this field for GPA math. */
     units: number;
 
-    /** The only units included in GPA calculations. */
     academicUnits: number;
 
-    /** NSTP, LCLSONE, LCLSTWO, LCLSTRI, and similar units. */
     nonAcademicUnits: number;
 
     academicYear: string;

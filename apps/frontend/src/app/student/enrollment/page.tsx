@@ -132,8 +132,8 @@ function MobileCourseCard({
                             : isEnrollmentOpen &&
                                 course.enrolledCount >=
                                     course.capacity - 5
-                              ? "border-amber-300 bg-amber-50 text-amber-700"
-                              : "border-green-300 bg-green-50 text-green-700",
+                            ? "border-amber-300 bg-amber-50 text-amber-700"
+                            : "border-green-300 bg-green-50 text-green-700",
                     ].join(" ")}
                 >
                     {isEnrollmentOpen
@@ -516,7 +516,7 @@ export default function StudentEnrollmentPage() {
         isEnrollmentComingSoon
             ? 0
             : data?.enrollment
-                  .totalAcademicUnits ?? 0;
+                .totalAcademicUnits ?? 0;
 
 
     if (
@@ -654,8 +654,8 @@ export default function StudentEnrollmentPage() {
                                     {isEnrollmentComingSoon
                                         ? "Enrollment coming soon"
                                         : `Enrollment closes ${formatDate(
-                                              data.term.enrollmentEnd,
-                                          )}`}
+                                            data.term.enrollmentEnd,
+                                        )}`}
                                 </p>
 
                                 {!isEnrollmentComingSoon ? (
@@ -871,112 +871,112 @@ export default function StudentEnrollmentPage() {
 
                                     {!isLoading
                                         ? data?.availableSections.map(
-                                              (
-                                                  course,
-                                              ) => (
-                                                  <tr
-                                                      key={
-                                                          course.sectionId ??
-                                                          course.courseId
-                                                      }
-                                                      className="border-b border-neutral-200 last:border-b-0"
-                                                  >
-                                                      <td className="px-4 py-4 font-medium text-neutral-900">
-                                                          {
-                                                              course.courseName
-                                                          }
-                                                      </td>
-                                                      <td className="px-4 py-4 text-center font-medium text-neutral-800">
-                                                          {
-                                                              course.courseCode
-                                                          }
-                                                      </td>
-                                                      <td className="px-4 py-4 text-center font-semibold text-neutral-800">
-                                                          {formatUnitTotal(
-                                                              course.academicUnits,
-                                                              course.nonAcademicUnits,
-                                                          )}
-                                                      </td>
-                                                      <td className="px-4 py-4 text-neutral-700">
-                                                          {
-                                                              course.scheduleLabel
-                                                          }
-                                                      </td>
-                                                      <td className="px-4 py-4 text-neutral-700">
-                                                          {
-                                                              course.instructorName
-                                                          }
-                                                      </td>
-                                                      <td className="px-4 py-4 text-center">
-                                                          <span
-                                                              className={[
-                                                                  "inline-flex min-w-[88px] justify-center rounded-full border px-3 py-1 text-xs font-semibold",
-                                                                  data
-                                                                      ?.term
-                                                                      .isEnrollmentOpen &&
-                                                                  course.isFull
-                                                                      ? "border-red-300 bg-red-50 text-red-700"
-                                                                      : data
+                                            (
+                                                course,
+                                            ) => (
+                                                <tr
+                                                    key={
+                                                        course.sectionId ??
+                                                        course.courseId
+                                                    }
+                                                    className="border-b border-neutral-200 last:border-b-0"
+                                                >
+                                                    <td className="px-4 py-4 font-medium text-neutral-900">
+                                                        {
+                                                            course.courseName
+                                                        }
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center font-medium text-neutral-800">
+                                                        {
+                                                            course.courseCode
+                                                        }
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center font-semibold text-neutral-800">
+                                                        {formatUnitTotal(
+                                                            course.academicUnits,
+                                                            course.nonAcademicUnits,
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-neutral-700">
+                                                        {
+                                                            course.scheduleLabel
+                                                        }
+                                                    </td>
+                                                    <td className="px-4 py-4 text-neutral-700">
+                                                        {
+                                                            course.instructorName
+                                                        }
+                                                    </td>
+                                                    <td className="px-4 py-4 text-center">
+                                                        <span
+                                                            className={[
+                                                                "inline-flex min-w-[88px] justify-center rounded-full border px-3 py-1 text-xs font-semibold",
+                                                                data
+                                                                    ?.term
+                                                                    .isEnrollmentOpen &&
+                                                                course.isFull
+                                                                    ? "border-red-300 bg-red-50 text-red-700"
+                                                                    : data
                                                                             ?.term
                                                                             .isEnrollmentOpen &&
-                                                                          course.enrolledCount >=
-                                                                              course.capacity -
-                                                                                  5
+                                                                        course.enrolledCount >=
+                                                                            course.capacity -
+                                                                                5
                                                                         ? "border-amber-300 bg-amber-50 text-amber-700"
                                                                         : "border-green-300 bg-green-50 text-green-700",
-                                                              ].join(
-                                                                  " ",
-                                                              )}
-                                                          >
-                                                              {data
-                                                                  ?.term
-                                                                  .isEnrollmentOpen
-                                                                  ? course.enrolledCount
-                                                                  : 0}
-                                                              /
-                                                              {
-                                                                  course.capacity
-                                                              }
-                                                          </span>
-                                                      </td>
+                                                            ].join(
+                                                                " ",
+                                                            )}
+                                                        >
+                                                            {data
+                                                                ?.term
+                                                                .isEnrollmentOpen
+                                                                ? course.enrolledCount
+                                                                : 0}
+                                                            /
+                                                            {
+                                                                course.capacity
+                                                            }
+                                                        </span>
+                                                    </td>
 
-                                                      <td className="px-4 py-4 text-center">
-                                                          <button
-                                                              type="button"
-                                                              disabled={
-                                                                  !course.canEnroll ||
-                                                                  isMutating
-                                                              }
-                                                              onClick={() => {
-                                                                  if (
-                                                                      course.sectionId
-                                                                  ) {
-                                                                      void handleEnroll(
-                                                                          course.sectionId,
-                                                                      );
-                                                                  }
-                                                              }}
-                                                              className="
-                                                                  h-9 min-w-[100px]
-                                                                  rounded-lg
-                                                                  bg-[#35822E]
-                                                                  px-4 text-sm
-                                                                  font-semibold
-                                                                  text-white
-                                                                  transition
-                                                                  hover:bg-[#2B6D26]
-                                                                  disabled:cursor-not-allowed
-                                                                  disabled:bg-neutral-300
-                                                              "
-                                                          >
-                                                              {getActionLabel(
-                                                                  course,
-                                                              )}
-                                                          </button>
-                                                      </td>
-                                                  </tr>
-                                              ),
-                                          )
+                                                    <td className="px-4 py-4 text-center">
+                                                        <button
+                                                            type="button"
+                                                            disabled={
+                                                                !course.canEnroll ||
+                                                                isMutating
+                                                            }
+                                                            onClick={() => {
+                                                                if (
+                                                                    course.sectionId
+                                                                ) {
+                                                                    void handleEnroll(
+                                                                        course.sectionId,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="
+                                                                h-9 min-w-[100px]
+                                                                rounded-lg
+                                                                bg-[#35822E]
+                                                                px-4 text-sm
+                                                                font-semibold
+                                                                text-white
+                                                                transition
+                                                                hover:bg-[#2B6D26]
+                                                                disabled:cursor-not-allowed
+                                                                disabled:bg-neutral-300
+                                                            "
+                                                        >
+                                                            {getActionLabel(
+                                                                course,
+                                                            )}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )
                                         : null}
                                 </tbody>
                             </table>
@@ -985,32 +985,32 @@ export default function StudentEnrollmentPage() {
                         <div className="space-y-3 p-4 lg:hidden">
                             {!isLoading
                                 ? data?.availableSections.map(
-                                      (
-                                          course,
-                                      ) => (
-                                          <MobileCourseCard
-                                              key={
-                                                  course.sectionId
-                                              }
-                                              course={
-                                                  course
-                                              }
-                                              isEnrollmentOpen={
-                                                  Boolean(
-                                                      data
-                                                          ?.term
-                                                          .isEnrollmentOpen,
-                                                  )
-                                              }
-                                              isMutating={
-                                                  isMutating
-                                              }
-                                              onEnroll={
-                                                  handleEnroll
-                                              }
-                                          />
-                                      ),
-                                  )
+                                    (
+                                        course,
+                                    ) => (
+                                        <MobileCourseCard
+                                            key={
+                                                course.sectionId
+                                            }
+                                            course={
+                                                course
+                                            }
+                                            isEnrollmentOpen={
+                                                Boolean(
+                                                    data
+                                                        ?.term
+                                                        .isEnrollmentOpen,
+                                                )
+                                            }
+                                            isMutating={
+                                                isMutating
+                                            }
+                                            onEnroll={
+                                                handleEnroll
+                                            }
+                                        />
+                                    ),
+                                )
                                 : null}
                         </div>
 

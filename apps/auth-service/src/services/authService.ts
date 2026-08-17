@@ -83,10 +83,7 @@ export async function loginUser(
         );
     }
 
-    if (
-        user.accountStatus !==
-        "ACTIVE"
-    ) {
+    if (user.accountStatus !== "ACTIVE") {
         throw new AuthError(
             "Your account is currently unavailable.",
             403,
@@ -102,10 +99,7 @@ export async function loginUser(
         | string
         | undefined;
 
-    if (
-        user.role ===
-        "STUDENT"
-    ) {
+    if (user.role === "STUDENT") {
         const student =
             await Student.findOne({
                 userId:
@@ -120,8 +114,7 @@ export async function loginUser(
             );
         }
 
-        studentId =
-            student._id.toString();
+        studentId = student._id.toString();
 
         profile = {
             id:
@@ -144,10 +137,7 @@ export async function loginUser(
             studentNumber:
                 student.studentNumber,
         };
-    } else if (
-        user.role ===
-        "FACULTY"
-    ) {
+    } else if (user.role === "FACULTY") {
         const faculty =
             await Faculty.findOne({
                 userId:
@@ -162,8 +152,7 @@ export async function loginUser(
             );
         }
 
-        facultyId =
-            faculty._id.toString();
+        facultyId = faculty._id.toString();
 
         profile = {
             id:

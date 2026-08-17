@@ -28,27 +28,19 @@ export async function connectDatabase(): Promise<void> {
 }
 
 export async function disconnectDatabase(): Promise<void> {
-    if (
-        mongoose.connection.readyState === 0
-    ) {
+    if (mongoose.connection.readyState === 0) {
         return;
     }
 
     await mongoose.disconnect();
 
-    console.log(
-        `[${env.SERVICE_NAME}] MongoDB connection closed`,
-    );
+    console.log(`[${env.SERVICE_NAME}] MongoDB connection closed`,);
 }
 
 export function getDatabase() {
-    const database =
-        mongoose.connection.db;
+    const database = mongoose.connection.db;
 
-    if (
-        !isDatabaseConnected() ||
-        !database
-    ) {
+    if (!isDatabaseConnected() || !database) {
         throw new Error(
             `[${env.SERVICE_NAME}] MongoDB is not connected`,
         );

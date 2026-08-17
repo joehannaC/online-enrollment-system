@@ -375,9 +375,9 @@ export default function FacultyGradeEntryPage() {
                             .submissionStatus !==
                             "SUBMITTED"
                             ? loadLocalDraft(
-                                  selectedSection
-                                      .sectionId,
-                              )
+                                selectedSection
+                                    .sectionId,
+                            )
                             : null;
 
                     if (
@@ -724,9 +724,9 @@ export default function FacultyGradeEntryPage() {
                                 isVersionConflict
                                     ? "The latest grade record was reloaded. Please enter the changes again."
                                     : error instanceof
-                                          Error
-                                      ? error.message
-                                      : "The grade draft could not be saved.",
+                                        Error
+                                    ? error.message
+                                    : "The grade draft could not be saved.",
                         });
                     }
 
@@ -1061,8 +1061,8 @@ export default function FacultyGradeEntryPage() {
                         <LoadingSkeleton className="mt-3 h-4 w-96 max-w-full" />
                     </section>
                 ) : data &&
-                  data.subjects.length >
-                      0 ? (
+                data.subjects.length >
+                    0 ? (
                     <section className="rounded-xl border border-[#35822E]/50 bg-white p-4 shadow-sm sm:p-5">
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-end">
                             <div>
@@ -1203,16 +1203,16 @@ export default function FacultyGradeEntryPage() {
                                     student grades completed
                                     {data.lastSavedAt
                                         ? ` • Last saved ${new Date(
-                                              data.lastSavedAt,
-                                          ).toLocaleTimeString(
-                                              "en-PH",
-                                              {
-                                                  hour:
-                                                      "numeric",
-                                                  minute:
-                                                      "2-digit",
-                                              },
-                                          )}`
+                                            data.lastSavedAt,
+                                        ).toLocaleTimeString(
+                                            "en-PH",
+                                            {
+                                                hour:
+                                                    "numeric",
+                                                minute:
+                                                    "2-digit",
+                                            },
+                                        )}`
                                         : ""}
                                 </p>
                             </div>

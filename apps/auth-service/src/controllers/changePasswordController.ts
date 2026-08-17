@@ -38,15 +38,9 @@ export async function changePasswordController(
             return;
         }
 
-        const input =
-            changePasswordSchema.parse(
-                request.body,
-            );
+        const input = changePasswordSchema.parse(request.body,);
 
-        await changePassword(
-            userId,
-            input,
-        );
+        await changePassword(userId, input,);
 
         response.status(200).json({
             success: true,
@@ -75,10 +69,7 @@ export async function changePasswordController(
             return;
         }
 
-        if (
-            error instanceof
-            ChangePasswordError
-        ) {
+        if (error instanceof ChangePasswordError) {
             response.status(
                 error.statusCode,
             ).json({

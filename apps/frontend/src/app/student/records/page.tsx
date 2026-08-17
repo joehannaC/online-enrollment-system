@@ -767,17 +767,17 @@ export default function StudentRecordsPage() {
         data &&
         data.pagination.totalItems > 0
             ? (data.pagination.page - 1) *
-                  data.pagination.limit +
-              1
+                data.pagination.limit +
+            1
             : 0;
 
     const lastVisibleEntry =
         data
             ? Math.min(
                   data.pagination.page *
-                      data.pagination.limit,
-                  data.pagination.totalItems,
-              )
+                    data.pagination.limit,
+                data.pagination.totalItems,
+            )
             : 0;
 
     if (
@@ -1328,22 +1328,22 @@ export default function StudentRecordsPage() {
                                     {!isLoading &&
                                     !errorMessage
                                         ? data?.records.map(
-                                              (
-                                                  record,
-                                              ) => (
-                                                  <DesktopRecordRow
-                                                      key={
-                                                          record.id
-                                                      }
-                                                      record={
-                                                          record
-                                                      }
-                                                      onStatusClick={
-                                                          setStatusNotification
-                                                      }
-                                                  />
-                                              ),
-                                          )
+                                            (
+                                                record,
+                                            ) => (
+                                                <DesktopRecordRow
+                                                    key={
+                                                        record.id
+                                                    }
+                                                    record={
+                                                        record
+                                                    }
+                                                    onStatusClick={
+                                                        setStatusNotification
+                                                    }
+                                                />
+                                            ),
+                                        )
                                         : null}
                                 </tbody>
                             </table>
@@ -1400,20 +1400,20 @@ export default function StudentRecordsPage() {
                         {!isLoading &&
                         !errorMessage
                             ? data?.records.map(
-                                  (record) => (
-                                      <MobileRecordCard
-                                          key={
-                                              record.id
-                                          }
-                                          record={
-                                              record
-                                          }
-                                          onStatusClick={
-                                              setStatusNotification
-                                          }
-                                      />
-                                  ),
-                              )
+                                (record) => (
+                                    <MobileRecordCard
+                                        key={
+                                            record.id
+                                        }
+                                        record={
+                                            record
+                                        }
+                                        onStatusClick={
+                                            setStatusNotification
+                                        }
+                                    />
+                                ),
+                            )
                             : null}
                     </div>
 

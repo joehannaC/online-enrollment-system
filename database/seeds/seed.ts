@@ -40,12 +40,6 @@ const seedEnvironmentPath =
         "database/seeds/.env",
     );
 
-/*
- * The authentication service environment is the source of truth
- * for the MongoDB connection used by the seed. The seed-specific
- * environment file is loaded only as a fallback and does not
- * overwrite values already loaded from auth-service/.env.
- */
 dotenv.config({
     path: authEnvironmentPath,
 });
@@ -258,8 +252,6 @@ const student1CreditedCourses = new Set([
 ]);
 
 const student2FailedCourses = new Set([
-    // Trimester 7 maps to Term 1. It can be retaken in Term 1
-    // of a later academic year, including AY 2026-2027.
     "STELEC1",
 ]);
 
@@ -586,11 +578,6 @@ function scoreFor(
         )
         .digest();
 
-    /*
-     * Generate deterministic demo grades from
-     * 60 through 100. The same student/course
-     * pair always receives the same raw score.
-     */
     const computedScore =
         60 + (hash[0] % 41);
 
@@ -714,16 +701,6 @@ async function seedDatabase(): Promise<void> {
         const session = client.startSession();
 
         try {
-            /*
-             * The local development database may be a standalone
-             * MongoDB server. Standalone servers do not support
-             * multi-document transactions, so the seed runs the
-             * same idempotent upsert operations without starting
-             * a transaction.
-             *
-             * The ClientSession is still passed to the operations;
-             * it simply is not placed inside withTransaction().
-             */
             await (async () => {
                 if (resetRequested) {
                     console.log(
@@ -1395,10 +1372,6 @@ async function seedDatabase(): Promise<void> {
                         });
                     }
 
-                    /*
-                    * This summary represents all completed
-                    * courses before the current/latest term.
-                    */
                     const academicSummary =
                         calculateAcademicSummary(
                             academicGradeInputs,
@@ -1470,23 +1443,13 @@ async function seedDatabase(): Promise<void> {
 
                                     enlistedNonAcademicUnits:
                                         0,
-
-                                    /*
-                                    * Values before the latest term.
-                                    * These are consumed by the
-                                    * student grade service.
-                                    */
+                                    
                                     previousGpa,
 
                                     previousGradedUnits,
 
                                     previousGradePoints,
 
-                                    /*
-                                    * Keep the existing field names
-                                    * for other services that may
-                                    * still use them.
-                                    */
                                     currentGpa:
                                         previousGpa,
 
@@ -1540,11 +1503,6 @@ async function seedDatabase(): Promise<void> {
                         ],
                         capacity: 30,
                     },
-
-                    /*
-                    * Same schedule:
-                    * STDISCM and CSADPRG
-                    */
                     {
                         courseCode: "STDISCM",
                         sectionCode: "S12",
@@ -1577,11 +1535,6 @@ async function seedDatabase(): Promise<void> {
                         ],
                         capacity: 30,
                     },
-
-                    /*
-                    * Same schedule:
-                    * STINTSY and CSSECDV
-                    */
                     {
                         courseCode: "STINTSY",
                         sectionCode: "S11",
@@ -1614,10 +1567,6 @@ async function seedDatabase(): Promise<void> {
                         ],
                         capacity: 30,
                     },
-
-                    /*
-                    * Wednesday-only schedule.
-                    */
                     {
                         courseCode: "GEWORLD",
                         sectionCode: "G01",
@@ -1631,10 +1580,6 @@ async function seedDatabase(): Promise<void> {
                         ],
                         capacity: 35,
                     },
-
-                    /*
-                    * Saturday-only schedule.
-                    */
                     {
                         courseCode: "THS-ST3",
                         sectionCode: "T01",
@@ -1793,12 +1738,6 @@ async function seedDatabase(): Promise<void> {
                             course.code === "PRCCSST",
                     );
 
-                /*
-                 * Every offered course receives two or three
-                 * sections with different schedules and seat
-                 * counts. STDISCM is the exception: it has one
-                 * section only, with 44 of 45 seats occupied.
-                 */
                 for (
                     let courseIndex = 0;
                     courseIndex <
@@ -1815,10 +1754,10 @@ async function seedDatabase(): Promise<void> {
                         "STDISCM"
                             ? 1
                             : courseIndex %
-                                  2 ===
-                              0
-                              ? 2
-                              : 3;
+                                2 ===
+                            0
+                            ? 2
+                            : 3;
 
                     for (
                         let sectionIndex = 0;
@@ -1847,20 +1786,20 @@ async function seedDatabase(): Promise<void> {
                             course.code ===
                             "PRCCSST"
                                 ? {
-                                      days: [
-                                          "ARRANGED",
-                                      ],
-                                      startTime:
-                                          "",
-                                      endTime:
-                                          "",
-                                      room: `Off Campus ${
-                                          sectionIndex +
-                                          1
-                                      }`,
-                                  }
+                                    days: [
+                                        "ARRANGED",
+                                    ],
+                                    startTime:
+                                        "",
+                                    endTime:
+                                        "",
+                                    room: `Off Campus ${
+                                        sectionIndex +
+                                        1
+                                    }`,
+                                }
                                 : isSharedConflictSection
-                                  ? {
+                                ? {
                                         days: [
                                             "MONDAY",
                                             "THURSDAY",
@@ -1875,7 +1814,7 @@ async function seedDatabase(): Promise<void> {
                                                 ? "G304"
                                                 : "G205",
                                     }
-                                  : enrollmentScheduleSlots[
+                                : enrollmentScheduleSlots[
                                         scheduleIndex
                                     ];
 
@@ -1885,9 +1824,9 @@ async function seedDatabase(): Promise<void> {
                                 ? 44
                                 : getDemoEnrolledCount(
                                       courseIndex *
-                                          3 +
-                                          sectionIndex,
-                                  );
+                                        3 +
+                                        sectionIndex,
+                                );
 
                         await upsertById(
                             db,
@@ -2179,42 +2118,22 @@ async function seedDatabase(): Promise<void> {
 
         console.log("");
         console.log("Seed completed successfully.");
-        console.log(
-            `Curriculum total: ${curriculumAcademicTotal} academic units and ${curriculumNonAcademicTotal} non-academic units.`,
-        );
+        console.log(`Curriculum total: ${curriculumAcademicTotal} academic units and ${curriculumNonAcademicTotal} non-academic units.`,);
         console.log("");
         console.log("Student demo curriculum progress:");
-        console.log(
-            "  Email: student@university.edu",
-        );
+        console.log("  Email: student@university.edu",);
         console.log("  Username: student.demo");
         console.log(`  Password: ${demoPassword}`);
-        console.log(
-            "  Student enrolled units start at 0 until enrollment is submitted.",
-        );
-        console.log(
-            "  GPA uses the shared calculator: credited = 3.5, failed = 0.0.",
-        );
-        console.log(
-            "  Upcoming sections use deterministic demo seat counts from 0 to 45.",
-        );
+        console.log("  Student enrolled units start at 0 until enrollment is submitted.",);
+        console.log("  GPA uses the shared calculator: credited = 3.5, failed = 0.0.",);
+        console.log("  Upcoming sections use deterministic demo seat counts from 0 to 45.",);
         console.log("");
         console.log("Faculty accounts:");
-        console.log(
-            "  CC: prof.cc / cc.faculty@university.edu",
-        );
-        console.log(
-            "  CS: prof.cs / cs.faculty@university.edu",
-        );
-        console.log(
-            "  GE: prof.ge / ge.faculty@university.edu",
-        );
-        console.log(
-            "  ST and other: prof.reyes / faculty@university.edu",
-        );
-        console.log(
-            `  Password for all accounts: ${demoPassword}`,
-        );
+        console.log("  CC: prof.cc / cc.faculty@university.edu",);
+        console.log("  CS: prof.cs / cs.faculty@university.edu",);
+        console.log("  GE: prof.ge / ge.faculty@university.edu",);
+        console.log("  ST and other: prof.reyes / faculty@university.edu",);
+        console.log(`  Password for all accounts: ${demoPassword}`,);
     } finally {
         await client.close();
     }

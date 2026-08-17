@@ -121,114 +121,114 @@ export default function DataTable<T>({
                     <tbody className="divide-y divide-neutral-100">
                         {isLoading
                             ? Array.from({
-                                  length: loadingRows,
-                              }).map(
-                                  (
-                                      _,
-                                      rowIndex,
-                                  ) => (
-                                      <tr
-                                          key={
-                                              rowIndex
-                                          }
-                                      >
-                                          {columns.map(
-                                              (
-                                                  column,
-                                              ) => (
-                                                  <td
-                                                      key={
-                                                          column.key
-                                                      }
-                                                      className="px-5 py-4"
-                                                  >
-                                                      <LoadingSkeleton className="h-4 w-full max-w-32" />
-                                                  </td>
-                                              ),
-                                          )}
-                                      </tr>
-                                  ),
-                              )
+                                length: loadingRows,
+                            }).map(
+                                (
+                                    _,
+                                    rowIndex,
+                                ) => (
+                                    <tr
+                                        key={
+                                            rowIndex
+                                        }
+                                    >
+                                        {columns.map(
+                                            (
+                                                column,
+                                            ) => (
+                                                <td
+                                                    key={
+                                                        column.key
+                                                    }
+                                                    className="px-5 py-4"
+                                                >
+                                                    <LoadingSkeleton className="h-4 w-full max-w-32" />
+                                                </td>
+                                            ),
+                                        )}
+                                    </tr>
+                                ),
+                            )
                             : data.map(
-                                  (
-                                      row,
-                                      rowIndex,
-                                  ) => (
-                                      <tr
-                                          key={getRowKey(
-                                              row,
-                                              rowIndex,
-                                          )}
-                                          tabIndex={
-                                              onRowClick
-                                                  ? 0
-                                                  : undefined
-                                          }
-                                          onClick={() =>
-                                              onRowClick?.(
-                                                  row,
-                                              )
-                                          }
-                                          onKeyDown={(
-                                              event,
-                                          ) => {
-                                              if (
-                                                  !onRowClick
-                                              ) {
-                                                  return;
-                                              }
+                                (
+                                    row,
+                                    rowIndex,
+                                ) => (
+                                    <tr
+                                        key={getRowKey(
+                                            row,
+                                            rowIndex,
+                                        )}
+                                        tabIndex={
+                                            onRowClick
+                                                ? 0
+                                                : undefined
+                                        }
+                                        onClick={() =>
+                                            onRowClick?.(
+                                                row,
+                                            )
+                                        }
+                                        onKeyDown={(
+                                            event,
+                                        ) => {
+                                            if (
+                                                !onRowClick
+                                            ) {
+                                                return;
+                                            }
 
-                                              if (
-                                                  event.key ===
-                                                      "Enter" ||
-                                                  event.key ===
-                                                      " "
-                                              ) {
-                                                  event.preventDefault();
+                                            if (
+                                                event.key ===
+                                                    "Enter" ||
+                                                event.key ===
+                                                    " "
+                                            ) {
+                                                event.preventDefault();
 
-                                                  onRowClick(
-                                                      row,
-                                                  );
-                                              }
-                                          }}
-                                          className={[
-                                              "transition-colors",
-                                              onRowClick
-                                                  ? "cursor-pointer hover:bg-[#35822E]/5 focus:bg-[#35822E]/5 focus:outline-none"
-                                                  : "hover:bg-neutral-50",
-                                          ].join(
-                                              " ",
-                                          )}
-                                      >
-                                          {columns.map(
-                                              (
-                                                  column,
-                                              ) => (
-                                                  <td
-                                                      key={
-                                                          column.key
-                                                      }
-                                                      data-label={
-                                                          column.mobileLabel
-                                                      }
-                                                      className={[
-                                                          "px-5 py-4 text-sm text-neutral-700",
-                                                          column.className ??
-                                                              "",
-                                                      ].join(
-                                                          " ",
-                                                      )}
-                                                  >
-                                                      {column.render(
-                                                          row,
-                                                          rowIndex,
-                                                      )}
-                                                  </td>
-                                              ),
-                                          )}
-                                      </tr>
-                                  ),
-                              )}
+                                                onRowClick(
+                                                    row,
+                                                );
+                                            }
+                                        }}
+                                        className={[
+                                            "transition-colors",
+                                            onRowClick
+                                                ? "cursor-pointer hover:bg-[#35822E]/5 focus:bg-[#35822E]/5 focus:outline-none"
+                                                : "hover:bg-neutral-50",
+                                        ].join(
+                                            " ",
+                                        )}
+                                    >
+                                        {columns.map(
+                                            (
+                                                column,
+                                            ) => (
+                                                <td
+                                                    key={
+                                                        column.key
+                                                    }
+                                                    data-label={
+                                                        column.mobileLabel
+                                                    }
+                                                    className={[
+                                                        "px-5 py-4 text-sm text-neutral-700",
+                                                        column.className ??
+                                                            "",
+                                                    ].join(
+                                                        " ",
+                                                    )}
+                                                >
+                                                    {column.render(
+                                                        row,
+                                                        rowIndex,
+                                                    )}
+                                                </td>
+                                            ),
+                                        )}
+                                    </tr>
+                                ),
+                            )}
                     </tbody>
                 </table>
             </div>

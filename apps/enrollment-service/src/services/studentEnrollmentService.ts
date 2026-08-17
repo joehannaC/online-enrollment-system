@@ -14,6 +14,11 @@ import {
     publishEnrollmentUpdated,
 } from "../realtime/realtimePublisher.js";
 
+import {
+    EnrollmentItemStatus,
+    CourseEligibilityCode,
+} from "../types/studentEnrollment.types.js";
+
 const MAXIMUM_ACADEMIC_UNITS = 21;
 const MAXIMUM_SECTION_CAPACITY = 45;
 
@@ -60,8 +65,7 @@ export interface SubmitEnrollmentResult {
     submittedCourseCount: number;
     rejectedCourseCount: number;
 
-    rejectedSections:
-        RejectedEnrollmentSection[];
+    rejectedSections: RejectedEnrollmentSection[];
 }
 
 interface StudentDocument {
@@ -163,10 +167,6 @@ interface EnrollmentHeaderDocument {
     updatedAt: Date;
 }
 
-type EnrollmentItemStatus =
-    | "DRAFT"
-    | "ENROLLED";
-
 interface EnrollmentItemDocument {
     _id: ObjectId;
     enrollmentId: ObjectId;
@@ -190,21 +190,6 @@ interface GradeHistoryEntry {
     academicYear: string;
     termNumber: number;
 }
-
-type CourseEligibilityCode =
-    | "ELIGIBLE"
-    | "MISSING_PREREQUISITES"
-    | "ALREADY_COMPLETED"
-    | "ALREADY_CREDITED"
-    | "ALREADY_SELECTED"
-    | "ALREADY_ENROLLED"
-    | "SECTION_FULL"
-    | "MAXIMUM_LOAD_EXCEEDED"
-    | "ENROLLMENT_NOT_OPEN"
-    | "ENROLLMENT_CLOSED"
-    | "ENROLLMENT_SUBMITTED"
-    | "FAILED_COURSE_RETAKE_NOT_ALLOWED"
-    | "SCHEDULE_CONFLICT";
 
 interface CourseEligibility {
     canEnroll: boolean;
@@ -583,10 +568,7 @@ function schedulesConflict(
                     secondEntry.endTime,
                 );
 
-            if (
-                firstStart < secondEnd &&
-                secondStart < firstEnd
-            ) {
+            if (firstStart < secondEnd && secondStart < firstEnd) {
                 return true;
             }
         }
@@ -642,11 +624,7 @@ async function getStudent(
     authenticatedUserId: string,
     session?: ClientSession,
 ): Promise<StudentDocument> {
-    if (
-        !ObjectId.isValid(
-            authenticatedUserId,
-        )
-    ) {
+    if (!ObjectId.isValid(authenticatedUserId,)) {
         throw new StudentEnrollmentServiceError(
             "INVALID_USER_ID",
             "The authenticated user ID is invalid.",
@@ -771,11 +749,7 @@ async function getOrCreateEnrollment(
 
         return enrollment;
     } catch (error) {
-        if (
-            error instanceof
-                MongoServerError &&
-            error.code === 11000
-        ) {
+        if (error instanceof MongoServerError && error.code === 11000) {
             const concurrent =
                 await db
                     .collection<EnrollmentHeaderDocument>(
@@ -853,8 +827,7 @@ async function getGradeHistory(
             .toArray(),
     ]);
 
-    const sectionIdsByValue =
-        new Map<string, ObjectId>();
+    const sectionIdsByValue = new Map<string, ObjectId>();
 
     for (const grade of grades) {
         sectionIdsByValue.set(
@@ -863,10 +836,7 @@ async function getGradeHistory(
         );
     }
 
-    for (
-        const enrollment of
-        completedEnrollments
-    ) {
+    for (const enrollment of completedEnrollments) {
         sectionIdsByValue.set(
             enrollment.sectionId.toHexString(),
             enrollment.sectionId,
@@ -899,8 +869,7 @@ async function getGradeHistory(
             )
             .toArray();
 
-    const termIdsByValue =
-        new Map<string, ObjectId>();
+    const termIdsByValue = new Map<string, ObjectId>();
 
     for (const grade of grades) {
         termIdsByValue.set(
@@ -909,10 +878,7 @@ async function getGradeHistory(
         );
     }
 
-    for (
-        const enrollment of
-        completedEnrollments
-    ) {
+    for (const enrollment of completedEnrollments) {
         termIdsByValue.set(
             enrollment.academicTermId.toHexString(),
             enrollment.academicTermId,
@@ -938,8 +904,7 @@ async function getGradeHistory(
             )
             .toArray();
 
-    const courseIdsByValue =
-        new Map<string, ObjectId>();
+    const courseIdsByValue = new Map<string, ObjectId>();
 
     for (const section of sections) {
         courseIdsByValue.set(
@@ -1018,8 +983,7 @@ async function getGradeHistory(
             continue;
         }
 
-        const courseId =
-            section.courseId.toHexString();
+        const courseId = section.courseId.toHexString();
 
         const entries =
             history.get(courseId) ??
@@ -1040,20 +1004,7 @@ async function getGradeHistory(
         );
     }
 
-    /*
-     * Non-academic courses do not normally receive grade
-     * documents. Their completion must therefore be derived
-     * from the completed enrollment record.
-     *
-     * Academic courses are intentionally excluded here so a
-     * failed academic grade is not incorrectly converted into
-     * a passed course merely because its enrollment record is
-     * marked COMPLETED.
-     */
-    for (
-        const enrollment of
-        completedEnrollments
-    ) {
+    for (const enrollment of completedEnrollments) {
         const section =
             sectionsById.get(
                 enrollment.sectionId.toHexString(),
@@ -1068,19 +1019,11 @@ async function getGradeHistory(
             continue;
         }
 
-        const courseId =
-            section.courseId.toHexString();
+        const courseId = section.courseId.toHexString();
 
-        const course =
-            coursesById.get(
-                courseId,
-            );
+        const course = coursesById.get(courseId,);
 
-        if (
-            !course ||
-            course.academicUnits > 0 ||
-            course.nonAcademicUnits <= 0
-        ) {
+        if (!course || course.academicUnits > 0 || course.nonAcademicUnits <= 0) {
             continue;
         }
 
@@ -1181,10 +1124,7 @@ async function validateCourseEligibility(
         course.prerequisiteCodes ??
         [];
 
-    if (
-        prerequisiteCodes.length ===
-        0
-    ) {
+    if (prerequisiteCodes.length === 0) {
         return;
     }
 
@@ -1209,13 +1149,9 @@ async function validateCourseEligibility(
             )
             .toArray();
 
-    const satisfiedCodes =
-        new Set<string>();
+    const satisfiedCodes = new Set<string>();
 
-    for (
-        const prerequisiteCourse of
-        prerequisiteCourses
-    ) {
+    for (const prerequisiteCourse of prerequisiteCourses) {
         const prerequisiteHistory =
             gradeHistory.get(
                 prerequisiteCourse._id
@@ -1349,45 +1285,45 @@ export async function getStudentEnrollment(
 
     const items = enrollment
         ? await getEnrollmentItems(
-              db,
-              enrollment._id,
-          )
+            db,
+            enrollment._id,
+        )
         : [];
 
     const submittedGradeDocuments =
         items.length > 0
             ? await db
-                  .collection<GradeDocument>(
-                      "grades",
-                  )
-                  .find({
-                      studentId:
-                          student._id,
+                .collection<GradeDocument>(
+                    "grades",
+                )
+                .find({
+                    studentId:
+                        student._id,
 
-                      academicTermId:
-                          term._id,
+                    academicTermId:
+                        term._id,
 
-                      sectionId: {
-                          $in:
-                              items.map(
-                                  (item) =>
-                                      item.sectionId,
-                              ),
-                      },
+                    sectionId: {
+                        $in:
+                            items.map(
+                                (item) =>
+                                item.sectionId,
+                            ),
+                    },
 
-                      status: {
-                          $in: [
-                              "SUBMITTED",
-                              "VERIFIED",
-                          ],
-                      },
+                    status: {
+                        $in: [
+                            "SUBMITTED",
+                            "VERIFIED",
+                        ],
+                    },
 
-                      finalGradeValue: {
-                          $type:
-                              "number",
-                      },
-                  })
-                  .toArray()
+                    finalGradeValue: {
+                        $type:
+                            "number",
+                    },
+                })
+                .toArray()
             : [];
 
     const submittedSectionIds =
@@ -1413,18 +1349,18 @@ export async function getStudentEnrollment(
         termGradesFinalized
             ? []
             : await db
-                  .collection<SectionDocument>(
-                      "sections",
-                  )
-                  .find({
-                      academicTermId:
-                          term._id,
-                      status: "OPEN",
-                  })
-                  .sort({
-                      sectionCode: 1,
-                  })
-                  .toArray();
+                .collection<SectionDocument>(
+                    "sections",
+                )
+                .find({
+                    academicTermId:
+                        term._id,
+                    status: "OPEN",
+                })
+                .sort({
+                    sectionCode: 1,
+                })
+                .toArray();
 
     const courseIds =
         sections.map(
@@ -1465,16 +1401,16 @@ export async function getStudentEnrollment(
 
             facultyIds.length > 0
                 ? db
-                      .collection<FacultyDocument>(
-                          "faculty",
-                      )
-                      .find({
-                          _id: {
-                              $in:
-                                  facultyIds,
-                          },
-                      })
-                      .toArray()
+                    .collection<FacultyDocument>(
+                        "faculty",
+                    )
+                    .find({
+                        _id: {
+                            $in:
+                                facultyIds,
+                        },
+                    })
+                    .toArray()
                 : [],
         ]);
 
@@ -1563,23 +1499,22 @@ export async function getStudentEnrollment(
     const selectedSections =
         items.length > 0
             ? await db
-                  .collection<SectionDocument>(
-                      "sections",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              items.map(
-                                  (item) =>
-                                      item.sectionId,
-                              ),
-                      },
-                  })
-                  .toArray()
+                .collection<SectionDocument>(
+                    "sections",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            items.map(
+                                (item) =>
+                                    item.sectionId,
+                            ),
+                    },
+                })
+                .toArray()
             : [];
 
-    const open =
-        isEnrollmentOpen(term);
+    const open = isEnrollmentOpen(term);
 
     const normalizedSearch =
         query.search
@@ -1688,10 +1623,7 @@ export async function getStudentEnrollment(
                     "FAILED",
             );
 
-        if (
-            alreadyCompleted ||
-            alreadyCredited
-        ) {
+        if (alreadyCompleted || alreadyCredited) {
             continue;
         }
 
@@ -1720,9 +1652,7 @@ export async function getStudentEnrollment(
                             prerequisiteCode,
                         );
 
-                    if (
-                        !prerequisiteCourse
-                    ) {
+                    if (!prerequisiteCourse) {
                         return true;
                     }
 
@@ -1741,10 +1671,7 @@ export async function getStudentEnrollment(
                 },
             );
 
-        if (
-            missingPrerequisiteCodes.length >
-            0
-        ) {
+        if (missingPrerequisiteCodes.length > 0) {
             continue;
         }
 
@@ -1763,24 +1690,19 @@ export async function getStudentEnrollment(
                 course.academicUnits >
             MAXIMUM_ACADEMIC_UNITS;
 
-        /*
-         * Practicum uses an arranged deployment schedule,
-         * so it must not be disabled by the ordinary
-         * classroom schedule-overlap rule.
-         */
         const hasScheduleConflict =
             course.category ===
             "PRACTICUM"
                 ? false
                 : selectedSections.some(
-                      (
-                          selectedSection,
-                      ) =>
-                          schedulesConflict(
-                              selectedSection.schedule,
-                              section.schedule,
-                          ),
-                  );
+                    (
+                        selectedSection,
+                    ) =>
+                        schedulesConflict(
+                            selectedSection.schedule,
+                            section.schedule,
+                        ),
+                );
 
         const eligibility =
             getCourseEligibility({
@@ -1824,10 +1746,10 @@ export async function getStudentEnrollment(
             instructorName:
                 section.facultyId
                     ? formatInstructor(
-                          facultyById.get(
-                              section.facultyId.toHexString(),
-                          ),
-                      )
+                        facultyById.get(
+                            section.facultyId.toHexString(),
+                        ),
+                    )
                     : "TBA",
 
             scheduleLabel:
@@ -1934,30 +1856,30 @@ export async function getStudentEnrollment(
         await Promise.all([
             itemSectionIds.length > 0
                 ? db
-                      .collection<SectionDocument>(
-                          "sections",
-                      )
-                      .find({
-                          _id: {
-                              $in:
-                                  itemSectionIds,
-                          },
-                      })
-                      .toArray()
+                    .collection<SectionDocument>(
+                        "sections",
+                    )
+                    .find({
+                        _id: {
+                            $in:
+                                itemSectionIds,
+                        },
+                    })
+                    .toArray()
                 : [],
 
             itemCourseIds.length > 0
                 ? db
-                      .collection<CourseDocument>(
-                          "courses",
-                      )
-                      .find({
-                          _id: {
-                              $in:
-                                  itemCourseIds,
-                          },
-                      })
-                      .toArray()
+                    .collection<CourseDocument>(
+                        "courses",
+                    )
+                    .find({
+                        _id: {
+                            $in:
+                                itemCourseIds,
+                        },
+                    })
+                    .toArray()
                 : [],
         ]);
 
@@ -2026,10 +1948,10 @@ export async function getStudentEnrollment(
             instructorName:
                 section.facultyId
                     ? formatInstructor(
-                          facultyById.get(
-                              section.facultyId.toHexString(),
-                          ),
-                      )
+                        facultyById.get(
+                            section.facultyId.toHexString(),
+                        ),
+                    )
                     : "TBA",
             scheduleLabel:
                 formatSchedule(
@@ -2052,8 +1974,7 @@ export async function getStudentEnrollment(
         termGradesFinalized ||
         !open
             ? "READ_ONLY"
-            : enrollment?.status ===
-              "SUBMITTED"
+            : enrollment?.status === "SUBMITTED"
             ? "EDITABLE_SUBMITTED"
             : "EDITABLE_DRAFT";
 
@@ -2101,12 +2022,12 @@ export async function getStudentEnrollment(
                 termGradesFinalized
                     ? 0
                     : enrollment?.totalAcademicUnits ??
-                      0,
+                    0,
             totalNonAcademicUnits:
                 termGradesFinalized
                     ? 0
                     : enrollment?.totalNonAcademicUnits ??
-                      0,
+                    0,
             items:
                 termGradesFinalized
                     ? []
@@ -2130,11 +2051,7 @@ export async function addDraftItem(
     authenticatedUserId: string,
     input: AddDraftItemInput,
 ): Promise<void> {
-    if (
-        !ObjectId.isValid(
-            input.sectionId,
-        )
-    ) {
+    if (!ObjectId.isValid(input.sectionId,)) {
         throw new StudentEnrollmentServiceError(
             "INVALID_SECTION_ID",
             "The selected section ID is invalid.",
@@ -2143,10 +2060,8 @@ export async function addDraftItem(
     }
 
     const db = getDatabase();
-    const client =
-        getMongoClient();
-    const session =
-        client.startSession();
+    const client = getMongoClient();
+    const session = client.startSession();
 
     try {
         await session.withTransaction(
@@ -2164,11 +2079,7 @@ export async function addDraftItem(
                         session,
                     );
 
-                if (
-                    !isEnrollmentOpen(
-                        term,
-                    )
-                ) {
+                if (!isEnrollmentOpen(term,)) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_PERIOD_CLOSED",
                         "The enrollment period has ended.",
@@ -2184,10 +2095,7 @@ export async function addDraftItem(
                         session,
                     );
 
-                if (
-                    enrollment.status ===
-                    "SUBMITTED"
-                ) {
+                if (enrollment.status === "SUBMITTED") {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_ALREADY_SUBMITTED",
                         "The enrollment has already been submitted and can no longer be changed.",
@@ -2195,10 +2103,7 @@ export async function addDraftItem(
                     );
                 }
 
-                if (
-                    enrollment.version !==
-                    input.expectedVersion
-                ) {
+                if (enrollment.version !== input.expectedVersion) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_VERSION_CONFLICT",
                         "The enrollment was changed in another tab. Reload and try again.",
@@ -2317,10 +2222,7 @@ export async function addDraftItem(
                     ) +
                     course.academicUnits;
 
-                if (
-                    totalAcademicUnits >
-                    MAXIMUM_ACADEMIC_UNITS
-                ) {
+                if (totalAcademicUnits > MAXIMUM_ACADEMIC_UNITS) {
                     throw new StudentEnrollmentServiceError(
                         "MAXIMUM_UNITS_EXCEEDED",
                         `The maximum academic load is ${MAXIMUM_ACADEMIC_UNITS} units.`,
@@ -2331,24 +2233,24 @@ export async function addDraftItem(
                 const existingSections =
                     items.length > 0
                         ? await db
-                              .collection<SectionDocument>(
-                                  "sections",
-                              )
-                              .find(
-                                  {
-                                      _id: {
-                                          $in:
-                                              items.map(
-                                                  (item) =>
-                                                      item.sectionId,
-                                              ),
-                                      },
-                                  },
-                                  {
-                                      session,
-                                  },
-                              )
-                              .toArray()
+                            .collection<SectionDocument>(
+                                "sections",
+                            )
+                            .find(
+                                {
+                                    _id: {
+                                        $in:
+                                            items.map(
+                                                (item) =>
+                                                    item.sectionId,
+                                            ),
+                                    },
+                                },
+                                {
+                                    session,
+                                },
+                            )
+                            .toArray()
                         : [];
 
                 if (
@@ -2387,8 +2289,7 @@ export async function addDraftItem(
                     session,
                 );
 
-                const now =
-                    new Date();
+                const now = new Date();
 
                 try {
                     await db
@@ -2478,10 +2379,7 @@ export async function addDraftItem(
                             },
                         );
 
-                if (
-                    updated.modifiedCount !==
-                    1
-                ) {
+                if (updated.modifiedCount !== 1) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_VERSION_CONFLICT",
                         "The enrollment was changed in another tab. Reload and try again.",
@@ -2598,10 +2496,7 @@ export async function removeDraftItem(
                     );
                 }
 
-                if (
-                    getItemStatus(enrollmentItem) ===
-                    "ENROLLED"
-                ) {
+                if (getItemStatus(enrollmentItem) === "ENROLLED") {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLED_COURSE_LOCKED",
                         "A successfully enrolled course can no longer be dropped.",
@@ -2820,10 +2715,7 @@ export async function submitEnrollment(
                     );
                 }
 
-                if (
-                    enrollment.version !==
-                    input.expectedVersion
-                ) {
+                if (enrollment.version !== input.expectedVersion) {
                     throw new StudentEnrollmentServiceError(
                         "ENROLLMENT_VERSION_CONFLICT",
                         "The enrollment was changed in another tab. Reload and try again.",
@@ -2871,10 +2763,7 @@ export async function submitEnrollment(
                     )
                     .toArray();
 
-                if (
-                    draftSections.length !==
-                    draftItems.length
-                ) {
+                if (draftSections.length !== draftItems.length) {
                     throw new StudentEnrollmentServiceError(
                         "INVALID_SECTION_SELECTION",
                         "One or more selected sections are unavailable.",
@@ -2950,21 +2839,21 @@ export async function submitEnrollment(
                 const previouslyEnrolledSections =
                     enrolledItems.length > 0
                         ? await db
-                              .collection<SectionDocument>(
-                                  "sections",
-                              )
-                              .find(
-                                  {
-                                      _id: {
-                                          $in: enrolledItems.map(
-                                              (item) =>
-                                                  item.sectionId,
-                                          ),
-                                      },
-                                  },
-                                  { session },
-                              )
-                              .toArray()
+                            .collection<SectionDocument>(
+                                "sections",
+                            )
+                            .find(
+                                {
+                                    _id: {
+                                        $in: enrolledItems.map(
+                                            (item) =>
+                                                item.sectionId,
+                                        ),
+                                    },
+                                },
+                                { session },
+                            )
+                            .toArray()
                         : [];
 
                 const sortedSections = [
@@ -2984,10 +2873,10 @@ export async function submitEnrollment(
                     return difference !== 0
                         ? difference
                         : first._id
-                              .toHexString()
-                              .localeCompare(
-                                  second._id.toHexString(),
-                              );
+                            .toHexString()
+                            .localeCompare(
+                                second._id.toHexString(),
+                            );
                 });
 
                 const acceptedSectionIds: ObjectId[] = [];
@@ -3017,21 +2906,21 @@ export async function submitEnrollment(
                         course.category === "PRACTICUM"
                             ? undefined
                             : acceptedSections.find(
-                                  (acceptedSection) => {
-                                      const acceptedCourse =
-                                          courseById.get(
-                                              acceptedSection.courseId.toHexString(),
-                                          );
-                                      return (
-                                          acceptedCourse?.category !==
-                                              "PRACTICUM" &&
-                                          schedulesConflict(
-                                              acceptedSection.schedule,
-                                              section.schedule,
-                                          )
-                                      );
-                                  },
-                              );
+                                (acceptedSection) => {
+                                    const acceptedCourse =
+                                        courseById.get(
+                                            acceptedSection.courseId.toHexString(),
+                                        );
+                                    return (
+                                        acceptedCourse?.category !==
+                                            "PRACTICUM" &&
+                                        schedulesConflict(
+                                            acceptedSection.schedule,
+                                            section.schedule,
+                                        )
+                                    );
+                                },
+                            );
 
                     if (conflictingSection) {
                         rejectedSections.push({
@@ -3152,10 +3041,7 @@ export async function submitEnrollment(
                             { session },
                         );
 
-                    if (
-                        acceptedUpdate.modifiedCount !==
-                        acceptedSectionIds.length
-                    ) {
+                    if (acceptedUpdate.modifiedCount !== acceptedSectionIds.length) {
                         throw new StudentEnrollmentServiceError(
                             "ENROLLMENT_ITEM_UPDATE_CONFLICT",
                             "One or more accepted courses could not be locked.",
@@ -3170,10 +3056,7 @@ export async function submitEnrollment(
                     session,
                 );
 
-                if (
-                    totals.totalAcademicUnits >
-                    MAXIMUM_ACADEMIC_UNITS
-                ) {
+                if (totals.totalAcademicUnits > MAXIMUM_ACADEMIC_UNITS) {
                     throw new StudentEnrollmentServiceError(
                         "MAXIMUM_UNITS_EXCEEDED",
                         `The maximum academic load is ${MAXIMUM_ACADEMIC_UNITS} units.`,
@@ -3181,12 +3064,8 @@ export async function submitEnrollment(
                     );
                 }
 
-                const isPartialSuccess =
-                    acceptedSectionIds.length > 0 &&
-                    rejectedSections.length > 0;
-                const isCompleteSuccess =
-                    acceptedSectionIds.length > 0 &&
-                    rejectedSections.length === 0;
+                const isPartialSuccess = acceptedSectionIds.length > 0 && rejectedSections.length > 0;
+                const isCompleteSuccess = acceptedSectionIds.length > 0 && rejectedSections.length === 0;
                 const nextStatus:
                     EnrollmentHeaderDocument["status"] =
                     isCompleteSuccess
@@ -3273,8 +3152,7 @@ export async function submitEnrollment(
                             ),
                         );
 
-                    realtimeStudentId =
-                        student._id.toHexString();
+                    realtimeStudentId = student._id.toHexString();
                     realtimeSectionIds =
                         acceptedSectionIds.map(
                             (sectionId) =>
@@ -3294,8 +3172,8 @@ export async function submitEnrollment(
                                         (section) =>
                                             section.facultyId
                                                 ? [
-                                                      section.facultyId.toHexString(),
-                                                  ]
+                                                    section.facultyId.toHexString(),
+                                                ]
                                                 : [],
                                     ),
                             ),
@@ -3363,10 +3241,7 @@ export async function submitEnrollment(
             );
         }
 
-        if (
-            realtimeStudentId &&
-            realtimeSectionIds.length > 0
-        ) {
+        if (realtimeStudentId && realtimeSectionIds.length > 0) {
             await publishEnrollmentUpdated({
                 studentId:
                     realtimeStudentId,

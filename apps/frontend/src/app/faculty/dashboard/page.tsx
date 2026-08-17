@@ -384,67 +384,64 @@ export default function FacultyDashboardPage() {
 
                                     {!isLoading
                                         ? dashboard?.handledSubjects.map(
-                                              (
-                                                  subject,
-                                              ) => (
-                                                  <tr
-                                                      key={
-                                                          subject.sectionId
-                                                      }
-                                                      className="border-b border-neutral-200 last:border-b-0"
-                                                  >
-                                                      <td className="px-4 py-4">
-                                                          <p className="font-semibold text-neutral-900">
-                                                              {
-                                                                  subject.courseName
-                                                              }
-                                                          </p>
-                                                          <p className="mt-1 text-xs font-medium text-neutral-500">
-                                                              {
-                                                                  subject.courseCode
-                                                              }{" "}
-                                                              •{" "}
-                                                              {
-                                                                  subject.sectionCode
-                                                              }
-                                                          </p>
-                                                      </td>
+                                            (
+                                                subject,
+                                            ) => (
+                                                <tr
+                                                    key={
+                                                        subject.sectionId
+                                                    }
+                                                    className="border-b border-neutral-200 last:border-b-0"
+                                                >
+                                                    <td className="px-4 py-4">
+                                                        <p className="font-semibold text-neutral-900">
+                                                            {
+                                                                subject.courseName
+                                                            }
+                                                        </p>
+                                                        <p className="mt-1 text-xs font-medium text-neutral-500">
+                                                            {
+                                                                subject.courseCode
+                                                            }{" "}
+                                                            •{" "}
+                                                            {
+                                                                subject.sectionCode
+                                                            }
+                                                        </p>
+                                                    </td>
 
-                                                      <td className="px-4 py-4 text-neutral-700">
-                                                          {formatSchedule(
-                                                              subject,
-                                                          )}
-                                                      </td>
+                                                    <td className="px-4 py-4 text-neutral-700">
+                                                        {formatSchedule(
+                                                            subject,
+                                                        )}
+                                                    </td>
 
-                                                      <td className="px-4 py-4 text-center font-semibold text-neutral-800">
-                                                          {
-                                                              subject.enrolledStudents
-                                                          }
-                                                      </td>
+                                                    <td className="px-4 py-4 text-center font-semibold text-neutral-800">
+                                                        {
+                                                            subject.enrolledStudents
+                                                        }
+                                                    </td>
 
-                                                      <td className="px-4 py-4 text-center">
-                                                          <span
-                                                              className={[
-                                                                  "inline-flex min-w-[84px] justify-center rounded-full border px-3 py-1 text-xs font-semibold",
-                                                                  subject.pendingGrades ===
-                                                                  0
-                                                                      ? "border-green-300 bg-green-50 text-green-700"
-                                                                      : "border-amber-300 bg-amber-50 text-amber-700",
-                                                              ].join(
-                                                                  " ",
-                                                              )}
-                                                          >
-                                                              {
-                                                                  subject.gradedStudents
-                                                              }
-                                                              /
-                                                              {
-                                                                  subject.enrolledStudents
-                                                              }
-                                                          </span>
-                                                      </td>
+                                                    <td className="px-4 py-4 text-center">
+                                                        <span
+                                                            className={[
+                                                                "inline-flex min-w-[84px] justify-center rounded-full border px-3 py-1 text-xs font-semibold",
+                                                                subject.pendingGrades === 0
+                                                                    ? "border-green-300 bg-green-50 text-green-700"
+                                                                    : "border-amber-300 bg-amber-50 text-amber-700",
+                                                            ].join(" ",)}
+                                                        >
+                                                            {
+                                                                subject.gradedStudents
+                                                            }
+                                                            /
+                                                            {
+                                                                subject.enrolledStudents
+                                                            }
+                                                        </span>
+                                                    </td>
 
-                                                      <td className="px-4 py-4 text-center">
+                                                    <td className="px-4 py-4 text-center">
                                                         {subject.submissionStatus ===
                                                             "SUBMITTED" ||
                                                         subject.submissionStatus ===
@@ -476,9 +473,9 @@ export default function FacultyDashboardPage() {
                                                             </Button>
                                                         )}
                                                     </td>
-                                                  </tr>
-                                              ),
-                                          )
+                                                </tr>
+                                            ),
+                                        )
                                         : null}
                                 </tbody>
                             </table>
@@ -577,8 +574,8 @@ export default function FacultyDashboardPage() {
                                                             ? "text-red-600"
                                                             : deadline.status ===
                                                                 "DUE_SOON"
-                                                              ? "text-amber-600"
-                                                              : "text-[#35822E]",
+                                                            ? "text-amber-600"
+                                                            : "text-[#35822E]",
                                                     ].join(
                                                         " ",
                                                     )}
@@ -603,15 +600,15 @@ export default function FacultyDashboardPage() {
                                                                     ? "danger"
                                                                     : deadline.status ===
                                                                         "DUE_SOON"
-                                                                      ? "warning"
-                                                                      : "primary"
+                                                                    ? "warning"
+                                                                    : "primary"
                                                             }
                                                         >
                                                             {deadline.status ===
                                                             "OVERDUE"
                                                                 ? `${Math.abs(
-                                                                      deadline.daysRemaining,
-                                                                  )} days overdue`
+                                                                    deadline.daysRemaining,
+                                                                )} days overdue`
                                                                 : `${deadline.daysRemaining} days remaining`}
                                                         </StatusBadge>
                                                     </div>

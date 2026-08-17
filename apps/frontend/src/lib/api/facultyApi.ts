@@ -221,8 +221,8 @@ export async function getFacultyGradeEntry(
     const query =
         sectionId
             ? `?sectionId=${encodeURIComponent(
-                  sectionId,
-              )}`
+                sectionId,
+            )}`
             : "";
 
     let response: Response;

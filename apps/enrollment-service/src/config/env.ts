@@ -4,11 +4,9 @@ import {
     fileURLToPath,
 } from "node:url";
 
-const currentFilePath =
-    fileURLToPath(import.meta.url);
+const currentFilePath = fileURLToPath(import.meta.url);
 
-const currentDirectory =
-    path.dirname(currentFilePath);
+const currentDirectory = path.dirname(currentFilePath);
 
 const environmentPath = path.resolve(
     currentDirectory,
@@ -51,10 +49,7 @@ function getNumberEnvironmentValue(
 
     const parsedValue = Number(value);
 
-    if (
-        !Number.isInteger(parsedValue) ||
-        parsedValue <= 0
-    ) {
+    if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
         throw new Error(
             `${name} must be a positive integer.`,
         );

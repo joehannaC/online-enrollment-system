@@ -86,10 +86,6 @@ app.get(
     },
 );
 
-/*
- * Application routes must be registered
- * before the 404 middleware.
- */
 app.use(
     "/api/faculty",
     authenticateRequest,
@@ -104,10 +100,6 @@ app.use(
     studentGradeRouter,
 );
 
-/*
- * This middleware runs only when no
- * previously registered route matched.
- */
 app.use(
     (
         request: Request,
@@ -123,10 +115,6 @@ app.use(
     },
 );
 
-/*
- * Express error-handling middleware must
- * contain all four parameters.
- */
 app.use(
     (
         error: unknown,

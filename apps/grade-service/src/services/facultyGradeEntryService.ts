@@ -147,17 +147,6 @@ function calculateRawFinalGrade(
         100;
 }
 
-/*
- * Grade representation:
- * 90-100 = 4.0
- * 85-89.99 = 3.5
- * 80-84.99 = 3.0
- * 75-79.99 = 2.5
- * 70-74.99 = 2.0
- * 65-69.99 = 1.5
- * 60-64.99 = 1.0
- * below 60 = 0.0
- */
 function representFinalGrade(
     rawFinalGrade:
         | number
@@ -220,18 +209,18 @@ function formatSchedule(
             const days =
                 Array.isArray(item.days)
                     ? item.days
-                          .map(String)
-                          .join("/")
+                        .map(String)
+                        .join("/")
                     : "";
 
             const time =
                 item.startTime &&
                 item.endTime
                     ? `${String(
-                          item.startTime,
-                      )}–${String(
-                          item.endTime,
-                      )}`
+                        item.startTime,
+                    )}–${String(
+                        item.endTime,
+                    )}`
                     : "";
 
             return [
@@ -381,25 +370,25 @@ async function getSubmittedEnrollmentData(
         enrollmentIds.length > 0 &&
         sectionIds.length > 0
             ? await db
-                  .collection(
-                      "studentEnrollmentItems",
-                  )
-                  .find(
-                      {
-                          enrollmentId: {
-                              $in:
-                                  enrollmentIds,
-                          },
-                          sectionId: {
-                              $in:
-                                  sectionIds,
-                          },
-                      },
-                      {
-                          session,
-                      },
-                  )
-                  .toArray()
+                .collection(
+                    "studentEnrollmentItems",
+                )
+                .find(
+                    {
+                        enrollmentId: {
+                            $in:
+                                enrollmentIds,
+                        },
+                        sectionId: {
+                            $in:
+                                sectionIds,
+                        },
+                    },
+                    {
+                        session,
+                    },
+                )
+                .toArray()
             : [];
 
     return {
@@ -519,16 +508,16 @@ export async function getGradeEntryPage(
     const courses =
         courseIds.length > 0
             ? await db
-                  .collection(
-                      "courses",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              courseIds,
-                      },
-                  })
-                  .toArray()
+                .collection(
+                    "courses",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            courseIds,
+                    },
+                })
+                .toArray()
             : [];
 
     const courseMap =
@@ -544,25 +533,25 @@ export async function getGradeEntryPage(
     const submissions =
         visibleSections.length > 0
             ? await db
-                  .collection(
-                      "gradeSubmissions",
-                  )
-                  .find({
-                      sectionId: {
-                          $in:
-                              visibleSections.map(
-                                  (section) =>
-                                      section._id,
-                              ),
-                      },
-                      academicTermId:
-                          term._id,
-                      facultyId:
-                          faculty._id,
-                      gradeType:
-                          "FINAL",
-                  })
-                  .toArray()
+                .collection(
+                    "gradeSubmissions",
+                )
+                .find({
+                    sectionId: {
+                        $in:
+                            visibleSections.map(
+                                (section) =>
+                                    section._id,
+                            ),
+                    },
+                    academicTermId:
+                        term._id,
+                    facultyId:
+                        faculty._id,
+                    gradeType:
+                        "FINAL",
+                })
+                .toArray()
             : [];
 
     const submissionMap =
@@ -578,21 +567,21 @@ export async function getGradeEntryPage(
     const allGrades =
         visibleSections.length > 0
             ? await db
-                  .collection("grades")
-                  .find({
-                      sectionId: {
-                          $in:
-                              visibleSections.map(
-                                  (section) =>
-                                      section._id,
-                              ),
-                      },
-                      academicTermId:
-                          term._id,
-                      facultyId:
-                          faculty._id,
-                  })
-                  .toArray()
+                .collection("grades")
+                .find({
+                    sectionId: {
+                        $in:
+                            visibleSections.map(
+                                (section) =>
+                                    section._id,
+                            ),
+                    },
+                    academicTermId:
+                        term._id,
+                    facultyId:
+                        faculty._id,
+                })
+                .toArray()
             : [];
 
     const gradesBySection =
@@ -704,10 +693,10 @@ export async function getGradeEntryPage(
     const selectedSection =
         requestedSectionId
             ? subjects.find(
-                  (subject) =>
-                      subject.sectionId ===
-                      requestedSectionId,
-              ) ?? null
+                (subject) =>
+                    subject.sectionId ===
+                    requestedSectionId,
+            ) ?? null
             : subjects[0] ?? null;
 
     if (
@@ -750,8 +739,8 @@ export async function getGradeEntryPage(
 
                 return enrollment
                     ? [
-                          enrollment.studentId,
-                      ]
+                        enrollment.studentId,
+                    ]
                     : [];
             },
         );
@@ -759,16 +748,16 @@ export async function getGradeEntryPage(
     const students =
         selectedStudentIds.length > 0
             ? await db
-                  .collection(
-                      "students",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              selectedStudentIds,
-                      },
-                  })
-                  .toArray()
+                .collection(
+                    "students",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            selectedStudentIds,
+                    },
+                })
+                .toArray()
             : [];
 
     const grades =
@@ -883,8 +872,8 @@ export async function getGradeEntryPage(
         lastSavedAt:
             latestSavedAt
                 ? new Date(
-                      latestSavedAt,
-                  ).toISOString()
+                    latestSavedAt,
+                ).toISOString()
                 : undefined,
     };
 }
@@ -1033,8 +1022,8 @@ export async function saveGradeDraft(
                                     ? "INCOMPLETE"
                                     : finalGradeValue ===
                                         0
-                                      ? "FAILED"
-                                      : "PASSED",
+                                    ? "FAILED"
+                                    : "PASSED",
                             status:
                                 "DRAFT",
                             updatedAt:
@@ -1147,16 +1136,16 @@ async function synchronizeStudentAcademicState(
     const termItems =
         headerIds.length > 0
             ? await db
-                  .collection("studentEnrollmentItems")
-                  .find(
-                      {
-                          enrollmentId: { $in: headerIds },
-                          studentId,
-                          academicTermId,
-                      },
-                      { session },
-                  )
-                  .toArray()
+                .collection("studentEnrollmentItems")
+                .find(
+                    {
+                        enrollmentId: { $in: headerIds },
+                        studentId,
+                        academicTermId,
+                    },
+                    { session },
+                )
+                .toArray()
             : [];
 
     const termSectionIds = termItems.map(
@@ -1166,17 +1155,17 @@ async function synchronizeStudentAcademicState(
     const submittedTermGrades =
         termSectionIds.length > 0
             ? await db
-                  .collection("grades")
-                  .find(
-                      {
-                          studentId,
-                          academicTermId,
-                          sectionId: { $in: termSectionIds },
-                          status: { $in: ["SUBMITTED", "VERIFIED"] },
-                      },
-                      { session },
-                  )
-                  .toArray()
+                .collection("grades")
+                .find(
+                    {
+                        studentId,
+                        academicTermId,
+                        sectionId: { $in: termSectionIds },
+                        status: { $in: ["SUBMITTED", "VERIFIED"] },
+                    },
+                    { session },
+                )
+                .toArray()
             : [];
 
     const termGradeBySection = new Map(
@@ -1272,12 +1261,12 @@ async function synchronizeStudentAcademicState(
     const allSections =
         allSectionIds.length > 0
             ? await db
-                  .collection("sections")
-                  .find(
-                      { _id: { $in: allSectionIds } },
-                      { session },
-                  )
-                  .toArray()
+                .collection("sections")
+                .find(
+                    { _id: { $in: allSectionIds } },
+                    { session },
+                )
+                .toArray()
             : [];
 
     const sectionMap = new Map(
@@ -1299,12 +1288,12 @@ async function synchronizeStudentAcademicState(
     const allCourses =
         allCourseIds.length > 0
             ? await db
-                  .collection("courses")
-                  .find(
-                      { _id: { $in: allCourseIds } },
-                      { session },
-                  )
-                  .toArray()
+                .collection("courses")
+                .find(
+                    { _id: { $in: allCourseIds } },
+                    { session },
+                )
+                .toArray()
             : [];
 
     const courseMap = new Map(
@@ -1329,11 +1318,11 @@ async function synchronizeStudentAcademicState(
         ).getTime();
         const existingTime = existing
             ? new Date(
-                  existing.submittedAt ??
-                      existing.updatedAt ??
-                      existing.createdAt ??
-                      0,
-              ).getTime()
+                existing.submittedAt ??
+                    existing.updatedAt ??
+                    existing.createdAt ??
+                    0,
+            ).getTime()
             : -1;
 
         if (!existing || currentTime >= existingTime) {
@@ -1689,22 +1678,22 @@ export async function submitGrades(
                     const enrollmentItems =
                         enrollmentIds.length > 0
                             ? await db
-                                  .collection(
-                                      "studentEnrollmentItems",
-                                  )
-                                  .find(
-                                      {
-                                          enrollmentId: {
-                                              $in:
-                                                  enrollmentIds,
-                                          },
-                                          sectionId,
-                                      },
-                                      {
-                                          session,
-                                      },
-                                  )
-                                  .toArray()
+                                .collection(
+                                    "studentEnrollmentItems",
+                                )
+                                .find(
+                                    {
+                                        enrollmentId: {
+                                            $in:
+                                                enrollmentIds,
+                                        },
+                                        sectionId,
+                                    },
+                                    {
+                                        session,
+                                    },
+                                )
+                                .toArray()
                             : [];
 
                     const enrollmentMap =
@@ -1727,8 +1716,8 @@ export async function submitGrades(
 
                                 return enrollment
                                     ? [
-                                          enrollment.studentId,
-                                      ]
+                                        enrollment.studentId,
+                                    ]
                                     : [];
                             },
                         );

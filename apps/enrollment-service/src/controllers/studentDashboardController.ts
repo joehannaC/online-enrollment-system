@@ -33,20 +33,14 @@ export async function getStudentDashboardController(
             return;
         }
 
-        const dashboard =
-            await getStudentDashboard(
-                authenticatedUserId,
-            );
+        const dashboard = await getStudentDashboard(authenticatedUserId,);
 
         response.status(200).json({
             success: true,
             data: dashboard,
         });
     } catch (error) {
-        if (
-            error instanceof
-            StudentDashboardError
-        ) {
+        if (error instanceof StudentDashboardError) {
             response.status(
                 error.statusCode,
             ).json({

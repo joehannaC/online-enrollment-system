@@ -8,29 +8,22 @@ import {
     initializeSocketServer,
 } from "./realtime/socketServer.js";
 
-const server =
-    createServer(app);
+const server = createServer(app);
 
-initializeSocketServer(
-    server,
-);
+initializeSocketServer(server,);
 
 server.listen(
     env.HTTP_PORT,
     env.HTTP_HOST,
     () => {
-        console.log(
-            `[${env.SERVICE_NAME}] HTTP and realtime socket listening on ${env.HTTP_HOST}:${env.HTTP_PORT}`,
-        );
+        console.log(`[${env.SERVICE_NAME}] HTTP and realtime socket listening on ${env.HTTP_HOST}:${env.HTTP_PORT}`,);
     },
 );
 
 function shutdown(
     signal: string,
 ): void {
-    console.log(
-        `[${env.SERVICE_NAME}] Received ${signal}. Shutting down.`,
-    );
+    console.log(`[${env.SERVICE_NAME}] Received ${signal}. Shutting down.`,);
 
     server.close(
         (error) => {

@@ -38,8 +38,8 @@ export default function Input({
     const descriptionId = error
         ? `${inputId}-error`
         : helperText
-          ? `${inputId}-helper`
-          : undefined;
+        ? `${inputId}-helper`
+        : undefined;
 
     return (
         <div className={containerClassName}>

@@ -9,7 +9,6 @@ export default function StudentLoading() {
                     <div className="mt-3 h-4 w-72 max-w-full rounded-md bg-white/20" />
                 </section>
 
-                {/* Main dashboard cards */}
                 <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
                     <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
                         <div className="flex items-center justify-between">
@@ -62,7 +61,6 @@ export default function StudentLoading() {
                     </section>
                 </div>
 
-                {/* Schedule skeleton */}
                 <section className="mt-5 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>

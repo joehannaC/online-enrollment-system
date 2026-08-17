@@ -79,8 +79,8 @@ function mapFaculty(
         title:
             faculty.title
                 ? String(
-                      faculty.title,
-                  )
+                    faculty.title,
+                )
                 : undefined,
 
         firstName:
@@ -91,8 +91,8 @@ function mapFaculty(
         middleName:
             faculty.middleName
                 ? String(
-                      faculty.middleName,
-                  )
+                    faculty.middleName,
+                )
                 : undefined,
         lastName:
             String(
@@ -103,11 +103,11 @@ function mapFaculty(
         fullName:
             faculty.fullName
                 ? String(
-                      faculty.fullName,
-                  )
+                    faculty.fullName,
+                )
                 : buildFullName(
-                      faculty,
-                  ),
+                    faculty,
+                ),
 
         department:
             String(
@@ -172,8 +172,8 @@ function normalizeSchedule(
                     item.days,
                 )
                     ? item.days.map(
-                          String,
-                      )
+                        String,
+                    )
                     : [],
             startTime:
                 String(
@@ -351,10 +351,6 @@ export async function getFacultyDashboard(
         );
     }
 
-    /*
-     * Successful enrollment currently belongs to the configured
-     * enrollment term. Fall back to the active current term.
-     */
     const currentTerm =
         (await database
             .collection(
@@ -458,16 +454,16 @@ export async function getFacultyDashboard(
         await Promise.all([
             courseIds.length > 0
                 ? database
-                      .collection(
-                          "courses",
-                      )
-                      .find({
-                          _id: {
-                              $in:
-                                  courseIds,
-                          },
-                      })
-                      .toArray()
+                    .collection(
+                        "courses",
+                    )
+                    .find({
+                        _id: {
+                            $in:
+                                courseIds,
+                        },
+                    })
+                    .toArray()
                 : [],
 
             sectionIds.length >
@@ -475,58 +471,58 @@ export async function getFacultyDashboard(
             enrollmentIds.length >
                     0
                 ? database
-                      .collection(
-                          "studentEnrollmentItems",
-                      )
-                      .find({
-                          enrollmentId: {
-                              $in:
-                                  enrollmentIds,
-                          },
-                          sectionId: {
-                              $in:
-                                  sectionIds,
-                          },
-                      })
-                      .toArray()
+                    .collection(
+                        "studentEnrollmentItems",
+                    )
+                    .find({
+                        enrollmentId: {
+                            $in:
+                                enrollmentIds,
+                        },
+                        sectionId: {
+                            $in:
+                                sectionIds,
+                        },
+                    })
+                    .toArray()
                 : [],
 
             sectionIds.length > 0
                 ? database
-                      .collection(
-                          "grades",
-                      )
-                      .find({
-                          sectionId: {
-                              $in:
-                                  sectionIds,
-                          },
-                          academicTermId:
-                              currentTerm._id,
-                          facultyId:
-                              faculty._id,
-                      })
-                      .toArray()
+                    .collection(
+                        "grades",
+                    )
+                    .find({
+                        sectionId: {
+                            $in:
+                                sectionIds,
+                        },
+                        academicTermId:
+                            currentTerm._id,
+                        facultyId:
+                            faculty._id,
+                    })
+                    .toArray()
                 : [],
 
             sectionIds.length > 0
                 ? database
-                      .collection(
-                          "gradeSubmissions",
-                      )
-                      .find({
-                          sectionId: {
-                              $in:
-                                  sectionIds,
-                          },
-                          academicTermId:
-                              currentTerm._id,
-                          facultyId:
-                              faculty._id,
-                          gradeType:
-                              "FINAL",
-                      })
-                      .toArray()
+                    .collection(
+                        "gradeSubmissions",
+                    )
+                    .find({
+                        sectionId: {
+                            $in:
+                                sectionIds,
+                        },
+                        academicTermId:
+                            currentTerm._id,
+                        facultyId:
+                            faculty._id,
+                        gradeType:
+                            "FINAL",
+                    })
+                    .toArray()
                 : [],
         ]);
 
@@ -552,11 +548,11 @@ export async function getFacultyDashboard(
 
                         return enrollment
                             ? [
-                                  [
-                                      enrollment.studentId.toString(),
-                                      enrollment.studentId,
-                                  ] as const,
-                              ]
+                                [
+                                    enrollment.studentId.toString(),
+                                    enrollment.studentId,
+                                ] as const,
+                            ]
                             : [];
                     },
                 ),
@@ -566,16 +562,16 @@ export async function getFacultyDashboard(
     const students =
         studentIds.length > 0
             ? await database
-                  .collection(
-                      "students",
-                  )
-                  .find({
-                      _id: {
-                          $in:
-                              studentIds,
-                      },
-                  })
-                  .toArray()
+                .collection(
+                    "students",
+                )
+                .find({
+                    _id: {
+                        $in:
+                            studentIds,
+                    },
+                })
+                .toArray()
             : [];
 
     const courseMap =
@@ -783,12 +779,12 @@ export async function getFacultyDashboard(
                     0
                         ? 0
                         : Math.round(
-                              (
-                                  submittedGrades /
-                                  roster.length
+                            (
+                                submittedGrades /
+                                roster.length
                               ) *
-                                  100,
-                          );
+                                100,
+                        );
 
                 return [
                     {
@@ -881,12 +877,12 @@ export async function getFacultyDashboard(
         0
             ? 0
             : Math.round(
-                  (
-                      submittedGradeCount /
-                      enrolledStudentCount
+                (
+                    submittedGradeCount /
+                    enrolledStudentCount
                   ) *
-                      100,
-              );
+                    100,
+            );
 
     const deadline =
         new Date(

@@ -29,8 +29,7 @@ export class FairSemaphore {
             );
         }
 
-        this.availablePermits =
-            maximumPermits;
+        this.availablePermits = maximumPermits;
     }
 
     public async acquire(
@@ -43,10 +42,7 @@ export class FairSemaphore {
             );
         }
 
-        if (
-            this.availablePermits > 0 &&
-            this.queue.length === 0
-        ) {
+        if (this.availablePermits > 0 && this.queue.length === 0) {
             this.availablePermits -= 1;
 
             return this.createRelease();
@@ -92,10 +88,7 @@ export class FairSemaphore {
     public close(): void {
         this.closed = true;
 
-        for (
-            const waiter of
-            this.queue.splice(0)
-        ) {
+        for (const waiter of this.queue.splice(0)) {
             if (waiter.timeout) {
                 clearTimeout(
                     waiter.timeout,
@@ -120,8 +113,7 @@ export class FairSemaphore {
 
             released = true;
 
-            const next =
-                this.queue.shift();
+            const next = this.queue.shift();
 
             if (next) {
                 if (next.timeout) {

@@ -152,13 +152,6 @@ export default function StudentProfilePage() {
                 );
 
                 try {
-                    /*
-                     * Load profile-owned information first.
-                     *
-                     * The profile page should remain available
-                     * even when the student records or
-                     * enrollment-related service is unavailable.
-                     */
                     const response =
                         await getMyProfile(
                             signal,
@@ -180,12 +173,6 @@ export default function StudentProfilePage() {
                         response.profile,
                     );
 
-                    /*
-                     * Load academic summary independently.
-                     *
-                     * Failure here must not make the entire
-                     * profile page unavailable.
-                     */
                     try {
                         const recordsResponse =
                             await getStudentRecords(

@@ -211,7 +211,7 @@ export default function HandledSubjects({
                         )}
                     </div>
                 ) : filteredSubjects.length ===
-                  0 ? (
+                0 ? (
                     <div className="p-5">
                         <EmptyState
                             compact
@@ -365,8 +365,8 @@ export default function HandledSubjects({
                                                                 ? "success"
                                                                 : student.gradeStatus ===
                                                                     "DRAFT"
-                                                                  ? "primary"
-                                                                  : "warning"
+                                                                ? "primary"
+                                                                : "warning"
                                                         }
                                                     >
                                                         {
@@ -379,8 +379,8 @@ export default function HandledSubjects({
                                                     {student.gradeStatus ===
                                                     "SUBMITTED"
                                                         ? formatGrade(
-                                                              student.finalGradeValue,
-                                                          )
+                                                            student.finalGradeValue,
+                                                        )
                                                         : "—"}
                                                 </td>
                                             </tr>

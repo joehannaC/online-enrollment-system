@@ -106,10 +106,7 @@ function requireStudent(
         return false;
     }
 
-    if (
-        request.auth.role !==
-        "STUDENT"
-    ) {
+    if (request.auth.role !== "STUDENT") {
         response.status(403).json({
             success: false,
             error: {
@@ -134,19 +131,11 @@ export async function handleGetStudentEnrollment(
     next: NextFunction,
 ): Promise<void> {
     try {
-        if (
-            !requireStudent(
-                request,
-                response,
-            )
-        ) {
+        if (!requireStudent(request, response,)) {
             return;
         }
 
-        const parsed =
-            enrollmentQuerySchema.safeParse(
-                request.query,
-            );
+        const parsed = enrollmentQuerySchema.safeParse(request.query,);
 
         if (!parsed.success) {
             response.status(400).json({
@@ -187,19 +176,11 @@ export async function handleAddDraftItem(
     next: NextFunction,
 ): Promise<void> {
     try {
-        if (
-            !requireStudent(
-                request,
-                response,
-            )
-        ) {
+        if (!requireStudent(request, response,)) {
             return;
         }
 
-        const parsed =
-            addDraftItemSchema.safeParse(
-                request.body,
-            );
+        const parsed = addDraftItemSchema.safeParse(request.body,);
 
         if (!parsed.success) {
             response.status(400).json({
@@ -219,10 +200,7 @@ export async function handleAddDraftItem(
             return;
         }
 
-        await addDraftItem(
-            request.auth.userId,
-            parsed.data,
-        );
+        await addDraftItem(request.auth.userId, parsed.data,);
 
         response.status(200).json({
             success: true,
@@ -242,24 +220,13 @@ export async function handleRemoveDraftItem(
     next: NextFunction,
 ): Promise<void> {
     try {
-        if (
-            !requireStudent(
-                request,
-                response,
-            )
-        ) {
+        if (!requireStudent(request, response,)) {
             return;
         }
 
-        const itemId =
-            request.params.itemId;
+        const itemId = request.params.itemId;
 
-        if (
-            typeof itemId !==
-            "string" ||
-            itemId.trim().length ===
-            0
-        ) {
+        if (typeof itemId !== "string" || itemId.trim().length === 0) {
             response.status(400).json({
                 success: false,
                 error: {

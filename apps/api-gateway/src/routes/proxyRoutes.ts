@@ -163,31 +163,21 @@ function proxy(
                     },
                 );
 
-                if (
-                    !isHttpResponse(
-                        response,
-                    )
-                ) {
-                    if (
-                        !response.destroyed
-                    ) {
+                if (!isHttpResponse(response,)) {
+                    if (!response.destroyed) {
                         response.end();
                     }
 
                     return;
                 }
 
-                if (
-                    response.headersSent
-                ) {
+                if (response.headersSent) {
                     response.end();
 
                     return;
                 }
 
-                response.status(
-                    503,
-                );
+                response.status(503,);
 
                 response.json({
                     success: false,

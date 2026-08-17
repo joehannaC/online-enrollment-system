@@ -264,8 +264,8 @@ export async function getStudentRecords(
             response.ok
                 ? "The Enrollment Service returned an invalid response."
                 : getFallbackErrorMessage(
-                      response.status,
-                  ),
+                    response.status,
+                ),
             response.status ||
                 502,
             "enrollment-service",

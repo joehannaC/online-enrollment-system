@@ -20,6 +20,10 @@ export type StudentRecordStatus =
     | "CAN_BE_ENLISTED"
     | "CREDITED";
 
+export type EnrollmentItemStatus =
+    | "DRAFT"
+    | "ENROLLED";
+
 export interface AcademicPeriodOption {
     academicYear: string;
     termNumber: number;
@@ -42,8 +46,7 @@ export interface StudentRecordItem {
 
     status: StudentRecordStatus;
 
-    eligibilityCode:
-        CourseEligibilityCode;
+    eligibilityCode: CourseEligibilityCode;
 
     eligibilityTitle: string;
     eligibilityMessage: string;
@@ -66,17 +69,9 @@ export interface StudentRecordSummary {
     remainingUnits: number;
     remainingNonAcademicUnits: number;
 
-    /*
-     * Units from studentEnrollmentItems whose item-level
-     * status is ENROLLED.
-     */
     enrolledUnits: number;
     enrolledNonAcademicUnits: number;
 
-    /*
-     * Units from studentEnrollmentItems whose item-level
-     * status is DRAFT.
-     */
     enlistedUnits: number;
     enlistedNonAcademicUnits: number;
 }

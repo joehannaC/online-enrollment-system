@@ -57,11 +57,11 @@ export default function Select({
     const valueProps =
         value !== undefined
             ? {
-                  value,
-              }
+                value,
+            }
             : {
-                  defaultValue:
-                      defaultValue ?? "",
+                defaultValue:
+                    defaultValue ?? "",
               };
 
     return (

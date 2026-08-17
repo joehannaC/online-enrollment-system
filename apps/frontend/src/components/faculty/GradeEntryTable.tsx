@@ -305,10 +305,10 @@ export default function GradeEntryTable({
                                             {student.rawFinalGrade !==
                                             undefined
                                                 ? `${student.rawFinalGrade.toFixed(
-                                                      2,
-                                                  )} (${student.finalGradeValue?.toFixed(
-                                                      1,
-                                                  )})`
+                                                    2,
+                                                )} (${student.finalGradeValue?.toFixed(
+                                                    1,
+                                                )})`
                                                 : "—"}
                                         </td>
 
@@ -320,8 +320,8 @@ export default function GradeEntryTable({
                                                         ? "success"
                                                         : displayStatus ===
                                                             "DRAFT"
-                                                          ? "primary"
-                                                          : "warning"
+                                                        ? "primary"
+                                                        : "warning"
                                                 }
                                             >
                                                 {displayStatus ===
@@ -329,8 +329,8 @@ export default function GradeEntryTable({
                                                     ? "Complete"
                                                     : displayStatus ===
                                                         "DRAFT"
-                                                      ? "Draft"
-                                                      : "Incomplete"}
+                                                    ? "Draft"
+                                                    : "Incomplete"}
                                             </StatusBadge>
                                         </td>
                                     </tr>

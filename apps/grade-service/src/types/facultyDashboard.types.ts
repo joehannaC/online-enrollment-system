@@ -72,21 +72,10 @@ export interface FacultySubject {
 
     enrolledStudents: number;
 
-    /*
-     * submittedGrades counts only students whose grade
-     * record has status SUBMITTED or VERIFIED.
-     */
     submittedGrades: number;
 
-    /*
-     * Kept for existing UI compatibility. It has the same
-     * value as submittedGrades.
-     */
     gradedStudents: number;
 
-    /*
-     * Draft and incomplete grades are both pending.
-     */
     pendingGrades: number;
 
     submissionPercentage: number;

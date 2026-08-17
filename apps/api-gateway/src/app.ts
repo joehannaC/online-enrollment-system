@@ -15,19 +15,13 @@ import {
     realtimeRoutes,
 } from "./realtime/realtime.routes.js";
 
-export const app =
-    express();
+export const app = express();
 
-app.disable(
-    "x-powered-by",
-);
+app.disable("x-powered-by",);
 
-app.use(
-    helmet(),
-);
+app.use(helmet(),);
 
-const allowedOrigins =
-    env.FRONTEND_ORIGINS;
+const allowedOrigins = env.FRONTEND_ORIGINS;
 
 console.log(
     `[${env.SERVICE_NAME}] Allowed CORS origins:`,
@@ -40,36 +34,20 @@ const corsOptions: CorsOptions = {
         callback,
     ) {
         if (!origin) {
-            callback(
-                null,
-                true,
-            );
+            callback(null, true,);
 
             return;
         }
 
-        if (
-            allowedOrigins.includes(
-                origin,
-            )
-        ) {
-            callback(
-                null,
-                true,
-            );
+        if (allowedOrigins.includes(origin,)) {
+            callback(null, true,);
 
             return;
         }
 
-        console.warn(
-            `[${env.SERVICE_NAME}] CORS blocked origin: ${origin}`,
-        );
+        console.warn(`[${env.SERVICE_NAME}] CORS blocked origin: ${origin}`,);
 
-        callback(
-            new Error(
-                `CORS blocked origin: ${origin}`,
-            ),
-        );
+        callback(new Error(`CORS blocked origin: ${origin}`,),);
     },
 
     credentials:
@@ -102,11 +80,7 @@ const corsOptions: CorsOptions = {
         600,
 };
 
-app.use(
-    cors(
-        corsOptions,
-    ),
-);
+app.use(cors(corsOptions,),);
 
 app.get(
     "/health",
@@ -148,9 +122,7 @@ app.use("/api/faculty", authenticateRequest);
 app.use("/api/grades", authenticateRequest);
 app.use("/api/profiles", authenticateRequest);
 
-app.use(
-    proxyRoutes,
-);
+app.use(proxyRoutes,);
 
 app.use(
     (
@@ -184,10 +156,7 @@ app.use(
         response: Response,
         _next: NextFunction,
     ) => {
-        console.error(
-            `[${env.SERVICE_NAME}]`,
-            error,
-        );
+        console.error(`[${env.SERVICE_NAME}]`, error,);
 
         const isCorsError =
             error instanceof Error &&
