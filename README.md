@@ -1,45 +1,201 @@
-Dependencies
--
--
--
+## Dependencies
 
+This project consists of the following applications:
 
-Root:
-```bash
-npm i or npm install
+* **API Gateway** — Express + Socket.IO
+* **Auth Service** — Express + gRPC + MongoDB
+* **Enrollment Service** — Express + gRPC + MongoDB
+* **Grade Service** — Express + gRPC + MongoDB
+* **Profile Service** — Express + gRPC + MongoDB
+* **Frontend** — Next.js + React + Socket.IO Client
+* **Shared Package** — Shared types and utilities used by the services
+
+All application dependencies are already defined in their respective `package.json` files.
+
+## Frontend Environment
+
+Create or update:
+
+```text
+apps/frontend/.env.local
 ```
 
-API gateway:
+The frontend communicates with the backend through the API Gateway.
+
+
+## Api-Gateway Environment
+
+Create or update:
+
+```text
+apps/api-gateway/.env
+```
+
+Format / Structure of .env can be found in .env.example
+
+## Auth Service Environment
+
+Create or update:
+
+```text
+apps/auth-service/.env
+```
+
+Format / Structure of .env can be found in .env.example
+
+## Enrollment Service Environment
+
+Create or update:
+
+```text
+apps/enrollment-service/.env
+```
+
+Format / Structure of .env can be found in .env.example
+
+## Grade Service Environment
+
+Create or update:
+
+```text
+apps/grade-service/.env
+```
+
+Format / Structure of .env can be found in .env.example
+
+## Profile Service Environment
+
+Create or update:
+
+```text
+apps/profile-service/.env
+```
+
+Format / Structure of .env can be found in .env.example
+
+### Install Dependencies
+
+From the project root:
+
+```bash
+npm install
+```
+
+For each application, install its dependencies:
+
+#### API Gateway
+
 ```bash
 cd apps/api-gateway
-npm install socket.io jsonwebtoken
-npm install -D @types/jsonwebtoken
+npm install
 ```
 
-Auth:
+#### Auth Service
+
 ```bash
-npm run dev:auth
+cd apps/auth-service
+npm install
 ```
 
-Enrollment:
+#### Enrollment Service
+
 ```bash
-npm run dev:enrollment
+cd apps/enrollment-service
+npm install
 ```
 
-Grade:
+#### Grade Service
+
 ```bash
-npm run dev:grade
+cd apps/grade-service
+npm install
 ```
 
-Profile:
+#### Profile Service
+
 ```bash
-npm run build --prefix packages/shared
-npm run dev:profile
+cd apps/profile-service
+npm install
 ```
 
-Frontend:
+#### Frontend
+
 ```bash
 cd apps/frontend
-npm install socket.io-client
-npm run dev:frontend
+npm install
 ```
+---
+
+## Running the Services
+
+Open separate terminal windows for each service.
+
+### API Gateway
+
+```bash
+cd apps/api-gateway
+npm run dev
+```
+
+### Auth Service
+
+```bash
+cd apps/auth
+npm run dev
+```
+
+### Enrollment Service
+
+```bash
+cd apps/enrollment
+npm run dev
+```
+
+### Grade Service
+
+```bash
+cd apps/grade
+npm run dev
+```
+
+### Profile Service
+
+```bash
+cd apps/profile
+npm run dev
+```
+
+### Frontend
+
+```bash
+cd apps/frontend
+npm run dev
+```
+
+
+## Recommended Startup Order
+
+Start the backend services first:
+
+```text
+1. Auth Service
+2. Enrollment Service
+3. Grade Service
+4. Profile Service
+5. API Gateway
+6. Frontend
+```
+
+The API Gateway acts as the browser-facing backend endpoint and forwards requests to the backend services.
+
+---
+
+## Build Shared Package
+
+If the shared package is used by the services, build it before starting the applications:
+
+```bash
+npm run build --prefix packages/shared
+```
+
+Then start the services normally.
