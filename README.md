@@ -25,6 +25,7 @@ Create or update:
 ```text
 apps/frontend/.env.local
 ```
+Format / Structure of .env can be found in apps/README.md
 
 The frontend communicates with the backend through the API Gateway.
 
@@ -37,7 +38,7 @@ Create or update:
 apps/api-gateway/.env
 ```
 
-Format / Structure of .env can be found in .env.example
+Format / Structure of .env can be found in apps/README.md
 
 ## Auth Service Environment
 
@@ -47,8 +48,7 @@ Create or update:
 apps/auth-service/.env
 ```
 
-Format / Structure of .env can be found in .env.example
-
+Format / Structure of .env can be found in apps/README.md
 ## Enrollment Service Environment
 
 Create or update:
@@ -57,7 +57,7 @@ Create or update:
 apps/enrollment-service/.env
 ```
 
-Format / Structure of .env can be found in .env.example
+Format / Structure of .env can be found in apps/README.md
 
 ## Grade Service Environment
 
@@ -67,7 +67,7 @@ Create or update:
 apps/grade-service/.env
 ```
 
-Format / Structure of .env can be found in .env.example
+Format / Structure of .env can be found in apps/README.md
 
 ## Profile Service Environment
 
@@ -77,7 +77,7 @@ Create or update:
 apps/profile-service/.env
 ```
 
-Format / Structure of .env can be found in .env.example
+Format / Structure of .env can be found in apps/README.md
 
 ### Install Dependencies
 
