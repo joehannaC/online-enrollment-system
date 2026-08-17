@@ -18,6 +18,8 @@ This project consists of the following applications:
 
 All application dependencies are already defined in their respective `package.json` files.
 
+## Creating environment for each services
+
 ## Frontend Environment
 
 Create or update:
